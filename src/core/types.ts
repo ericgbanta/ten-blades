@@ -203,6 +203,15 @@ export interface MapData {
   placements: Placement[];
   objective: Objective;
   reinforcements: ReinforcementWave[];
+  /** Decorative props drawn over the tiles (see src/data/props.json). The rules ignore them. */
+  props?: MapProp[];
+}
+
+/** A decorative prop on a map tile. */
+export interface MapProp {
+  id: string;
+  x: number;
+  y: number;
 }
 
 /** Everything the engine reads from JSON, passed into every core function. */

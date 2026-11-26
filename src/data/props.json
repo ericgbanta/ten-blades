@@ -1,0 +1,14 @@
+{
+  "fence": { "name": "Fence", "size": "small", "terrains": ["plain", "village"] },
+  "cart": { "name": "Cart", "size": "tall", "terrains": ["plain", "road", "village"] },
+  "barrels": { "name": "Barrels", "size": "small", "terrains": ["plain", "village", "fort", "road"] },
+  "rubble": { "name": "Rubble", "size": "small", "terrains": ["plain", "hill", "fort", "road"] },
+  "banner": { "name": "Banner", "size": "tall", "terrains": ["plain", "fort", "hill"] },
+  "well": { "name": "Well", "size": "tall", "terrains": ["plain", "village"] },
+  "haystack": { "name": "Haystack", "size": "tall", "terrains": ["plain", "village"] },
+  "dead_tree": { "name": "Dead tree", "size": "tall", "terrains": ["plain", "hill", "forest"] },
+  "campfire": { "name": "Campfire", "size": "small", "terrains": ["plain", "road", "fort"] },
+  "signpost": { "name": "Signpost", "size": "tall", "terrains": ["plain"] },
+  "graves": { "name": "Gravestones", "size": "small", "terrains": ["plain", "hill"] },
+  "wheel": { "name": "Wagon wheel", "size": "small", "terrains": ["plain", "road", "village"] }
+}

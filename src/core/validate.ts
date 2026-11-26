@@ -144,6 +144,14 @@ function validateMap(m: MapData, data: GameData): string[] {
     else if (t.team === 'enemy') errs.push(`${where}: protect target ${obj.unitId} is an enemy`);
   }
   if (obj.type === 'escape') for (const t of obj.tiles) checkPos(t, 'escape tile', null);
+  const propTiles = new Set<string>();
+  for (const p of m.props ?? []) {
+    if (typeof p.id !== 'string' || !/^[a-z_]+$/.test(p.id)) errs.push(`${where}: prop with a bad id ${String(p.id)}`);
+    if (!isInt(p.x) || !isInt(p.y) || terrainAt(p) === null) errs.push(`${where}: prop ${p.id} off the map at ${p.x},${p.y}`);
+    const k = `${p.x},${p.y}`;
+    if (propTiles.has(k)) errs.push(`${where}: two props on ${k}`);
+    propTiles.add(k);
+  }
   if ((obj.type === 'survive' || obj.type === 'protect') && (!isInt(obj.turns) || obj.turns < 1)) {
     errs.push(`${where}: bad turns`);
   }
