@@ -26,6 +26,8 @@ const MAX_TILE_CSS = 64;
 const ZOOM_MAX_CSS = 112;
 const TAP_SLOP_CSS = 10;
 const REVEAL_MARGIN_CSS = 12;
+/** Tiles of free space above the map, for the heads of units on its top row. */
+const HEADROOM = 0.3;
 
 const tileCenter = (p: Pos): { x: number; y: number } => ({ x: (p.x + 0.5) * TILE, y: (p.y + 0.5) * TILE });
 
@@ -117,6 +119,13 @@ export class MapScene extends Phaser.Scene implements Stage {
     return { width: this.scale.width, height: this.scale.height, insets: { top: i.top * d, right: i.right * d, bottom: i.bottom * d, left: i.left * d } };
   }
 
+  /** The view for clamping: a strip above the map stays scrollable, so a unit on the top row (whose head reaches
+   * above its tile) is not cut off by the edge of the canvas. */
+  private clampView(zoom: number): View {
+    const v = this.view();
+    return { ...v, insets: { ...v.insets, top: v.insets.top + TILE * HEADROOM * zoom } };
+  }
+
   private mapSize(): { w: number; h: number } {
     return { w: this.lastState.map.width * TILE, h: this.lastState.map.height * TILE };
   }
@@ -140,7 +149,7 @@ export class MapScene extends Phaser.Scene implements Stage {
     const zoom = Math.min(max, Math.max(min, p.zoom));
     const scaled = zoom === p.zoom ? p : zoomAround(p, zoom, this.scale.width / 2, this.scale.height / 2);
     const { w, h } = this.mapSize();
-    const c = clampPose(scaled, w, h, this.view());
+    const c = clampPose(scaled, w, h, this.clampView(scaled.zoom));
     const cam = this.cameras.main;
     cam.setZoom(c.zoom);
     cam.setScroll(c.scrollX, c.scrollY);
@@ -193,7 +202,7 @@ export class MapScene extends Phaser.Scene implements Stage {
     const y0 = Math.min(...ys) * TILE;
     const target = revealRect(this.pose(), x0, y0, (Math.max(...xs) + 1) * TILE - x0, (Math.max(...ys) + 1) * TILE - y0, this.view(), REVEAL_MARGIN_CSS * this.dpr);
     const { w, h } = this.mapSize();
-    const c = clampPose(target, w, h, this.view());
+    const c = clampPose(target, w, h, this.clampView(target.zoom));
     const cam = this.cameras.main;
     if (Math.abs(c.scrollX - cam.scrollX) < 1 && Math.abs(c.scrollY - cam.scrollY) < 1) return Promise.resolve();
     if (ms <= 0) {
@@ -288,6 +297,10 @@ export class MapScene extends Phaser.Scene implements Stage {
     return t;
   }
 
+  update(): void {
+    for (const t of this.tokens.values()) t.syncOverlay();
+  }
+
   sync(state: BattleState): void {
     this.lastState = state;
     for (const u of state.units) {
@@ -363,6 +376,7 @@ export class MapScene extends Phaser.Scene implements Stage {
       if (this.walkIds.get(unitId) !== id) return;
       const c = tileCenter(step);
       await this.tween(t, { x: c.x, y: c.y }, stepMs, 'Linear');
+      t.setDepth(10 + step.y * 0.01);
     }
     const end = path[path.length - 1];
     if (end && this.walkIds.get(unitId) === id) t.setDepth(10 + end.y * 0.01);
@@ -497,7 +511,7 @@ export class MapScene extends Phaser.Scene implements Stage {
     }
     const hp = ev.hit ? d.tweenHp(ev.hpAfter, t.ms(320)) : Promise.resolve();
     await this.tween(a, { x: home.x, y: home.y }, t.ms(150), 'Quad.easeIn');
-    a.setDepth(10);
+    a.setDepth(10 + (this.unitPos(ev.attackerId)?.y ?? 0) * 0.01);
     await hp;
     await this.sleep(t.ms(220));
   }
