@@ -10,12 +10,35 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
   },
   {
-    // Core logic stays pure: no DOM, no storage, no unseeded randomness.
-    files: ['src/core/**/*.ts'],
+    // Core logic and the pure save modules stay pure: no DOM, no storage, no
+    // clock, no unseeded randomness. Time and seeds come in from the UI.
+    files: [
+      'src/core/**/*.ts',
+      'src/save/format.ts',
+      'src/save/shape.ts',
+      'src/save/validate.ts',
+      'src/save/migrate.ts',
+      'src/save/load.ts',
+      'src/save/campaign.ts',
+      'src/save/queue.ts',
+    ],
     languageOptions: { globals: {} },
     rules: {
-      'no-restricted-globals': ['error', 'window', 'document', 'localStorage', 'sessionStorage', 'navigator'],
+      'no-restricted-globals': [
+        'error',
+        'window',
+        'document',
+        'localStorage',
+        'sessionStorage',
+        'indexedDB',
+        'navigator',
+        { name: 'Date', message: 'Pass the time in from the UI.' },
+      ],
       'no-restricted-properties': ['error', { object: 'Math', property: 'random', message: 'Use the seeded RNG in src/core/rng.ts.' }],
     },
+  },
+  {
+    // An underscore marks a parameter kept for a hook's signature.
+    rules: { '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }] },
   },
 );

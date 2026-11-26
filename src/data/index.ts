@@ -7,6 +7,8 @@ import classes from './classes.json';
 import terrain from './terrain.json';
 import weapons from './weapons.json';
 import prologue from './maps/prologue.json';
+import chaptersJson from './chapters.json';
+import type { ChapterDef } from '../save/format';
 
 // JSON imports widen string unions and tuples, so they are cast here.
 // tests/data.test.ts checks the shapes and every cross reference at runtime.
@@ -17,3 +19,6 @@ export const gameData: GameData = {
   weapons: weapons as unknown as Record<string, WeaponDef>,
   maps: { prologue: prologue as unknown as MapData },
 };
+
+/** The story order of chapters. Phase 4 grows this into full chapter data. */
+export const chapters: readonly ChapterDef[] = chaptersJson as ChapterDef[];
