@@ -66,7 +66,9 @@ Text in lines, answers and speaker names can carry tokens in braces, resolved fr
 
 An unknown token shows as it is, and the story check fails on it. Tokens are not read twice: a name typed with braces in it stays as typed.
 
-The current names are placeholders: empire "Ardent Empire", emperor "Emperor Haldric", continent "Hesper", village "Wrenfold". The Stranger is "The Stranger" in `speakers.json`. Write the empire as "the {empire}" so a rename to any proper noun still reads.
+The current names are placeholders: empire "Ardent Empire", emperor "Emperor Haldric", continent "Hesper", village "Wrenfold", and the market town of Chapter 3, `town` "Saltmarket". The Stranger is "The Stranger" in `speakers.json` (the design gives her no name yet). Write the empire as "the {empire}" so a rename to any proper noun still reads.
+
+`names.json` also holds the names of the people who join in chapters 1 to 3, so a rename is one edit there and one in the map that places the unit: `gravemaw_bearer` "Garrow" (Gravemaw's bearer), `needles_bearer` "Pell" (the Thousand Needles thief), and the four recruits `soldier_recruit` "Hask", `ranger_recruit` "Lise", `adept_recruit` "Tobin" and `medic_recruit` "Marra". Their speakers' name plates use these tokens (`{gravemaw_bearer}`), and `tests/chapters.test.ts` checks that the units on the maps carry the same names.
 
 ## Chapters
 
@@ -111,11 +113,58 @@ Units the plot needs elsewhere leave through `after.leave`. Recruits from talkin
 | `prologue_outro_fell` | Instead of the above in Classic when `stranger_fell` is set. Has the choice. |
 | `prologue_binding` | After either: the sword binds to the MC, its first whisper, the MC decides to run. |
 
-Flags: `stranger_fell` (true if she fell in battle), `prologue_promise` (true if the MC promised to carry the blade north, false if they said nothing). After the outro the Stranger leaves the party and the MC's weapon becomes `widows_hush_<style>` (the starting weapon goes to the convoy). Then the army makes camp before Chapter 1: the prologue's `campAfter` opens all four facilities for now (the design opens the merchant and the forge after Chapter 2; phase 7 moves them there) and offers the first campfire scene.
+Flags: `stranger_fell` (true if she fell in battle), `prologue_promise` (true if the MC promised to carry the blade north, false if they said nothing). After the outro the Stranger leaves the party and the MC's weapon becomes `widows_hush_<style>` (the starting weapon goes to the convoy). Then the army makes camp before Chapter 1: the prologue's camp opens the barracks and the war map, and offers the first campfire scene.
 
-Chapters 1 to 3 have draft intros (`ch1_intro`, `ch2_intro`, `ch3_intro`) and no maps yet. Their backdrops are `forest`, `camp` and `town` (packed in phase 5).
+## Chapter 1: Hunted
+
+The MC flees north with two villagers who followed the MC out of Wrenfold, Hask (a Soldier) and Lise (a Ranger), with the hunters close behind. The map is a night forest cut by a river, and the objective is escape: the MC reaches the road where it leaves the forest (docs/MAPS.md). Hask and Lise are placed by the map on the player's side and join the party after the battle. Tobin (an Adept) and Marra (a Medic), refugees hiding in the old border fort, stand there as allies until a player unit enters the fort grounds, or until turn 3 at the latest; then they come over and can act that turn.
+
+| Scene | When |
+| --- | --- |
+| `ch1_intro` | Before the battle: three nights north of the village, Hask and Lise, the fire in the old fort. |
+| `ch1_b_start` | Battle start: get past the hunters, not through them; the ford is slow. |
+| `ch1_b_triangle` | Turn 2, if Hask and Lise live: the schools triangle in two lines. |
+| `ch1_b_chasers` | Turn 2's enemy phase, if Hask lives: the hunters behind arrive. |
+| `ch1_b_refugees` | A player unit enters the fort grounds (or turn 3): Tobin and Marra join. Sets `ch1_refugees_joined`. |
+| `ch1_outro` | After the escape: the blade speaks of a fort to the north and a hungrier blade. |
+
+No camp follows Chapter 1: the story goes on to Chapter 2's intro.
+
+## Chapter 2: The Deserter's Blade
+
+A ruined fort held by a Legion patrol, and Garrow, Gravemaw's bearer, sitting in the keep. He is on the enemy side for the rules (the core has no third side) and guards the keep, but the story treats him as apart from the Legion. He joins in one of two ways: the MC talks to him from a tile beside him, or he is beaten below half his HP and yields (the design's "after a duel"). If he falls while still an enemy he is gone for the playthrough, and Gravemaw with him.
+
+| Scene | When |
+| --- | --- |
+| `ch2_intro` | Before the battle: the ruin, the Legion, and Garrow on the keep steps. |
+| `ch2_b_start` | Battle start: the gate and the two breaches; talk to the man in the keep. |
+| `ch2_b_garrow_talk` | The MC talks to Garrow: he joins. Sets `garrow_joined`. |
+| `ch2_b_garrow_yields` | Garrow drops below half his HP before joining: he yields and joins. Sets `garrow_joined`. |
+| `ch2_b_garrow_slain` | Garrow falls before joining. Sets `garrow_slain`. |
+| `ch2_b_flank` | Turn 3's enemy phase: more soldiers up the west road. |
+| `ch2_outro` | After the win: south to Saltmarket, where a thief nobody can catch lives. |
+| `ch2_outro_slain` | Instead of the above when `garrow_slain` is set: the blade will not lift. |
+
+After Chapter 2 the army makes camp: the merchant and the forge open, and the campfire scene `ch2_camp_garrow` ("The deserter") is offered when `garrow_joined` is set.
+
+## Chapter 3: Thousand Needles
+
+Saltmarket, a canal town, where the Hunter-Captain from the prologue has closed the gates. The objective is to defeat him. In the intro a thief picks the MC's pocket; at the start of turn 2 the thief, Pell, drops onto the cobbles near the party and joins (a spawn on the player side, able to act at once; the spawn takes the nearest free tile if someone stands on hers).
+
+| Scene | When |
+| --- | --- |
+| `ch3_intro` | Before the battle: the town, the captain's standard (Garrow's line is skipped when `garrow_slain` is set), the pickpocket. |
+| `ch3_b_start` | Battle start: the captain on the plaza, both bridges held. |
+| `ch3_b_needles` | Turn 2: Pell joins. Sets `pell_joined`. |
+| `ch3_b_captain` | The captain drops below half his HP: a hint about the Stranger. |
+| `ch3_b_gate` | Turn 3's enemy phase: the north gate opens. |
+| `ch3_outro` | After the win: the first story choice. On the barge, the others ask what the sword knows. "Tell them everything it whispers" sets `told_whispers` true, "Keep it to yourself" sets it false. |
+
+After Chapter 3 the army makes camp again, with the campfire scene `ch3_camp_pell` ("The thief"). Chapter 4 ("Storm and Root", the Act 1 finale where the design has Stormcall and Ironroot join) is a stub with no map, so the war map shows it as coming soon.
 
 The skirmish test map has one event: the MC can talk to the deserter, who plays `skirmish_recruit`, joins, and sets `skirmish_deserter_joined`.
+
+Scenes in chapters 2 and 3 give lines only to the MC, Garrow, Pell, the captain, the narrator and the blade, never to the four recruits, because in Classic any of them may have fallen by then and a scene cannot ask who lives. Chapter 1's mid-battle scenes with the recruits check that they are alive.
 
 ## Camp scenes
 
@@ -124,9 +173,11 @@ Scenes that play in camp are standalone scenes (they may have choices). Reading 
 | Scene | Where |
 | --- | --- |
 | `camp_first_night` | Campfire talk at the first camp (after the prologue): the MC and the blade's voice. Draft. |
+| `ch2_camp_garrow` | Campfire talk after Chapter 2, when `garrow_joined` is set: Garrow and the rope. |
+| `ch3_camp_pell` | Campfire talk after Chapter 3: Pell, and the blade that counts. |
 | `skirmish_ridge_lore` | Before the first attempt at the Ashfall Ridge skirmish: a cairn about the original blade. Sets `read_skirmish_ridge_lore`. Draft. |
 
-Other flags the camp keeps: `unbound_blades` (a number: how many blades have reached their last tier, for endings).
+Story flags so far: `stranger_fell`, `prologue_promise`, `ch1_refugees_joined`, `garrow_joined`, `garrow_slain`, `pell_joined` and `told_whispers` (the first choice for later chapters to read: whether the party knows what the blades say). Other flags the camp keeps: `unbound_blades` (a number: how many blades have reached their last tier, for endings).
 
 ## How to add a scene
 

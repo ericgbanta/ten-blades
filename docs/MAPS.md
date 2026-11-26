@@ -18,7 +18,7 @@ Download Tiled from mapeditor.org (Windows, macOS and Linux builds; on Linux the
 | `tools/maps/export.ts` | `npx tsx tools/maps/export.ts <id>`: game JSON to Tiled, for a map made before this workflow. |
 | `src/data/maps/<id>.events.json` | The map's scripted events. Not in Tiled: see Events below. |
 
-The tileset only holds the base tile of each terrain. Variants, roads, walls, shores and crossings are drawn by the game from the terrain alone, so paint road where the road goes and the game joins it up.
+The tileset only holds the base tile of each terrain. The stone set (cobble `o`, flagstone `_`, building `X`, stall `S`, rubble `r`, canal `c`, gate `G`, crates `C`) is drawn one tile per cell with no joins, except that walls join gates and houses, and a bridge with a canal on its east or west side is drawn as the canal tile with the planks across it. Canals only run east to west, since the tile's stone lips are on its top and bottom edges. Variants, roads, walls, shores and crossings are drawn by the game from the terrain alone, so paint road where the road goes and the game joins it up.
 
 ## Making a map
 
@@ -50,6 +50,19 @@ A map's scripted events (mid-battle scenes, reinforcements from a trigger, talk 
 Events refer to the map by unit id, tag and tile. The import checks the new map together with its existing events file, so if a redraw removes or renames a unit an event names, or moves the edge of the map past an event's tiles, the import reports it and writes nothing. Give units that events match as a group a `tags` property in Tiled.
 
 A new map with events needs its events file imported in `src/data/index.ts` beside the map (the `withEvents` helper). A map with no events needs no file.
+
+## The story maps
+
+| Map | Size | Backdrop | Objective | Notes |
+| --- | --- | --- | --- | --- |
+| `prologue` | 10 x 12 | village | Rout | The tutorial. |
+| `chapter1` (The River Road) | 13 x 18 | forest | Escape: the MC ends a move on (5, 0) or (6, 0), where the road leaves the north edge | A river across the middle with one bridge on the road and a ford to the east. The party starts at the south edge; hunters hold the bridge, the ford and the north road. The old fort (west, rows 11 and 12) holds Tobin and Marra as allies until a player unit enters x 0 to 3, y 9 to 13 or turn 3 begins. Waves: two hunters from the south on turn 2; a legionary and an archer on turn 3 (Hard and Lunatic); two hunters from the sides on turn 4 and an archer from the north west on turn 5 (Lunatic). |
+| `chapter2` (The Hollow Fort) | 14 x 16 | ruin | Rout | A walled ruin with a gate in the south wall, breaches in the west (2, 5) and east (11, 7) walls, rubble inside and the keep (fort tiles) at the top. Garrow guards the keep. Waves: two hunters from the west on turn 3; a legionary and an archer from the east on turn 4 (Hard and Lunatic). |
+| `chapter3` (Saltmarket) | 14 x 18 | town | Defeat the Hunter-Captain | Houses, a canal across the middle with two bridges (3, 8) and (10, 8), the market south of it with stalls and crates, a flagstone plaza, and houses along the north edge either side of the gate. Pell arrives at (12, 12) on turn 2. Waves: two hunters through the north gate on turn 3; a legionary and an archer from the canal banks on turn 3 (Hard and Lunatic); two hunters behind the party on turn 5 (Lunatic). |
+
+The chapter maps were laid out as game JSON, exported to Tiled with `export.ts` and imported back, so their `.tmj` files are the source from now on.
+
+Escape tiles are marked on the map with a gold frame and a chevron.
 
 ## Adding a terrain
 

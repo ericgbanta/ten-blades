@@ -214,7 +214,7 @@ Effects, applied in order:
 | Effect | Does |
 | --- | --- |
 | `{ type: 'scene', sceneId }` | Emits `sceneRequested`. The UI plays the scene before the next event. |
-| `{ type: 'spawn', units }` | Units arrive like a wave: a taken tile drops that unit, and only units of the phase in progress wait for their next phase. Emits `reinforcementsArrived`. |
+| `{ type: 'spawn', units, nearest? }` | Units arrive like a wave: a taken tile drops that unit, and only units of the phase in progress wait for their next phase. With `nearest: true` a unit whose tile is taken lands on the nearest free tile its class can stand on instead (least Manhattan distance, then reading order), for a recruit who must arrive. Emits `reinforcementsArrived`. |
 | `{ type: 'remove', unitId }` | The unit leaves the map (`left`), not a death. |
 | `{ type: 'setTeam', unitId, team, ai? }` | The unit changes side with its current HP. Joining the player team recruits it: it is listed in `recruited` and joins the party after the battle. A unit leaving the player team gets the `ai` given, or charge. |
 | `{ type: 'setAi', unitId, ai }` | New AI for a non-player unit. |
@@ -267,7 +267,7 @@ for (let a = planAiAction(state, gameData); a; a = planAiAction(state, gameData)
 
 ## Data
 
-`gameData` (from `src/data/index.ts`) bundles `balance.json`, `terrain.json`, `classes.json`, `weapons.json`, `items.json`, `blades.json` and the maps (`prologue`; `skirmish_ridge`, the first side skirmish; and `skirmish_test`, a 14 by 18 map only the quick battle URL reaches), each with its events from `<id>.events.json`. The camp's content (`economy.json`, `skirmishes.json`) is `campContent`, beside it. Every balance number is in `balance.json`, including the hit roll mode (`1rn` or `2rn`). Terrain move costs are given per movement type, so new movement types only need new keys. A weapon with `heal` above 0 is a staff: it heals and never attacks or counters. `validateGameData(gameData)` checks every cross reference, that the balance divisors (`combat.hitLckDiv`, `combat.critSklDiv`, `xp.hitDiv`, `xp.perLevel`) are above 0, and the objective rules above. A unit test runs it, and another checks that every foot-passable tile on every map can be reached from the MC slot.
+`gameData` (from `src/data/index.ts`) bundles `balance.json`, `terrain.json`, `classes.json`, `weapons.json`, `items.json`, `blades.json` and the maps (`prologue`; `chapter1`, `chapter2` and `chapter3`; `skirmish_ridge`, the first side skirmish; and `skirmish_test`, a 14 by 18 map only the quick battle URL reaches), each with its events from `<id>.events.json`. The camp's content (`economy.json`, `skirmishes.json`) is `campContent`, beside it. Every balance number is in `balance.json`, including the hit roll mode (`1rn` or `2rn`). Terrain move costs are given per movement type, so new movement types only need new keys. A weapon with `heal` above 0 is a staff: it heals and never attacks or counters. `validateGameData(gameData)` checks every cross reference, that the balance divisors (`combat.hitLckDiv`, `combat.critSklDiv`, `xp.hitDiv`, `xp.perLevel`) are above 0, and the objective rules above. A unit test runs it, and another checks that every foot-passable tile on every map can be reached from the MC slot.
 
 ### Terrain
 
@@ -281,6 +281,11 @@ for (let a = planAiAction(state, gameData); a; a = planAiAction(state, gameData)
 | water, wall | impassable | | | | | |
 | bridge | 1 | 0 | 0 | 0 | 0 | A way over water. |
 | ford | 2 | -10 | 0 | 0 | 0 | Shallow water: slow to wade, and a unit standing in it is easier to hit. |
+| cobble, flagstone | 1 | 0 | 0 | 0 | 0 | Town streets and fort floors. Play as plain. |
+| stall | 2 | 20 | 1 | 0 | 0 | A market stall: cover. |
+| rubble | 3 | 20 | 1 | 0 | 0 | Fallen masonry: slow, with cover. |
+| gate | 1 | 20 | 2 | 1 | 0 | A passable gatehouse: a chokepoint worth holding. |
+| building, canal, crates | impassable | | | | | A house roof, a canal, stacked crates. |
 
 The numbers live in `terrain.json`; this table is a summary. `tests/crossings.test.ts` checks the bridge and ford.
 

@@ -33,7 +33,17 @@ The campaign save has `gold` and `shards` (Blade Shards). They come from won map
 - Drops are `drops: [{ unitId, item }]`: when that enemy has fallen in a won battle, the item goes to the convoy (while it has room).
 - `battleRewards(state, def)` works the pay out from the final battle state; the end screen shows it under Spoils and the save applies the same numbers (`completeChapter` and `completeSkirmish` in `src/save/campaign.ts`). A lost battle pays nothing.
 
-Current numbers (to confirm): the prologue pays 500 gold and 1 shard, plus 200 gold for winning by turn 5 and 1 shard for losing no one, and the Legion Sergeant drops a Healing Salve. Ashfall Ridge pays 300 gold and 1 shard, plus 100 gold for winning by turn 6, and its sergeant drops a salve.
+Current numbers (to confirm):
+
+| Map | Pays | Bonuses | Drops |
+| --- | --- | --- | --- |
+| Prologue | 500 gold, 1 shard | Win by turn 5: 200 gold. Lose no one: 1 shard. | Legion Sergeant: Healing Salve |
+| Chapter 1 | 600 gold, 1 shard | Escape by turn 6: 200 gold. Lose no one: 1 shard. | Hunt Sergeant: Healing Salve |
+| Chapter 2 | 700 gold, 1 shard | Win the deserter over (`garrow_joined`): 1 shard. Win by turn 9: 200 gold. | Legion Sergeant: Healing Salve |
+| Chapter 3 | 900 gold, 1 shard | Win by turn 8: 200 gold. Lose no one: 1 shard. | Hunter-Captain: Mender's Tonic |
+| Ashfall Ridge | 300 gold, 1 shard | Win by turn 6: 100 gold. | Deserter Sergeant: Healing Salve |
+
+By the camp after Chapter 2, where the forge opens, a player has 3 to 6 shards from the story maps alone, enough for the first awakening.
 
 ## Items and inventories
 
@@ -82,11 +92,11 @@ Current tiers (to confirm):
 
 | Blade | Tier 2 needs | Tier 2 gives | Tier 3 needs |
 | --- | --- | --- | --- |
-| Widow's Hush | 3 shards, reach Chapter 1 | Hush; +2 Skl, +1 Spd, +1 Lck; blood price 2 | 8 shards, reach Act 3 |
+| Widow's Hush | 3 shards, reach Chapter 3 | Hush; +2 Skl, +1 Spd, +1 Lck; blood price 2 | 8 shards, reach Act 3 |
 | Gravemaw | 3 shards, reach Chapter 3 | Cleave; +2 Str, +1 Def; blood price 2 | 8 shards, reach Act 3 |
 | Thousand Needles | 3 shards, reach Chapter 3 | Pin; +2 Spd, +1 Skl; blood price 2 | 8 shards, reach Act 3 |
 
-Widow's Hush asks only for Chapter 1 so the loop can be played now, right after the prologue; the design puts the first awakening in Chapter 3, so phase 7 should move it there. Tier 3 has no ultimate power yet (blood price 4); Act 3 is not reachable in this build.
+The design puts the first awakening in Chapter 3. Reaching a chapter counts from the camp before it, so all three blades can awaken in the camp after Chapter 2, where the forge first opens. Tier 3 has no ultimate power yet (blood price 4); Act 3 is not reachable in this build.
 
 ### The Awakened powers
 
@@ -110,7 +120,7 @@ Gold raises a generic weapon one rank at a time, up to `weaponRanks.max` (2): +1
 
 ## Merchant
 
-The stock is `economy.shops[<current chapter id>]`, else `shops.default`: weapons and items. Buying puts the entry in the chosen unit's inventory or the convoy; it is refused without the gold or the room. Each row shows who in the company can wield the weapon (a ring per unit, green when the class can use it), and the open row compares the weapon with the chosen unit's equipped one (Mt, Hit, Crit, Rng). Selling pays `sellPercent` (50) of the price, forge ranks included (the price of a forged weapon counts its upgrade costs). Blades cannot be sold, and neither can the weapon in a unit's hand.
+The stock is `economy.shops[<current chapter id>]`, else `shops.default`. The merchant first opens in the camp before Chapter 3, whose stock is the iron weapons, the bow, the two tomes, the staffs and the three items; the default adds the javelin and the greatsword: weapons and items. Buying puts the entry in the chosen unit's inventory or the convoy; it is refused without the gold or the room. Each row shows who in the company can wield the weapon (a ring per unit, green when the class can use it), and the open row compares the weapon with the chosen unit's equipped one (Mt, Hit, Crit, Rng). Selling pays `sellPercent` (50) of the price, forge ranks included (the price of a forged weapon counts its upgrade costs). Blades cannot be sold, and neither can the weapon in a unit's hand.
 
 Class change seals are not sold: classes do not promote in the first build (`docs/PLAN.md`).
 
@@ -135,13 +145,15 @@ The war map is a vertical route of the chapters: those done, the next one (March
 - A skirmish's lore scene plays before its first attempt and sets `read_<scene>`.
 - A won skirmish pays out, counts its win, keeps the party in camp and returns there. The map's own guests (the two wardens) fight but do not join.
 
-Ashfall Ridge (`skirmish_ridge`, 11 by 11, forest backdrop): five enemies (a hunter, a legionary, an inquisitor guarding near the fort, an archer holding a hill, and their sergeant guarding the fort with a salve), two Ridge wardens on your side, three party slots, rout. Carries the lore scene `skirmish_ridge_lore`. `npm run sim` plays it for a lone main character at levels 2 and 4 after the prologue table (about 88, 65 and 33 percent wins on Normal, Hard and Lunatic at level 2 under the simulator's reckless charge AI).
+Ashfall Ridge (`skirmish_ridge`, 11 by 11, forest backdrop): five enemies (a hunter, a legionary, an inquisitor guarding near the fort, an archer holding a hill, and their sergeant guarding the fort with a salve), two Ridge wardens on your side, three party slots, rout. Carries the lore scene `skirmish_ridge_lore`. `npm run sim` plays it for a lone main character at levels 2 and 4 after the prologue table, and the three chapters after it (see `docs/PLAN.md`) (about 88, 65 and 33 percent wins on Normal, Hard and Lunatic at level 2 under the simulator's reckless charge AI).
 
 ## Camp flow
 
 A chapter with `campAfter` sends the army to camp before the next chapter: the save's `progress.stage` is `camp`, and Continue and Load land there. Entering camp saves the slot, and so does every change made in it (the hub also has a Save button). The war map's March leaves camp (`leaveCamp`): the chapter's intro begins, then its battle. A skirmish starts from its deploy step and comes back to camp.
 
-Facilities open when a finished chapter's camp lists them in `campAfter.unlocks`; until then their plate is locked and says when it opens ("Opens after Chapter 2"). For now the prologue's camp opens all four so everything can be played; the design opens the merchant and the forge after Chapter 2, which phase 7 sets by removing them from the prologue's list (Chapter 2 already lists them).
+Facilities open when a finished chapter's camp lists them in `campAfter.unlocks`; until then their plate is locked and says when it opens ("Opens after Chapter 2"). The prologue's camp opens the barracks and the war map; the camp after Chapter 2 opens the merchant and the forge, as the design has it. Chapter 1 has no camp after it (its outro leads straight into Chapter 2), and the camp after Chapter 3 opens nothing new.
+
+Deploy rules: Chapter 1's map has only the main character's slot (Hask and Lise are on the map already), Chapter 2 takes 5 and Chapter 3 takes 6. Chapters 2 and 3 name Garrow (and Chapter 3 Pell) as plot critical.
 
 ## Tuning
 
@@ -156,4 +168,4 @@ Facilities open when a finished chapter's camp lists them in `campAfter.unlocks`
 
 ## Test hook
 
-With `test=1` in the URL, `window.__camp` offers `campaign()`, `grant(gold, shards)`, `setFlag(flag, value)`, `lock(facilities)` (show facilities as locked, display only) and `saved()`. `e2e/camp.spec.ts` uses it with a prepared save to reach every screen; with `SHOTS=<dir>` it also saves screenshots there.
+With `test=1` in the URL, `window.__camp` offers `campaign()`, `grant(gold, shards)`, `setFlag(flag, value)`, `lock(facilities)` (show facilities as locked, display only) and `saved()`. `e2e/camp.spec.ts` uses it with a prepared save to reach every screen (the first test moves the fixture to the camp after Chapter 2, where every facility is open); with `SHOTS=<dir>` it also saves screenshots there.

@@ -54,7 +54,7 @@ The raw sheets expected, by name:
 | `expr-<id>.png` | 2x2 bust expressions: neutral, angry, hurt, smile. For stranger, gravemaw, captain. |
 | `busts-militia.png`, `busts-imperial.png` | 2x2 neutral busts: soldier, ranger, adept, medic; legionary, hunter, inquisitor, archer. |
 | `tokens-named.png`, `tokens-militia.png`, `tokens-imperial.png` | One row of chibi map tokens: stranger, gravemaw, captain; the four militia; the four imperial. |
-| `tiles-<set>.png` | A 4x2 grid of square terrain tiles on `#00ff00` green with green gaps, in order plain, road, forest, hill, fort, village, water, wall. Set so far: `village`. |
+| `tiles-<set>.png` | A 4x2 grid of square terrain tiles on `#00ff00` green with green gaps. `village`: plain, road, forest, hill, fort, village, water, wall. `stone`: cobble, flagstone, building, stall, rubble, canal, gate, crates (`TILE_SETS` in `pack.py`). |
 | `tiles-village2.png` | 4x2 variant tiles: plain (bare earth), plain (flowers), forest (pines and log), forest (pines and dead tree), hill (ridge), water (reeds), village (cottage with woodpile), village (barn). |
 | `tiles-connect.png` | 4x2 flat connector tiles seen from straight above: road straight (east to west), road crossroads, wall straight, wall junction with pillar, shore edge (bank along the top), shore corner (bank in the top left), wooden bridge (east to west), ford. |
 | `props-village.png` | 4x3 cut-out props with a small contact shadow: fence, cart, barrels, rubble; banner, well, haystack, dead tree; campfire, signpost, gravestones, wheel. |
@@ -163,8 +163,8 @@ Manifest ids: `mc.<body>.bust`, `mc.<body>.face.<eyes>.<expr>`, `mc.<body>.scar.
 | Props 1 (`props-village`) | 1 | Twelve props. Usable first try. |
 | UI kit 1 | 1 | `ui-kit.png`: panel frame, dark and crimson button plates, ribbon, medallion ring, divider. All used; the frame was rebuilt for 9-slice (see UI kit and icons below). |
 | Icon sheets (stats and schools, items) | 2 | `icons-stats.png` and `icons-items.png`, twelve icons each. All usable first try. |
-| Backdrops and the stone tileset (`backdrop-forest`, `backdrop-ruin`, `backdrop-town`, `backdrop-camp`, `tiles-stone`) | 5 | All usable first try. The four backdrops are packed as `backdrop.forest`, `backdrop.ruin`, `backdrop.town` and `backdrop.camp` (about 280 KB); maps name theirs with the `backdrop` field and dialogue scenes by id. `tiles-stone.png` is not packed yet: phase 7 packs it with the chapter maps. |
+| Backdrops and the stone tileset (`backdrop-forest`, `backdrop-ruin`, `backdrop-town`, `backdrop-camp`, `tiles-stone`) | 5 | All usable first try. The four backdrops are packed as `backdrop.forest`, `backdrop.ruin`, `backdrop.town` and `backdrop.camp` (about 280 KB); maps name theirs with the `backdrop` field and dialogue scenes by id. `tiles-stone.png` was packed in phase 7 (`python3 tools/art/pack.py <raw_dir> stone tiled`) as `tile.cobble` to `tile.crates`, eight 96 px tiles, about 32 KB. |
 
 The battle scenes draw each backdrop scaled to cover the scene's band with its row at 86 percent of the height on the fighters' ground line (`BACKDROP_GROUND` in `src/game/fightLayout.ts`), which lands their feet on the dirt or flagstones of all five.
 
-Not made yet: other tilesets.
+Not made yet: variants or connectors for the stone set, a night look for maps, and props made for towns and ruins (the village props are reused).
