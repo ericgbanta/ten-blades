@@ -683,6 +683,270 @@
       "scale": 0.4948,
       "width": 512
     },
+    "icon.arcane": {
+      "bbox": [
+        4,
+        2,
+        88,
+        92
+      ],
+      "height": 96,
+      "path": "icons/arcane.webp",
+      "width": 96
+    },
+    "icon.axe": {
+      "bbox": [
+        13,
+        2,
+        69,
+        92
+      ],
+      "height": 96,
+      "path": "icons/axe.webp",
+      "width": 96
+    },
+    "icon.bow": {
+      "bbox": [
+        6,
+        2,
+        83,
+        92
+      ],
+      "height": 96,
+      "path": "icons/bow.webp",
+      "width": 96
+    },
+    "icon.coins": {
+      "bbox": [
+        2,
+        11,
+        92,
+        73
+      ],
+      "height": 96,
+      "path": "icons/coins.webp",
+      "width": 96
+    },
+    "icon.dagger": {
+      "bbox": [
+        10,
+        2,
+        76,
+        92
+      ],
+      "height": 96,
+      "path": "icons/dagger.webp",
+      "width": 96
+    },
+    "icon.def": {
+      "bbox": [
+        15,
+        2,
+        65,
+        92
+      ],
+      "height": 96,
+      "path": "icons/def.webp",
+      "width": 96
+    },
+    "icon.greatsword": {
+      "bbox": [
+        2,
+        8,
+        92,
+        79
+      ],
+      "height": 96,
+      "path": "icons/greatsword.webp",
+      "width": 96
+    },
+    "icon.heavy": {
+      "bbox": [
+        13,
+        2,
+        70,
+        92
+      ],
+      "height": 96,
+      "path": "icons/heavy.webp",
+      "width": 96
+    },
+    "icon.hp": {
+      "bbox": [
+        2,
+        5,
+        92,
+        85
+      ],
+      "height": 96,
+      "path": "icons/hp.webp",
+      "width": 96
+    },
+    "icon.lance": {
+      "bbox": [
+        6,
+        2,
+        84,
+        92
+      ],
+      "height": 96,
+      "path": "icons/lance.webp",
+      "width": 96
+    },
+    "icon.lck": {
+      "bbox": [
+        11,
+        2,
+        74,
+        92
+      ],
+      "height": 96,
+      "path": "icons/lck.webp",
+      "width": 96
+    },
+    "icon.mag": {
+      "bbox": [
+        9,
+        2,
+        77,
+        92
+      ],
+      "height": 96,
+      "path": "icons/mag.webp",
+      "width": 96
+    },
+    "icon.mov": {
+      "bbox": [
+        11,
+        2,
+        74,
+        92
+      ],
+      "height": 96,
+      "path": "icons/mov.webp",
+      "width": 96
+    },
+    "icon.res": {
+      "bbox": [
+        2,
+        2,
+        92,
+        91
+      ],
+      "height": 96,
+      "path": "icons/res.webp",
+      "width": 96
+    },
+    "icon.sabre": {
+      "bbox": [
+        12,
+        2,
+        71,
+        92
+      ],
+      "height": 96,
+      "path": "icons/sabre.webp",
+      "width": 96
+    },
+    "icon.shard": {
+      "bbox": [
+        7,
+        2,
+        81,
+        92
+      ],
+      "height": 96,
+      "path": "icons/shard.webp",
+      "width": 96
+    },
+    "icon.skl": {
+      "bbox": [
+        8,
+        2,
+        80,
+        92
+      ],
+      "height": 96,
+      "path": "icons/skl.webp",
+      "width": 96
+    },
+    "icon.spd": {
+      "bbox": [
+        4,
+        2,
+        88,
+        92
+      ],
+      "height": 96,
+      "path": "icons/spd.webp",
+      "width": 96
+    },
+    "icon.staff": {
+      "bbox": [
+        13,
+        2,
+        69,
+        92
+      ],
+      "height": 96,
+      "path": "icons/staff.webp",
+      "width": 96
+    },
+    "icon.str": {
+      "bbox": [
+        14,
+        2,
+        68,
+        92
+      ],
+      "height": 96,
+      "path": "icons/str.webp",
+      "width": 96
+    },
+    "icon.swift": {
+      "bbox": [
+        2,
+        2,
+        92,
+        92
+      ],
+      "height": 96,
+      "path": "icons/swift.webp",
+      "width": 96
+    },
+    "icon.talisman": {
+      "bbox": [
+        10,
+        2,
+        76,
+        92
+      ],
+      "height": 96,
+      "path": "icons/talisman.webp",
+      "width": 96
+    },
+    "icon.tenblade": {
+      "bbox": [
+        2,
+        2,
+        91,
+        92
+      ],
+      "height": 96,
+      "path": "icons/tenblade.webp",
+      "width": 96
+    },
+    "icon.tome": {
+      "bbox": [
+        3,
+        2,
+        90,
+        92
+      ],
+      "height": 96,
+      "path": "icons/tome.webp",
+      "width": 96
+    },
     "mc.broad.bust": {
       "bbox": [
         19,
@@ -8618,6 +8882,117 @@
       "height": 192,
       "path": "tokens/wanderer.webp",
       "width": 192
+    },
+    "ui.button": {
+      "bbox": [
+        0,
+        0,
+        216,
+        74
+      ],
+      "height": 74,
+      "path": "ui/button.webp",
+      "repeat": "stretch",
+      "slice": [
+        20,
+        28,
+        20,
+        28
+      ],
+      "width": 216
+    },
+    "ui.button_primary": {
+      "bbox": [
+        0,
+        0,
+        216,
+        74
+      ],
+      "height": 74,
+      "path": "ui/button_primary.webp",
+      "repeat": "stretch",
+      "slice": [
+        20,
+        28,
+        20,
+        28
+      ],
+      "width": 216
+    },
+    "ui.divider": {
+      "bbox": [
+        0,
+        0,
+        163,
+        48
+      ],
+      "height": 48,
+      "path": "ui/divider.webp",
+      "width": 163
+    },
+    "ui.emblem": {
+      "bbox": [
+        1,
+        0,
+        189,
+        192
+      ],
+      "height": 192,
+      "path": "ui/emblem.webp",
+      "width": 192
+    },
+    "ui.frame": {
+      "bbox": [
+        0,
+        0,
+        194,
+        194
+      ],
+      "center": "#1b1719",
+      "height": 194,
+      "path": "ui/frame.webp",
+      "repeat": "round",
+      "slice": [
+        43,
+        43,
+        43,
+        43
+      ],
+      "width": 194
+    },
+    "ui.medallion": {
+      "bbox": [
+        2,
+        1,
+        187,
+        190
+      ],
+      "height": 192,
+      "hole": [
+        96,
+        96,
+        71
+      ],
+      "path": "ui/medallion.webp",
+      "width": 192
+    },
+    "ui.ribbon": {
+      "bbox": [
+        0,
+        0,
+        292,
+        97
+      ],
+      "height": 97,
+      "path": "ui/ribbon.webp",
+      "repeat": "stretch",
+      "slice": [
+        0,
+        77,
+        0,
+        77
+      ],
+      "width": 292
     }
   }
 }

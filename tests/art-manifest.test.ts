@@ -19,7 +19,7 @@ describe('art manifest', () => {
   });
 
   it.each(ids)('%s is well formed and its file exists', (id) => {
-    expect(id).toMatch(/^(token\.[a-z_]+|tile\.[a-z_]+|backdrop\.[a-z_]+|portrait\.[a-z_]+\.[a-z]+|battle\.[a-z_]+\.[a-z]+|mc\.[a-z]+\.[a-z.]+)$/);
+    expect(id).toMatch(/^(icon\.[a-z_]+|ui\.[a-z_]+|token\.[a-z_]+|tile\.[a-z_]+|backdrop\.[a-z_]+|portrait\.[a-z_]+\.[a-z]+|battle\.[a-z_]+\.[a-z]+|mc\.[a-z]+\.[a-z.]+)$/);
     const e = images[id] as { path: string; width: number; height: number; bbox: number[]; groundY?: number; anchorX?: number };
     expect(existsSync(join(root, e.path))).toBe(true);
     if (id.startsWith('mc.')) {
