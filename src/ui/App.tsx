@@ -3,7 +3,8 @@ import { Title } from './Title';
 import { Battle } from './Battle';
 
 function currentRoute(): string {
-  return window.location.hash.replace(/^#/, '') || '/';
+  // A query after the route (`#/battle?seed=3`) carries test overrides, not a route.
+  return window.location.hash.replace(/^#/, '').split('?')[0] || '/';
 }
 
 export function App() {
