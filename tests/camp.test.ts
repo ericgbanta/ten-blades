@@ -147,7 +147,8 @@ describe('the merchant', () => {
     expect(why(buy({ ...c2, gold: 100 }, 'healing_salve', { convoy: true }, ctx))).toBe('Not enough gold: 150 needed, 100 held');
     const full = ok(buy(c, 'healing_salve', { unitId: 'mc' }, ctx));
     expect(why(buy(full, 'healing_salve', { unitId: 'mc' }, ctx))).toMatch(/no free slot/);
-    expect(why(buy(camp(), 'iron_greatsword', { convoy: true }, ctx))).toMatch(/not for sale here/);
+    // The first shop (Chapter 3's) has no greatsword; the default stock does.
+    expect(why(buy(ch3Camp(), 'iron_greatsword', { convoy: true }, ctx))).toMatch(/not for sale here/);
   });
 
   it('sells from a unit or the convoy, never a blade or the weapon in hand', () => {
@@ -272,8 +273,13 @@ describe('the barracks', () => {
     // The battle takes exactly the deployed units in that order.
     const s = createBattle(gameData.maps.skirmish_ridge!, battleSetup(c, { party: info.deployed, enemyLevelShift: info.enemyLevelShift }), 1, gameData);
     expect(s.units.filter((u) => u.team === 'player').map((u) => u.id)).toEqual(['mc', 'cy', 'di', 'warden_1', 'warden_2']);
-    // No map for chapter 1 yet: no story deployment.
-    expect(deployInfo(c, ctx, null)).toBeNull();
+    // Chapter 1's map has only the main character's slot.
+    expect(deployInfo(c, ctx, null)).toMatchObject({ mapId: 'chapter1', max: 1, deployed: [{ id: 'mc' }] });
+    // Chapter 2 takes five, Chapter 3 six.
+    expect(deployInfo({ ...c, benched: [], wounded: {}, progress: { ...c.progress, current: 'chapter2' } }, ctx, null)!.deployed.map((u) => u.id)).toEqual(['mc', 'ana', 'bo', 'cy', 'di']);
+    expect(deployInfo({ ...c, progress: { ...c.progress, current: 'chapter3' } }, ctx, null)!.max).toBe(6);
+    // A chapter with no map has no story deployment.
+    expect(deployInfo({ ...c, progress: { ...c.progress, current: 'chapter4' } }, ctx, null)).toBeNull();
   });
 });
 
@@ -393,16 +399,21 @@ describe('the camp hub', () => {
     expect(read.flags.told).toBe(true);
   });
 
-  it("the war map: the route, chapter 1 coming soon, and leaving camp starts a chapter's intro", () => {
+  it("the war map: the route, chapter 4 coming soon, and leaving camp starts a chapter's intro", () => {
     const c = camp();
-    expect(routeNodes(c, ctx).map((n) => n.kind)).toEqual(['done', 'next', 'later', 'later']);
-    expect(routeNodes(c, ctx)[1]).toMatchObject({ chapterId: 'chapter1', playable: false });
-    expect(startableChapter(c, ctx)).toBeNull();
-    const playable = chapters.map((ch) => (ch.id === 'chapter1' ? { ...ch, mapId: 'prologue' } : ch));
-    expect(startableChapter(c, { ...ctx, chapters: playable })).toBe('chapter1');
-    const left = settle(leaveCamp(c, 5), playable, gameData, 5);
+    expect(routeNodes(c, ctx).map((n) => n.kind)).toEqual(['done', 'next', 'later', 'later', 'later']);
+    expect(routeNodes(c, ctx)[1]).toMatchObject({ chapterId: 'chapter1', playable: true });
+    expect(startableChapter(c, ctx)).toBe('chapter1');
+    const left = settle(leaveCamp(c, 5), chapters, gameData, 5);
     expect(left.progress).toEqual({ current: 'chapter1', completed: ['prologue'], stage: 'intro', scenes: ['ch1_intro'] });
     expect(flowStep(c, chapters, gameData)).toMatchObject({ kind: 'camp' });
+    // After Chapter 3 the army makes camp; Chapter 4 has no map yet.
+    const after3: CampaignSave = { ...c, progress: { current: 'chapter4', completed: ['prologue', 'chapter1', 'chapter2', 'chapter3'], stage: 'camp', scenes: null } };
+    expect(routeNodes(after3, ctx).map((n) => n.kind)).toEqual(['done', 'done', 'done', 'done', 'next']);
+    expect(routeNodes(after3, ctx)[4]).toMatchObject({ chapterId: 'chapter4', playable: false });
+    expect(startableChapter(after3, ctx)).toBeNull();
+    expect(talkList(after3, ctx).map((t) => t.scene)).toEqual(['camp_first_night', 'ch3_camp_pell']);
+    expect(talkList({ ...after3, flags: { garrow_joined: true } }, ctx).map((t) => t.scene)).toEqual(['camp_first_night', 'ch2_camp_garrow', 'ch3_camp_pell']);
   });
 });
 

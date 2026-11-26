@@ -1,0 +1,9 @@
+{
+  "id": "ch2_b_garrow_slain",
+  "battle": true,
+  "lines": [
+    { "speaker": "narrator", "text": "The big man falls on the steps of the keep. His sword goes on humming after he has stopped." },
+    { "speaker": "blade", "text": "Wasteful. It will wait for another hand. They always do." },
+    { "speaker": "mc", "side": "left", "expr": "hurt", "text": "He wasn't with them." }
+  ]
+}

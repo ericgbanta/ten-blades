@@ -1,0 +1,7 @@
+[
+  {"id": "start", "trigger": {"type": "battleStart"}, "effects": [{"type": "scene", "sceneId": "ch1_b_start"}]},
+  {"id": "refugees", "trigger": {"type": "enter", "area": {"x": 0, "y": 9, "w": 4, "h": 5}}, "conditions": [{"type": "flag", "flag": "ch1_refugees_joined", "value": false}], "effects": [{"type": "scene", "sceneId": "ch1_b_refugees"}, {"type": "setTeam", "unitId": "tobin", "team": "player"}, {"type": "setTeam", "unitId": "marra", "team": "player"}, {"type": "unlock", "unitId": "tobin"}, {"type": "unlock", "unitId": "marra"}, {"type": "setFlag", "flag": "ch1_refugees_joined", "value": true}]},
+  {"id": "triangle", "trigger": {"type": "phaseStart", "turn": 2}, "conditions": [{"type": "alive", "unitId": "hask"}, {"type": "alive", "unitId": "lise"}], "effects": [{"type": "scene", "sceneId": "ch1_b_triangle"}]},
+  {"id": "chasers", "trigger": {"type": "phaseStart", "turn": 2, "phase": "enemy"}, "conditions": [{"type": "alive", "unitId": "hask"}], "effects": [{"type": "scene", "sceneId": "ch1_b_chasers"}]},
+  {"id": "refugees_late", "trigger": {"type": "phaseStart", "turn": 3}, "conditions": [{"type": "flag", "flag": "ch1_refugees_joined", "value": false}, {"type": "alive", "unitId": "marra"}], "effects": [{"type": "scene", "sceneId": "ch1_b_refugees"}, {"type": "setTeam", "unitId": "tobin", "team": "player"}, {"type": "setTeam", "unitId": "marra", "team": "player"}, {"type": "unlock", "unitId": "tobin"}, {"type": "unlock", "unitId": "marra"}, {"type": "setFlag", "flag": "ch1_refugees_joined", "value": true}]}
+]

@@ -1,0 +1,13 @@
+{
+  "id": "ch2_b_garrow_talk",
+  "battle": true,
+  "lines": [
+    { "speaker": "gravemaw", "side": "right", "text": "Close enough. Draw, or say your piece." },
+    { "speaker": "mc", "side": "left", "text": "They're hunting both of us. I'd rather not do their work for them." },
+    { "speaker": "gravemaw", "text": "Three years I marched under that sigil. Then they burned a town for hiding one of us." },
+    { "speaker": "gravemaw", "text": "I took this sword off the bearer they hanged. It hasn't stopped talking since." },
+    { "speaker": "mc", "text": "Mine either." },
+    { "speaker": "gravemaw", "expr": "smile", "text": "Then you know it never says anything kind. I'm {gravemaw_bearer}. Point me at them." },
+    { "speaker": "blade", "text": "Two of us, together again. That is how it begins." }
+  ]
+}

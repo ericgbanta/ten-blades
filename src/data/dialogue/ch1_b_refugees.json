@@ -1,0 +1,11 @@
+{
+  "id": "ch1_b_refugees",
+  "battle": true,
+  "lines": [
+    { "speaker": "marra", "side": "right", "text": "Stop there. Say who you're running from." },
+    { "speaker": "mc", "side": "left", "text": "The same people you're hiding from, by the look of you." },
+    { "speaker": "tobin", "side": "right", "text": "They burned the chapel library at Cold Ferry. Anyone who could read was taken." },
+    { "speaker": "marra", "text": "I'm a healer. He's a scholar, and a poor liar. We go where you go, if it's away from them." },
+    { "speaker": "mc", "text": "Stay behind the spears and keep close." }
+  ]
+}

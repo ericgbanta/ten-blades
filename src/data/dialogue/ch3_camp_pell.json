@@ -1,0 +1,12 @@
+{
+  "id": "ch3_camp_pell",
+  "backdrop": "camp",
+  "lines": [
+    { "speaker": "needles", "side": "right", "text": "Everyone keeps looking at my sword like it'll bite." },
+    { "speaker": "mc", "side": "left", "text": "Does it?" },
+    { "speaker": "needles", "expr": "smile", "text": "Only people I don't like. It found me in a gutter when I was nine." },
+    { "speaker": "mc", "text": "And it's talked to you ever since." },
+    { "speaker": "needles", "text": "It counts. Doors, guards, coins. Lately it counts blades. It's up to three." },
+    { "speaker": "blade", "text": "Three of ten. The child is better at sums than you." }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "id": "chapter1",
+  "name": "The River Road",
+  "width": 13,
+  "height": 18,
+  "tiles": [
+    "FFF..==..FFFF",
+    "FF.F..=..H.FF",
+    "F..FF.=.HH..F",
+    ".F...==...F.F",
+    "FH..F=..F..FF",
+    "HH..==.FF...F",
+    ".F..=..F.F...",
+    "...F=..H...F.",
+    "~~~~B~~~~~f~~",
+    "~~~~B~~~~~f~~",
+    ".F..=.F...F..",
+    "TT..=..FF.H..",
+    "#T..=...F...F",
+    "...==.F..H...",
+    "F..=....F..FF",
+    "F.==..F...F.F",
+    "..=..F....FFF",
+    "F.=...FF..FFF"
+  ],
+  "legend": {".": "plain", "=": "road", "F": "forest", "H": "hill", "~": "water", "#": "wall", "T": "fort", "B": "bridge", "f": "ford"},
+  "placements": [
+    {"kind": "mc", "pos": {"x": 2, "y": 16}},
+    {"kind": "unit", "id": "hask", "name": "Hask", "classId": "soldier", "team": "player", "level": 2, "pos": {"x": 3, "y": 15}},
+    {"kind": "unit", "id": "lise", "name": "Lise", "classId": "ranger", "team": "player", "level": 2, "pos": {"x": 1, "y": 16}},
+    {"kind": "unit", "id": "tobin", "name": "Tobin", "classId": "adept", "team": "ally", "level": 2, "pos": {"x": 1, "y": 11}, "ai": {"behavior": "guard", "radius": 0}, "tags": ["refugee"]},
+    {"kind": "unit", "id": "marra", "name": "Marra", "classId": "medic", "team": "ally", "level": 2, "pos": {"x": 0, "y": 11}, "ai": {"behavior": "guard", "radius": 0}, "tags": ["refugee"]},
+    {"kind": "unit", "id": "hunter_1", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 2, "pos": {"x": 8, "y": 11}, "ai": {"behavior": "charge"}},
+    {"kind": "unit", "id": "legionary_1", "name": "Legionary", "classId": "legionary", "team": "enemy", "level": 2, "pos": {"x": 4, "y": 7}, "ai": {"behavior": "guard", "radius": 1}},
+    {"kind": "unit", "id": "archer_1", "name": "Archer", "classId": "archer", "team": "enemy", "level": 2, "pos": {"x": 7, "y": 7}, "ai": {"behavior": "hold"}},
+    {"kind": "unit", "id": "hunter_2", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 2, "pos": {"x": 9, "y": 6}, "ai": {"behavior": "guard", "radius": 2}},
+    {"kind": "unit", "id": "inquisitor_1", "name": "Inquisitor", "classId": "inquisitor", "team": "enemy", "level": 2, "pos": {"x": 8, "y": 3}, "ai": {"behavior": "guard", "radius": 2}},
+    {"kind": "unit", "id": "hunter_3", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 2, "pos": {"x": 2, "y": 2}, "ai": {"behavior": "guard", "radius": 2}},
+    {"kind": "unit", "id": "sergeant", "name": "Hunt Sergeant", "classId": "legionary", "team": "enemy", "level": 3, "pos": {"x": 6, "y": 1}, "ai": {"behavior": "guard", "radius": 2}, "items": ["healing_salve"]}
+  ],
+  "objective": {"type": "escape", "tiles": [{"x": 5, "y": 0}, {"x": 6, "y": 0}]},
+  "backdrop": "forest",
+  "reinforcements": [
+    {
+      "turn": 2,
+      "difficulties": ["normal", "hard", "lunatic"],
+      "units": [
+        {"kind": "unit", "id": "chaser_1", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 2, "pos": {"x": 8, "y": 17}, "ai": {"behavior": "charge"}},
+        {"kind": "unit", "id": "chaser_2", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 2, "pos": {"x": 9, "y": 16}, "ai": {"behavior": "charge"}}
+      ]
+    },
+    {
+      "turn": 3,
+      "difficulties": ["hard", "lunatic"],
+      "units": [
+        {"kind": "unit", "id": "chaser_3", "name": "Legionary", "classId": "legionary", "team": "enemy", "level": 2, "pos": {"x": 5, "y": 17}, "ai": {"behavior": "charge"}},
+        {"kind": "unit", "id": "chaser_4", "name": "Archer", "classId": "archer", "team": "enemy", "level": 2, "pos": {"x": 4, "y": 17}, "ai": {"behavior": "charge"}}
+      ]
+    },
+    {
+      "turn": 4,
+      "difficulties": ["lunatic"],
+      "units": [
+        {"kind": "unit", "id": "chaser_5", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 3, "pos": {"x": 0, "y": 13}, "ai": {"behavior": "charge"}},
+        {"kind": "unit", "id": "chaser_6", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 3, "pos": {"x": 12, "y": 13}, "ai": {"behavior": "charge"}}
+      ]
+    },
+    {
+      "turn": 5,
+      "difficulties": ["lunatic"],
+      "units": [
+        {"kind": "unit", "id": "chaser_7", "name": "Archer", "classId": "archer", "team": "enemy", "level": 1, "pos": {"x": 0, "y": 3}, "ai": {"behavior": "charge"}}
+      ]
+    }
+  ],
+  "props": [
+    {"id": "signpost", "x": 5, "y": 14},
+    {"id": "dead_tree", "x": 10, "y": 12},
+    {"id": "campfire", "x": 2, "y": 12},
+    {"id": "rubble", "x": 0, "y": 10},
+    {"id": "graves", "x": 11, "y": 10},
+    {"id": "dead_tree", "x": 1, "y": 6},
+    {"id": "banner", "x": 7, "y": 1},
+    {"id": "campfire", "x": 10, "y": 2},
+    {"id": "wheel", "x": 3, "y": 13}
+  ]
+}

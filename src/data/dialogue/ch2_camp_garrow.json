@@ -1,0 +1,13 @@
+{
+  "id": "ch2_camp_garrow",
+  "backdrop": "camp",
+  "lines": [
+    { "speaker": "narrator", "text": "{gravemaw_bearer} does not sharpen his sword. He only sits with it across his knees." },
+    { "speaker": "mc", "side": "left", "text": "Does it ever stop?" },
+    { "speaker": "gravemaw", "side": "right", "text": "It goes quiet when it's fed. That's worse." },
+    { "speaker": "gravemaw", "text": "The bearer before me was a farmer. They hanged him in his own yard. I held the rope." },
+    { "speaker": "mc", "expr": "hurt", "text": "And then you took the sword." },
+    { "speaker": "gravemaw", "text": "It took me. I just didn't argue." },
+    { "speaker": "blade", "text": "He holds the rope still. Ask him why he carries it." }
+  ]
+}

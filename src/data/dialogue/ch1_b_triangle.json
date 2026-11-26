@@ -1,0 +1,9 @@
+{
+  "id": "ch1_b_triangle",
+  "battle": true,
+  "lines": [
+    { "speaker": "hask", "side": "right", "text": "Spear against a knife, I'll win most days. Against their spell-throwers, I'm meat." },
+    { "speaker": "lise", "side": "left", "text": "And my arrows go through robes like paper. Heavy beats swift, swift beats arcane." },
+    { "speaker": "hask", "text": "Arcane cooks heavy. Pick your fights." }
+  ]
+}

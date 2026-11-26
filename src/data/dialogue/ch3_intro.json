@@ -1,11 +1,20 @@
 {
   "id": "ch3_intro",
-  "draft": true,
   "backdrop": "town",
   "lines": [
-    { "speaker": "narrator", "text": "The market of the river city is crowded, and the {empire}'s banners hang over every gate." },
-    { "speaker": "needles", "side": "right", "text": "That sword of yours sings louder than mine. Half the street can hear it." },
-    { "speaker": "mc", "side": "left", "expr": "angry", "text": "Give back what you took." },
-    { "speaker": "needles", "expr": "smile", "text": "Catch me first." }
+    { "speaker": "narrator", "text": "{town} squats on its canals like a toad on a stone. The {empire}'s banners hang over every gate." },
+    { "speaker": "narrator", "text": "There are soldiers on the bridges. More than any market town needs." },
+    { "goto": "no_garrow", "if": [{ "type": "flag", "flag": "garrow_slain" }] },
+    { "speaker": "gravemaw", "side": "right", "text": "That's the Hunter-Captain's standard over the north gate. He's ahead of us." },
+    { "leave": "gravemaw" },
+    { "label": "no_garrow" },
+    { "speaker": "mc", "side": "left", "expr": "angry", "text": "The one from {village}." },
+    { "speaker": "narrator", "text": "In the press of the crowd a small hand slips into {mc}'s coat, and out again." },
+    { "speaker": "needles", "side": "right", "expr": "smile", "text": "That sword of yours sings louder than mine. Half the street can hear it." },
+    { "speaker": "mc", "expr": "angry", "text": "Give back what you took." },
+    { "speaker": "needles", "text": "Catch me first." },
+    { "leave": "needles" },
+    { "speaker": "narrator", "text": "The thief is gone. Above the plaza, a horn sounds." },
+    { "speaker": "captain", "side": "right", "text": "Close the gates. The bearer is in the town." }
   ]
 }

@@ -1,20 +1,123 @@
 {
   "sellPercent": 50,
-  "upgradeCosts": [300, 600],
+  "upgradeCosts": [
+    300,
+    600
+  ],
   "convoyMax": 100,
   "rewards": {
     "prologue": {
       "gold": 500,
       "shards": 1,
       "bonus": [
-        {"id": "swift", "kind": "turns", "turns": 5, "text": "Win by turn 5", "gold": 200, "shards": 0},
-        {"id": "none_lost", "kind": "noLoss", "text": "Lose no one", "gold": 0, "shards": 1}
+        {
+          "id": "swift",
+          "kind": "turns",
+          "turns": 5,
+          "text": "Win by turn 5",
+          "gold": 200,
+          "shards": 0
+        },
+        {
+          "id": "none_lost",
+          "kind": "noLoss",
+          "text": "Lose no one",
+          "gold": 0,
+          "shards": 1
+        }
       ],
-      "drops": [{"unitId": "legionary_3", "item": "healing_salve"}]
+      "drops": [
+        {
+          "unitId": "legionary_3",
+          "item": "healing_salve"
+        }
+      ]
+    },
+    "chapter1": {
+      "gold": 600,
+      "shards": 1,
+      "bonus": [
+        {
+          "id": "swift",
+          "kind": "turns",
+          "turns": 6,
+          "text": "Escape by turn 6",
+          "gold": 200,
+          "shards": 0
+        },
+        {
+          "id": "none_lost",
+          "kind": "noLoss",
+          "text": "Lose no one",
+          "gold": 0,
+          "shards": 1
+        }
+      ],
+      "drops": [
+        {
+          "unitId": "sergeant",
+          "item": "healing_salve"
+        }
+      ]
+    },
+    "chapter2": {
+      "gold": 700,
+      "shards": 1,
+      "bonus": [
+        {
+          "id": "recruit",
+          "kind": "flag",
+          "flag": "garrow_joined",
+          "text": "Win the deserter over",
+          "gold": 0,
+          "shards": 1
+        },
+        {
+          "id": "swift",
+          "kind": "turns",
+          "turns": 9,
+          "text": "Win by turn 9",
+          "gold": 200,
+          "shards": 0
+        }
+      ],
+      "drops": [
+        {
+          "unitId": "sergeant",
+          "item": "healing_salve"
+        }
+      ]
+    },
+    "chapter3": {
+      "gold": 900,
+      "shards": 1,
+      "bonus": [
+        {
+          "id": "swift",
+          "kind": "turns",
+          "turns": 8,
+          "text": "Win by turn 8",
+          "gold": 200,
+          "shards": 0
+        },
+        {
+          "id": "none_lost",
+          "kind": "noLoss",
+          "text": "Lose no one",
+          "gold": 0,
+          "shards": 1
+        }
+      ],
+      "drops": [
+        {
+          "unitId": "captain",
+          "item": "mender_tonic"
+        }
+      ]
     }
   },
   "shops": {
-    "chapter1": {
+    "chapter3": {
       "weapons": [
         "iron_lance",
         "iron_axe",
@@ -26,7 +129,11 @@
         "spirit_staff",
         "mending_rod"
       ],
-      "items": ["healing_salve", "mender_tonic", "grave_wine"]
+      "items": [
+        "healing_salve",
+        "mender_tonic",
+        "grave_wine"
+      ]
     },
     "default": {
       "weapons": [
@@ -42,7 +149,11 @@
         "spirit_staff",
         "mending_rod"
       ],
-      "items": ["healing_salve", "mender_tonic", "grave_wine"]
+      "items": [
+        "healing_salve",
+        "mender_tonic",
+        "grave_wine"
+      ]
     }
   }
 }

@@ -1,12 +1,14 @@
 {
   "id": "ch2_intro",
-  "draft": true,
-  "backdrop": "camp",
+  "backdrop": "ruin",
   "lines": [
-    { "speaker": "narrator", "text": "The deserter waits at the ford with a sword as long as a man is tall." },
-    { "speaker": "gravemaw", "side": "right", "expr": "angry", "text": "Another one with a voice in the hilt. Draw it. We'll see whose is hungrier." },
+    { "speaker": "narrator", "text": "The fort on the hill was abandoned before anyone in {village} was born. Someone lives in it now." },
+    { "speaker": "narrator", "text": "Legion tracks run to the gate. A patrol is camped in the outer yard, and it is not alone." },
     { "speaker": "blade", "text": "Gravemaw. It remembers me." },
-    { "speaker": "mc", "side": "left", "text": "I didn't come to fight you." },
-    { "speaker": "gravemaw", "text": "Nobody does. Draw." }
+    { "speaker": "mc", "side": "left", "text": "Another one like you." },
+    { "speaker": "narrator", "text": "On the steps of the keep sits a big man with a sword across his knees as long as a man is tall." },
+    { "speaker": "gravemaw", "side": "right", "expr": "angry", "text": "Another one with a voice in the hilt. I can hear it from here." },
+    { "speaker": "mc", "text": "I didn't come to fight you." },
+    { "speaker": "gravemaw", "text": "Nobody does. Get through the Legion first. Then we'll see whose blade is hungrier." }
   ]
 }

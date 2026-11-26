@@ -1,0 +1,7 @@
+{
+  "id": "ch3_b_gate",
+  "battle": true,
+  "lines": [
+    { "speaker": "narrator", "text": "The north gate swings open. More of the watch pours through." }
+  ]
+}

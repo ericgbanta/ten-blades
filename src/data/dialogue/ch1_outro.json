@@ -1,0 +1,16 @@
+{
+  "id": "ch1_outro",
+  "backdrop": "forest",
+  "lines": [
+    { "speaker": "narrator", "text": "By first light the forest thins, and the river road runs on alone." },
+    { "speaker": "narrator", "text": "No horns. The others drop where they stand and sleep in the ferns." },
+    { "speaker": "mc", "side": "left", "expr": "hurt", "text": "They should have turned back." },
+    { "speaker": "blade", "text": "They chose the road. Let them walk it." },
+    { "speaker": "mc", "expr": "angry", "text": "They're not yours to spend." },
+    { "speaker": "blade", "text": "North of here is a fort that nobody holds. Someone there carries one of us. I can taste the iron." },
+    { "speaker": "mc", "expr": "neutral", "text": "Another sword like you?" },
+    { "speaker": "blade", "text": "Like me? No. Hungrier." },
+    { "speaker": "narrator", "text": "{mc} does not tell the others what the sword said. Not yet." },
+    { "fx": "fadeOut" }
+  ]
+}

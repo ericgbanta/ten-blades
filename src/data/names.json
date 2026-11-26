@@ -2,5 +2,12 @@
   "empire": "Ardent Empire",
   "emperor": "Emperor Haldric",
   "continent": "Hesper",
-  "village": "Wrenfold"
+  "village": "Wrenfold",
+  "town": "Saltmarket",
+  "gravemaw_bearer": "Garrow",
+  "needles_bearer": "Pell",
+  "soldier_recruit": "Hask",
+  "ranger_recruit": "Lise",
+  "adept_recruit": "Tobin",
+  "medic_recruit": "Marra"
 }

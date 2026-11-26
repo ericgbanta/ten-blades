@@ -16,7 +16,7 @@ export const TERRAIN_CHARS: Record<string, string> = {
   fort: 'T',
   bridge: 'B',
   ford: 'f',
-  cobble: ',',
+  cobble: 'o',
   flagstone: '_',
   building: 'X',
   stall: 'S',

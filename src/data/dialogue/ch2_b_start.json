@@ -1,0 +1,10 @@
+{
+  "id": "ch2_b_start",
+  "battle": true,
+  "lines": [
+    { "speaker": "narrator", "text": "The Legion holds the gate. The west wall and the east wall are broken through." },
+    { "speaker": "narrator", "text": "The man in the keep is not with them. {mc} can talk to him from a tile beside him." },
+    { "speaker": "mc", "side": "left", "text": "If he's hunted too, he might listen." },
+    { "speaker": "blade", "text": "Or he might take your head. Either way, I will meet him." }
+  ]
+}

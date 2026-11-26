@@ -1,0 +1,12 @@
+{
+  "id": "ch3_b_needles",
+  "battle": true,
+  "lines": [
+    { "speaker": "narrator", "text": "Something drops onto the cobbles from a rooftop, light as a cat." },
+    { "speaker": "needles", "side": "right", "text": "Don't look so pleased. I came back for my own reasons." },
+    { "speaker": "mc", "side": "left", "text": "My purse among them?" },
+    { "speaker": "needles", "expr": "smile", "text": "Your purse was empty. They'll take my sword too, once they're done with yours." },
+    { "speaker": "needles", "text": "I'm {needles_bearer}. I know every alley in this town. Try to keep up." },
+    { "speaker": "blade", "text": "Thousand Needles. Loud, as I said." }
+  ]
+}

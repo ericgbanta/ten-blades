@@ -1,0 +1,11 @@
+{
+  "id": "ch2_outro_slain",
+  "backdrop": "ruin",
+  "lines": [
+    { "speaker": "narrator", "text": "The patrol is broken. In the keep, the big man's sword lies where it fell." },
+    { "speaker": "narrator", "text": "When {mc} reaches for it, the blade is cold, and heavier than any iron should be. It will not lift." },
+    { "speaker": "blade", "text": "It chose him. It will wait for the next fool." },
+    { "speaker": "mc", "side": "left", "expr": "hurt", "text": "We bury him. Then we go south, to {town}. We need a forge and a market." },
+    { "speaker": "narrator", "text": "They make camp in the lee of the ruin, and nobody sleeps much." }
+  ]
+}

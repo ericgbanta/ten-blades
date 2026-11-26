@@ -1,0 +1,8 @@
+{
+  "id": "ch2_b_flank",
+  "battle": true,
+  "lines": [
+    { "speaker": "narrator", "text": "More soldiers come up the west road. Someone told them where to look." },
+    { "speaker": "mc", "side": "left", "expr": "angry", "text": "Hold the breach. Don't let them close the circle." }
+  ]
+}

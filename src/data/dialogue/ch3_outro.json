@@ -1,0 +1,28 @@
+{
+  "id": "ch3_outro",
+  "backdrop": "town",
+  "lines": [
+    { "speaker": "narrator", "text": "The Hunter-Captain is down. His soldiers scatter into the alleys, and the town shuts its doors." },
+    { "speaker": "needles", "side": "right", "text": "Be gone before they count the bodies. I know a way out on the salt barges." },
+    { "speaker": "mc", "side": "left", "text": "You're coming with us?" },
+    { "speaker": "needles", "expr": "smile", "text": "Somebody has to keep your purse safe." },
+    { "speaker": "narrator", "text": "That night on the barge, the others ask what the captain meant. What the sword knows." },
+    { "choice": [{ "text": "Tell them everything it whispers.", "set": { "told_whispers": true }, "goto": "told" }, { "text": "Keep it to yourself.", "set": { "told_whispers": false }, "goto": "kept" }] },
+    { "label": "told" },
+    { "speaker": "mc", "text": "It talks to me. At night, mostly. It says there were ten, and it wants them back together." },
+    { "speaker": "needles", "expr": "hurt", "text": "Mine says the same. I thought I was going mad." },
+    { "goto": "told_end", "if": [{ "type": "flag", "flag": "garrow_slain" }] },
+    { "leave": "needles" },
+    { "speaker": "gravemaw", "side": "right", "text": "Then nobody carries one of these alone. Not anymore." },
+    { "label": "told_end" },
+    { "speaker": "narrator", "text": "Nobody sleeps far from the others after that." },
+    { "goto": "end" },
+    { "label": "kept" },
+    { "speaker": "mc", "text": "Nothing worth repeating. Old steel and old grudges." },
+    { "speaker": "needles", "expr": "neutral", "text": "You're a bad liar." },
+    { "speaker": "mc", "expr": "hurt", "text": "Then let me be a bad liar a while longer." },
+    { "speaker": "blade", "text": "Wise. They would only be afraid of you." },
+    { "label": "end" },
+    { "speaker": "narrator", "text": "Downriver, the barge slides past the last of the {empire}'s banners." }
+  ]
+}

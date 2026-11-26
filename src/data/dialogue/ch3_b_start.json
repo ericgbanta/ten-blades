@@ -1,0 +1,9 @@
+{
+  "id": "ch3_b_start",
+  "battle": true,
+  "lines": [
+    { "speaker": "captain", "side": "right", "text": "Bring me the sword. Bring the hand still on it, if you must." },
+    { "speaker": "narrator", "text": "The Hunter-Captain waits on the plaza by the north gate. Both bridges over the canal are held." },
+    { "speaker": "narrator", "text": "Defeat the Hunter-Captain, and his soldiers will scatter." }
+  ]
+}

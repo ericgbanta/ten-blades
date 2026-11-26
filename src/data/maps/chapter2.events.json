@@ -1,0 +1,7 @@
+[
+  {"id": "start", "trigger": {"type": "battleStart"}, "effects": [{"type": "scene", "sceneId": "ch2_b_start"}]},
+  {"id": "garrow_talk", "trigger": {"type": "talk", "unitId": "mc", "targetId": "gravemaw"}, "conditions": [{"type": "flag", "flag": "garrow_joined", "value": false}], "effects": [{"type": "scene", "sceneId": "ch2_b_garrow_talk"}, {"type": "setTeam", "unitId": "gravemaw", "team": "player"}, {"type": "setFlag", "flag": "garrow_joined", "value": true}]},
+  {"id": "garrow_yields", "trigger": {"type": "hpBelow", "unitId": "gravemaw", "percent": 50}, "conditions": [{"type": "flag", "flag": "garrow_joined", "value": false}], "effects": [{"type": "scene", "sceneId": "ch2_b_garrow_yields"}, {"type": "setTeam", "unitId": "gravemaw", "team": "player"}, {"type": "setFlag", "flag": "garrow_joined", "value": true}]},
+  {"id": "garrow_slain", "trigger": {"type": "defeated", "unitId": "gravemaw"}, "conditions": [{"type": "flag", "flag": "garrow_joined", "value": false}], "effects": [{"type": "setFlag", "flag": "garrow_slain", "value": true}, {"type": "scene", "sceneId": "ch2_b_garrow_slain"}]},
+  {"id": "flank", "trigger": {"type": "phaseStart", "turn": 3, "phase": "enemy"}, "effects": [{"type": "scene", "sceneId": "ch2_b_flank"}]}
+]

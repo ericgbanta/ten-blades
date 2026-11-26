@@ -1,0 +1,10 @@
+{
+  "id": "ch2_b_garrow_yields",
+  "battle": true,
+  "lines": [
+    { "speaker": "gravemaw", "side": "right", "expr": "hurt", "text": "Enough. You've made your point." },
+    { "speaker": "mc", "side": "left", "text": "I wasn't trying to make one. They're hunting us both." },
+    { "speaker": "gravemaw", "text": "Then I'll stand with the one who could have killed me and didn't. {gravemaw_bearer}. That's my name." },
+    { "speaker": "blade", "text": "It bled, and it still follows. Good." }
+  ]
+}

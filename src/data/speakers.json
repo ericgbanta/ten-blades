@@ -6,6 +6,10 @@
   "captain": { "name": "Hunter-Captain", "portrait": "captain" },
   "villager": { "name": "Villager", "portrait": null },
   "deserter": { "name": "Deserter", "portrait": "hunter" },
-  "gravemaw": { "name": "The Deserter", "portrait": "gravemaw" },
-  "needles": { "name": "The Thief", "portrait": "needles" }
+  "gravemaw": { "name": "{gravemaw_bearer}", "portrait": "gravemaw" },
+  "needles": { "name": "{needles_bearer}", "portrait": "needles" },
+  "hask": { "name": "{soldier_recruit}", "portrait": "soldier" },
+  "lise": { "name": "{ranger_recruit}", "portrait": "ranger" },
+  "tobin": { "name": "{adept_recruit}", "portrait": "adept" },
+  "marra": { "name": "{medic_recruit}", "portrait": "medic" }
 }

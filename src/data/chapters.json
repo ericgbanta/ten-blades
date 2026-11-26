@@ -6,71 +6,64 @@
     "act": 1,
     "mapId": "prologue",
     "intro": [{"scenes": ["prologue_intro"]}],
-    "outro": [
-      {
-        "when": [{"type": "flag", "flag": "stranger_fell"}, {"type": "permadeath", "mode": "classic"}],
-        "scenes": ["prologue_outro_fell", "prologue_binding"]
-      },
-      {"scenes": ["prologue_outro", "prologue_binding"]}
-    ],
-    "after": [
-      {
-        "leave": ["stranger"],
-        "mcWeapon": {
-          "vanguard": "widows_hush_vanguard",
-          "duelist": "widows_hush_duelist",
-          "spiritblade": "widows_hush_spiritblade"
-        }
-      }
-    ],
+    "outro": [{"when": [{"type": "flag", "flag": "stranger_fell"}, {"type": "permadeath", "mode": "classic"}], "scenes": ["prologue_outro_fell", "prologue_binding"]}, {"scenes": ["prologue_outro", "prologue_binding"]}],
+    "after": [{"leave": ["stranger"], "mcWeapon": {"vanguard": "widows_hush_vanguard", "duelist": "widows_hush_duelist", "spiritblade": "widows_hush_spiritblade"}}],
     "next": "chapter1",
-    "campAfter": {
-      "unlocks": ["barracks", "warmap"],
-      "talk": [{"scene": "camp_first_night", "title": "The first night"}],
-      "backdrop": "camp"
-    }
+    "campAfter": {"unlocks": ["barracks", "warmap"], "talk": [{"scene": "camp_first_night", "title": "The first night"}], "backdrop": "camp"}
   },
   {
     "id": "chapter1",
     "name": "Chapter 1",
     "title": "Hunted",
     "act": 1,
-    "mapId": null,
+    "mapId": "chapter1",
     "intro": [{"scenes": ["ch1_intro"]}],
-    "outro": [],
+    "outro": [{"scenes": ["ch1_outro"]}],
     "after": [],
     "next": "chapter2",
-    "skirmishes": {"ids": ["ridge"], "cap": 3},
-    "deploy": {"max": 4},
-    "draft": true
+    "skirmishes": {"ids": ["ridge"], "cap": 3}
   },
   {
     "id": "chapter2",
     "name": "Chapter 2",
     "title": "The Deserter's Blade",
     "act": 1,
-    "mapId": null,
+    "mapId": "chapter2",
     "intro": [{"scenes": ["ch2_intro"]}],
-    "outro": [],
+    "outro": [{"when": [{"type": "flag", "flag": "garrow_slain"}], "scenes": ["ch2_outro_slain"]}, {"scenes": ["ch2_outro"]}],
     "after": [],
     "next": "chapter3",
-    "campAfter": {"unlocks": ["merchant", "forge"]},
+    "campAfter": {"unlocks": ["merchant", "forge"], "talk": [{"scene": "ch2_camp_garrow", "title": "The deserter", "when": [{"type": "flag", "flag": "garrow_joined"}]}], "backdrop": "camp"},
     "skirmishes": {"ids": ["ridge"], "cap": 3},
-    "plotCritical": ["gravemaw"],
-    "draft": true
+    "deploy": {"max": 5},
+    "plotCritical": ["gravemaw"]
   },
   {
     "id": "chapter3",
     "name": "Chapter 3",
     "title": "Thousand Needles",
     "act": 1,
-    "mapId": null,
+    "mapId": "chapter3",
     "intro": [{"scenes": ["ch3_intro"]}],
+    "outro": [{"scenes": ["ch3_outro"]}],
+    "after": [],
+    "next": "chapter4",
+    "campAfter": {"talk": [{"scene": "ch3_camp_pell", "title": "The thief"}], "backdrop": "camp"},
+    "skirmishes": {"ids": ["ridge"], "cap": 3},
+    "deploy": {"max": 6},
+    "plotCritical": ["gravemaw", "needles"]
+  },
+  {
+    "id": "chapter4",
+    "name": "Chapter 4",
+    "title": "Storm and Root",
+    "act": 1,
+    "mapId": null,
+    "intro": [],
     "outro": [],
     "after": [],
     "next": null,
     "skirmishes": {"ids": ["ridge"], "cap": 3},
-    "plotCritical": ["gravemaw", "needles"],
     "draft": true
   }
 ]

@@ -1,0 +1,13 @@
+{
+  "id": "ch2_outro",
+  "backdrop": "ruin",
+  "lines": [
+    { "speaker": "narrator", "text": "The last of the patrol runs for the hills. Nobody chases them." },
+    { "speaker": "gravemaw", "side": "right", "text": "They'll be back with a cohort. Two blades in one place is worth the march." },
+    { "speaker": "mc", "side": "left", "text": "Then we don't stay in one place." },
+    { "speaker": "gravemaw", "text": "South, then. {town}. Crowds hide people, and there's a forge and a market." },
+    { "speaker": "gravemaw", "text": "And a thief they say nobody can catch. Some say she's a ghost. Some say it's the sword." },
+    { "speaker": "blade", "text": "There is one of us in that town. Small, and very loud." },
+    { "speaker": "narrator", "text": "They make camp in the lee of the ruin. For one night, nobody keeps watch alone." }
+  ]
+}

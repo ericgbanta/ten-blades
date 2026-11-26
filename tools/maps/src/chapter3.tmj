@@ -1,0 +1,1229 @@
+{
+ "type": "map",
+ "version": "1.10",
+ "tiledversion": "1.10.2",
+ "orientation": "orthogonal",
+ "renderorder": "right-down",
+ "infinite": false,
+ "width": 14,
+ "height": 18,
+ "tilewidth": 96,
+ "tileheight": 96,
+ "nextlayerid": 7,
+ "nextobjectid": 32,
+ "properties": [
+  {
+   "name": "id",
+   "type": "string",
+   "value": "chapter3"
+  },
+  {
+   "name": "name",
+   "type": "string",
+   "value": "Saltmarket"
+  },
+  {
+   "name": "objective",
+   "type": "string",
+   "value": "defeatBoss"
+  },
+  {
+   "name": "backdrop",
+   "type": "string",
+   "value": "town"
+  }
+ ],
+ "tilesets": [
+  {
+   "firstgid": 1,
+   "source": "../tiles.tsj"
+  }
+ ],
+ "layers": [
+  {
+   "id": 1,
+   "name": "terrain",
+   "type": "tilelayer",
+   "x": 0,
+   "y": 0,
+   "width": 14,
+   "height": 18,
+   "opacity": 1,
+   "visible": true,
+   "data": [
+    13,
+    13,
+    8,
+    8,
+    8,
+    8,
+    8,
+    17,
+    17,
+    8,
+    8,
+    8,
+    8,
+    8,
+    13,
+    13,
+    11,
+    11,
+    12,
+    12,
+    12,
+    12,
+    12,
+    12,
+    11,
+    11,
+    13,
+    13,
+    13,
+    11,
+    11,
+    11,
+    12,
+    12,
+    12,
+    12,
+    12,
+    12,
+    11,
+    11,
+    11,
+    13,
+    11,
+    11,
+    13,
+    13,
+    11,
+    11,
+    12,
+    12,
+    11,
+    11,
+    13,
+    13,
+    11,
+    11,
+    11,
+    11,
+    13,
+    13,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    13,
+    13,
+    11,
+    11,
+    18,
+    11,
+    11,
+    11,
+    11,
+    14,
+    11,
+    11,
+    14,
+    11,
+    11,
+    11,
+    11,
+    18,
+    13,
+    13,
+    11,
+    11,
+    11,
+    11,
+    13,
+    13,
+    11,
+    11,
+    11,
+    11,
+    13,
+    13,
+    13,
+    13,
+    11,
+    11,
+    18,
+    11,
+    13,
+    13,
+    11,
+    18,
+    11,
+    11,
+    13,
+    13,
+    16,
+    16,
+    16,
+    9,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    9,
+    16,
+    16,
+    16,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    13,
+    13,
+    11,
+    14,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    14,
+    11,
+    13,
+    13,
+    13,
+    13,
+    11,
+    11,
+    11,
+    11,
+    18,
+    18,
+    11,
+    11,
+    11,
+    11,
+    13,
+    13,
+    11,
+    11,
+    11,
+    11,
+    14,
+    11,
+    11,
+    11,
+    11,
+    14,
+    11,
+    11,
+    11,
+    11,
+    13,
+    13,
+    13,
+    11,
+    11,
+    11,
+    13,
+    13,
+    11,
+    11,
+    11,
+    13,
+    13,
+    13,
+    13,
+    13,
+    13,
+    11,
+    11,
+    11,
+    13,
+    13,
+    11,
+    11,
+    11,
+    13,
+    13,
+    13,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    13,
+    11,
+    11,
+    11,
+    13,
+    13,
+    11,
+    11,
+    13,
+    13,
+    11,
+    11,
+    11,
+    13,
+    13,
+    11,
+    11,
+    11,
+    13,
+    13,
+    11,
+    11,
+    13,
+    13,
+    11,
+    11,
+    11,
+    13
+   ]
+  },
+  {
+   "id": 2,
+   "name": "units",
+   "type": "objectgroup",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "draworder": "topdown",
+   "objects": [
+    {
+     "id": 1,
+     "x": 624,
+     "y": 1584,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "mc",
+     "type": "mc"
+    },
+    {
+     "id": 2,
+     "x": 720,
+     "y": 1584,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "party",
+     "type": "party"
+    },
+    {
+     "id": 3,
+     "x": 624,
+     "y": 1680,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "party",
+     "type": "party"
+    },
+    {
+     "id": 4,
+     "x": 720,
+     "y": 1680,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "party",
+     "type": "party"
+    },
+    {
+     "id": 5,
+     "x": 240,
+     "y": 1584,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "party",
+     "type": "party"
+    },
+    {
+     "id": 6,
+     "x": 1104,
+     "y": 1584,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "party",
+     "type": "party"
+    },
+    {
+     "id": 7,
+     "x": 720,
+     "y": 240,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Hunter-Captain",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "captain"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "hunter_captain"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 6
+      },
+      {
+       "name": "isBoss",
+       "type": "bool",
+       "value": true
+      }
+     ]
+    },
+    {
+     "id": 8,
+     "x": 624,
+     "y": 336,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Inquisitor",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "inquisitor_1"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "inquisitor"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 5
+      },
+      {
+       "name": "ai",
+       "type": "string",
+       "value": "hold"
+      }
+     ]
+    },
+    {
+     "id": 9,
+     "x": 816,
+     "y": 240,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Captain's Guard",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "legionary_3"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "legionary"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 6
+      },
+      {
+       "name": "ai",
+       "type": "string",
+       "value": "guard"
+      },
+      {
+       "name": "radius",
+       "type": "int",
+       "value": 1
+      },
+      {
+       "name": "items",
+       "type": "string",
+       "value": "healing_salve"
+      }
+     ]
+    },
+    {
+     "id": 10,
+     "x": 336,
+     "y": 720,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Legionary",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "legionary_1"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "legionary"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 5
+      },
+      {
+       "name": "ai",
+       "type": "string",
+       "value": "guard"
+      },
+      {
+       "name": "radius",
+       "type": "int",
+       "value": 1
+      }
+     ]
+    },
+    {
+     "id": 11,
+     "x": 1008,
+     "y": 720,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Legionary",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "legionary_2"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "legionary"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 5
+      },
+      {
+       "name": "ai",
+       "type": "string",
+       "value": "guard"
+      },
+      {
+       "name": "radius",
+       "type": "int",
+       "value": 1
+      }
+     ]
+    },
+    {
+     "id": 12,
+     "x": 528,
+     "y": 528,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Archer",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "archer_1"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "archer"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 4
+      },
+      {
+       "name": "ai",
+       "type": "string",
+       "value": "hold"
+      }
+     ]
+    },
+    {
+     "id": 13,
+     "x": 816,
+     "y": 528,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Archer",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "archer_2"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "archer"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 4
+      },
+      {
+       "name": "ai",
+       "type": "string",
+       "value": "hold"
+      }
+     ]
+    },
+    {
+     "id": 14,
+     "x": 336,
+     "y": 1104,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Hunter",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "hunter_1"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "hunter"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 5
+      },
+      {
+       "name": "ai",
+       "type": "string",
+       "value": "charge"
+      }
+     ]
+    },
+    {
+     "id": 15,
+     "x": 1008,
+     "y": 1104,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Hunter",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "hunter_2"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "hunter"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 5
+      },
+      {
+       "name": "ai",
+       "type": "string",
+       "value": "charge"
+      }
+     ]
+    },
+    {
+     "id": 16,
+     "x": 1200,
+     "y": 336,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Hunter",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "hunter_3"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "hunter"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 5
+      },
+      {
+       "name": "ai",
+       "type": "string",
+       "value": "hold"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "name": "wave 1",
+   "type": "objectgroup",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "draworder": "topdown",
+   "properties": [
+    {
+     "name": "turn",
+     "type": "int",
+     "value": 3
+    },
+    {
+     "name": "difficulties",
+     "type": "string",
+     "value": "normal,hard,lunatic"
+    }
+   ],
+   "objects": [
+    {
+     "id": 17,
+     "x": 720,
+     "y": 48,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Hunter",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "watch_1"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "hunter"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 4
+      },
+      {
+       "name": "ai",
+       "type": "string",
+       "value": "charge"
+      }
+     ]
+    },
+    {
+     "id": 18,
+     "x": 816,
+     "y": 48,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Hunter",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "watch_2"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "hunter"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 4
+      },
+      {
+       "name": "ai",
+       "type": "string",
+       "value": "charge"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "name": "wave 2",
+   "type": "objectgroup",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "draworder": "topdown",
+   "properties": [
+    {
+     "name": "turn",
+     "type": "int",
+     "value": 3
+    },
+    {
+     "name": "difficulties",
+     "type": "string",
+     "value": "hard,lunatic"
+    }
+   ],
+   "objects": [
+    {
+     "id": 19,
+     "x": 48,
+     "y": 912,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Legionary",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "watch_3"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "legionary"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 5
+      },
+      {
+       "name": "ai",
+       "type": "string",
+       "value": "charge"
+      }
+     ]
+    },
+    {
+     "id": 20,
+     "x": 1296,
+     "y": 912,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Archer",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "watch_4"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "archer"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 5
+      },
+      {
+       "name": "ai",
+       "type": "string",
+       "value": "charge"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "name": "wave 3",
+   "type": "objectgroup",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "draworder": "topdown",
+   "properties": [
+    {
+     "name": "turn",
+     "type": "int",
+     "value": 5
+    },
+    {
+     "name": "difficulties",
+     "type": "string",
+     "value": "lunatic"
+    }
+   ],
+   "objects": [
+    {
+     "id": 21,
+     "x": 48,
+     "y": 1488,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Hunter",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "watch_5"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "hunter"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 5
+      },
+      {
+       "name": "ai",
+       "type": "string",
+       "value": "charge"
+      }
+     ]
+    },
+    {
+     "id": 22,
+     "x": 1296,
+     "y": 1488,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Hunter",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "watch_6"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "hunter"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 5
+      },
+      {
+       "name": "ai",
+       "type": "string",
+       "value": "charge"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "name": "props",
+   "type": "objectgroup",
+   "x": 0,
+   "y": 0,
+   "opacity": 1,
+   "visible": true,
+   "draworder": "topdown",
+   "objects": [
+    {
+     "id": 23,
+     "name": "banner",
+     "type": "banner",
+     "x": 528,
+     "y": 144,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true
+    },
+    {
+     "id": 24,
+     "name": "banner",
+     "type": "banner",
+     "x": 1008,
+     "y": 144,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true
+    },
+    {
+     "id": 25,
+     "name": "well",
+     "type": "well",
+     "x": 720,
+     "y": 432,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true
+    },
+    {
+     "id": 26,
+     "name": "barrels",
+     "type": "barrels",
+     "x": 240,
+     "y": 912,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true
+    },
+    {
+     "id": 27,
+     "name": "cart",
+     "type": "cart",
+     "x": 1200,
+     "y": 912,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true
+    },
+    {
+     "id": 28,
+     "name": "barrels",
+     "type": "barrels",
+     "x": 816,
+     "y": 1200,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true
+    },
+    {
+     "id": 29,
+     "name": "wheel",
+     "type": "wheel",
+     "x": 144,
+     "y": 1488,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true
+    },
+    {
+     "id": 30,
+     "name": "barrels",
+     "type": "barrels",
+     "x": 1200,
+     "y": 432,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true
+    },
+    {
+     "id": 31,
+     "name": "rubble",
+     "type": "rubble",
+     "x": 336,
+     "y": 1488,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true
+    }
+   ]
+  }
+ ]
+}

@@ -17,6 +17,12 @@ import prologueEvents from './maps/prologue.events.json';
 import skirmishTest from './maps/skirmish_test.json';
 import skirmishTestEvents from './maps/skirmish_test.events.json';
 import skirmishRidge from './maps/skirmish_ridge.json';
+import chapter1 from './maps/chapter1.json';
+import chapter1Events from './maps/chapter1.events.json';
+import chapter2 from './maps/chapter2.json';
+import chapter2Events from './maps/chapter2.events.json';
+import chapter3 from './maps/chapter3.json';
+import chapter3Events from './maps/chapter3.events.json';
 import chaptersJson from './chapters.json';
 
 /**
@@ -38,6 +44,9 @@ export const gameData: GameData = {
   // skirmish_ridge is the first side skirmish (src/data/skirmishes.json); it has no scripted events.
   maps: {
     prologue: withEvents(prologue, prologueEvents),
+    chapter1: withEvents(chapter1, chapter1Events),
+    chapter2: withEvents(chapter2, chapter2Events),
+    chapter3: withEvents(chapter3, chapter3Events),
     skirmish_test: withEvents(skirmishTest, skirmishTestEvents),
     skirmish_ridge: skirmishRidge as unknown as MapData,
   },

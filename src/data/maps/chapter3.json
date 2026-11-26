@@ -1,0 +1,84 @@
+{
+  "id": "chapter3",
+  "name": "Saltmarket",
+  "width": 14,
+  "height": 18,
+  "tiles": [
+    "XX#####GG#####",
+    "XXoo______ooXX",
+    "Xooo______oooX",
+    "ooXXoo__ooXXoo",
+    "ooXXooooooXXoo",
+    "CooooSooSooooC",
+    "XXooooXXooooXX",
+    "XXooCoXXoCooXX",
+    "cccBccccccBccc",
+    "oooooooooooooo",
+    "XXoSooooooSoXX",
+    "XXooooCCooooXX",
+    "ooooSooooSoooo",
+    "XXXoooXXoooXXX",
+    "XXXoooXXoooXXX",
+    "oooooooooooooo",
+    "XoooXXooXXoooX",
+    "XoooXXooXXoooX"
+  ],
+  "legend": {"#": "wall", "B": "bridge", "o": "cobble", "_": "flagstone", "X": "building", "S": "stall", "c": "canal", "G": "gate", "C": "crates"},
+  "placements": [
+    {"kind": "mc", "pos": {"x": 6, "y": 16}},
+    {"kind": "party", "pos": {"x": 7, "y": 16}},
+    {"kind": "party", "pos": {"x": 6, "y": 17}},
+    {"kind": "party", "pos": {"x": 7, "y": 17}},
+    {"kind": "party", "pos": {"x": 2, "y": 16}},
+    {"kind": "party", "pos": {"x": 11, "y": 16}},
+    {"kind": "unit", "id": "captain", "name": "Hunter-Captain", "classId": "hunter_captain", "team": "enemy", "level": 6, "pos": {"x": 7, "y": 2}, "isBoss": true},
+    {"kind": "unit", "id": "inquisitor_1", "name": "Inquisitor", "classId": "inquisitor", "team": "enemy", "level": 5, "pos": {"x": 6, "y": 3}, "ai": {"behavior": "hold"}},
+    {"kind": "unit", "id": "legionary_3", "name": "Captain's Guard", "classId": "legionary", "team": "enemy", "level": 6, "pos": {"x": 8, "y": 2}, "ai": {"behavior": "guard", "radius": 1}, "items": ["healing_salve"]},
+    {"kind": "unit", "id": "legionary_1", "name": "Legionary", "classId": "legionary", "team": "enemy", "level": 5, "pos": {"x": 3, "y": 7}, "ai": {"behavior": "guard", "radius": 1}},
+    {"kind": "unit", "id": "legionary_2", "name": "Legionary", "classId": "legionary", "team": "enemy", "level": 5, "pos": {"x": 10, "y": 7}, "ai": {"behavior": "guard", "radius": 1}},
+    {"kind": "unit", "id": "archer_1", "name": "Archer", "classId": "archer", "team": "enemy", "level": 4, "pos": {"x": 5, "y": 5}, "ai": {"behavior": "hold"}},
+    {"kind": "unit", "id": "archer_2", "name": "Archer", "classId": "archer", "team": "enemy", "level": 4, "pos": {"x": 8, "y": 5}, "ai": {"behavior": "hold"}},
+    {"kind": "unit", "id": "hunter_1", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 5, "pos": {"x": 3, "y": 11}, "ai": {"behavior": "charge"}},
+    {"kind": "unit", "id": "hunter_2", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 5, "pos": {"x": 10, "y": 11}, "ai": {"behavior": "charge"}},
+    {"kind": "unit", "id": "hunter_3", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 5, "pos": {"x": 12, "y": 3}, "ai": {"behavior": "hold"}}
+  ],
+  "objective": {"type": "defeatBoss"},
+  "backdrop": "town",
+  "reinforcements": [
+    {
+      "turn": 3,
+      "difficulties": ["normal", "hard", "lunatic"],
+      "units": [
+        {"kind": "unit", "id": "watch_1", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 4, "pos": {"x": 7, "y": 0}, "ai": {"behavior": "charge"}},
+        {"kind": "unit", "id": "watch_2", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 4, "pos": {"x": 8, "y": 0}, "ai": {"behavior": "charge"}}
+      ]
+    },
+    {
+      "turn": 3,
+      "difficulties": ["hard", "lunatic"],
+      "units": [
+        {"kind": "unit", "id": "watch_3", "name": "Legionary", "classId": "legionary", "team": "enemy", "level": 5, "pos": {"x": 0, "y": 9}, "ai": {"behavior": "charge"}},
+        {"kind": "unit", "id": "watch_4", "name": "Archer", "classId": "archer", "team": "enemy", "level": 5, "pos": {"x": 13, "y": 9}, "ai": {"behavior": "charge"}}
+      ]
+    },
+    {
+      "turn": 5,
+      "difficulties": ["lunatic"],
+      "units": [
+        {"kind": "unit", "id": "watch_5", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 5, "pos": {"x": 0, "y": 15}, "ai": {"behavior": "charge"}},
+        {"kind": "unit", "id": "watch_6", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 5, "pos": {"x": 13, "y": 15}, "ai": {"behavior": "charge"}}
+      ]
+    }
+  ],
+  "props": [
+    {"id": "banner", "x": 5, "y": 1},
+    {"id": "banner", "x": 10, "y": 1},
+    {"id": "well", "x": 7, "y": 4},
+    {"id": "barrels", "x": 2, "y": 9},
+    {"id": "cart", "x": 12, "y": 9},
+    {"id": "barrels", "x": 8, "y": 12},
+    {"id": "wheel", "x": 1, "y": 15},
+    {"id": "barrels", "x": 12, "y": 4},
+    {"id": "rubble", "x": 3, "y": 15}
+  ]
+}

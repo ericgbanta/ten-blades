@@ -262,8 +262,20 @@ describe('the shipped script', () => {
     expect(validateGameData(gameData, { sceneIds })).toEqual([]);
   });
 
-  it('names.json holds the four world names', () => {
-    expect(Object.keys(worldNames).sort()).toEqual(['continent', 'emperor', 'empire', 'village']);
+  it('names.json holds the world names and the names of the recruits', () => {
+    expect(Object.keys(worldNames).sort()).toEqual([
+      'adept_recruit',
+      'continent',
+      'emperor',
+      'empire',
+      'gravemaw_bearer',
+      'medic_recruit',
+      'needles_bearer',
+      'ranger_recruit',
+      'soldier_recruit',
+      'town',
+      'village',
+    ]);
   });
 
   it('every scene a chapter or event names exists, and every speaker resolves', () => {
@@ -276,7 +288,7 @@ describe('the shipped script', () => {
     }
   });
 
-  it('the prologue has a short intro, three to five mid-battle beats, one choice in each outro, and draft stubs for chapters 1 to 3', () => {
+  it('the prologue has a short intro, three to five mid-battle beats, one choice in each outro; chapters 1 to 3 are written', () => {
     const spoken = (id: string) => scenes[id]!.lines.filter((n) => 'text' in n).length;
     expect(spoken('prologue_intro')).toBeGreaterThanOrEqual(12);
     expect(spoken('prologue_intro')).toBeLessThanOrEqual(20);
@@ -284,10 +296,12 @@ describe('the shipped script', () => {
     expect(beats.length).toBeGreaterThanOrEqual(3);
     for (const id of ['prologue_outro', 'prologue_outro_fell']) expect(scenes[id]!.lines.filter((n) => 'choice' in n)).toHaveLength(1);
     for (const id of ['ch1_intro', 'ch2_intro', 'ch3_intro']) {
-      expect(scenes[id]!.draft).toBe(true);
-      expect(spoken(id)).toBeGreaterThanOrEqual(3);
-      expect(spoken(id)).toBeLessThanOrEqual(6);
+      expect(scenes[id]!.draft).toBeUndefined();
+      expect(spoken(id)).toBeGreaterThanOrEqual(6);
+      expect(spoken(id)).toBeLessThanOrEqual(16);
     }
+    // The first story choice that sets a flag is in Chapter 3's outro.
+    expect(scenes.ch3_outro!.lines.filter((n) => 'choice' in n)).toHaveLength(1);
   });
 
   it('every line reads cleanly for he, she and they', () => {

@@ -1,11 +1,19 @@
 {
   "id": "ch1_intro",
-  "draft": true,
   "backdrop": "forest",
   "lines": [
-    { "speaker": "narrator", "text": "Three days north of {village}, the hunters are still behind {mc}." },
-    { "speaker": "blade", "text": "They follow me. Not you." },
-    { "speaker": "mc", "side": "left", "expr": "angry", "text": "Then be quiet, and they might lose us." },
-    { "speaker": "narrator", "text": "Ahead stands an old border fort. Someone has lit a fire inside." }
+    { "speaker": "narrator", "text": "Three nights north of {village}, the hunters are still behind {mc}." },
+    { "speaker": "narrator", "text": "Two others keep pace in the dark. They followed {them} out of the village and will not go back." },
+    { "speaker": "hask", "side": "right", "text": "They've got dogs now. I heard them at the last ford." },
+    { "speaker": "mc", "side": "left", "text": "Then go home, Hask. They want the sword, not you." },
+    { "speaker": "hask", "expr": "angry", "text": "Home's ash. You saw the smoke same as we did." },
+    { "leave": "hask" },
+    { "speaker": "lise", "side": "right", "text": "Hunters behind us, and more ahead if they have any sense. The river road is the only way north." },
+    { "speaker": "blade", "text": "They follow me. Not you. Not them." },
+    { "speaker": "mc", "expr": "angry", "text": "Then be quiet, and they might lose us." },
+    { "speaker": "lise", "text": "Past the bridge the forest runs all the way to the old border. They won't find us in there." },
+    { "speaker": "narrator", "text": "West of the road stand the bones of a border fort. Someone has lit a fire inside." },
+    { "speaker": "mc", "expr": "neutral", "text": "Hunters, or someone hiding from them." },
+    { "speaker": "lise", "text": "Either way, we cross before dawn." }
   ]
 }

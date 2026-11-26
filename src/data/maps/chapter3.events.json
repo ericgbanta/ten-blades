@@ -1,0 +1,6 @@
+[
+  {"id": "start", "trigger": {"type": "battleStart"}, "effects": [{"type": "scene", "sceneId": "ch3_b_start"}]},
+  {"id": "needles_joins", "trigger": {"type": "phaseStart", "turn": 2}, "effects": [{"type": "spawn", "nearest": true, "units": [{"kind": "unit", "id": "needles", "name": "Pell", "classId": "needles_bearer", "team": "player", "level": 5, "pos": {"x": 12, "y": 12}}]}, {"type": "unlock", "unitId": "needles"}, {"type": "scene", "sceneId": "ch3_b_needles"}, {"type": "setFlag", "flag": "pell_joined", "value": true}]},
+  {"id": "captain_wounded", "trigger": {"type": "hpBelow", "unitId": "captain", "percent": 50}, "effects": [{"type": "scene", "sceneId": "ch3_b_captain"}]},
+  {"id": "gate", "trigger": {"type": "phaseStart", "turn": 3, "phase": "enemy"}, "effects": [{"type": "scene", "sceneId": "ch3_b_gate"}]}
+]

@@ -1,0 +1,10 @@
+{
+  "id": "ch1_b_start",
+  "battle": true,
+  "lines": [
+    { "speaker": "lise", "side": "right", "text": "A spear on the bridge, an archer on the rise past it. The ford's further east." },
+    { "speaker": "mc", "side": "left", "text": "We don't have to beat them. We have to get past them." },
+    { "speaker": "narrator", "text": "Get {mc} to the north road, where it leaves the forest. The others can follow." },
+    { "speaker": "hask", "side": "right", "text": "Mind the ford. It's slow going, and anyone standing in it is easy to hit." }
+  ]
+}

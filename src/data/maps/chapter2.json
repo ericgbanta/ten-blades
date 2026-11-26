@@ -1,0 +1,71 @@
+{
+  "id": "chapter2",
+  "name": "The Hollow Fort",
+  "width": 14,
+  "height": 16,
+  "tiles": [
+    "FF.H......H.FF",
+    "F.##########.F",
+    "..#___TT___#..",
+    ".H#_r_TT__r#H.",
+    "..#__#__#__#..",
+    "F.r________#.F",
+    "..#_r___r__#..",
+    "..#____r___r..",
+    "F.#__r__r__#.F",
+    "..#________#..",
+    "..####GG####..",
+    "F.....==.....F",
+    ".F.H..==..F...",
+    "....F.==.H...F",
+    "FF....==....FF",
+    "F.F...==..F.FF"
+  ],
+  "legend": {".": "plain", "=": "road", "F": "forest", "H": "hill", "#": "wall", "T": "fort", "_": "flagstone", "r": "rubble", "G": "gate"},
+  "placements": [
+    {"kind": "mc", "pos": {"x": 6, "y": 14}},
+    {"kind": "party", "pos": {"x": 7, "y": 14}},
+    {"kind": "party", "pos": {"x": 5, "y": 14}},
+    {"kind": "party", "pos": {"x": 6, "y": 15}},
+    {"kind": "party", "pos": {"x": 7, "y": 15}},
+    {"kind": "unit", "id": "gravemaw", "name": "Garrow", "classId": "gravemaw_bearer", "team": "enemy", "level": 5, "pos": {"x": 6, "y": 2}, "ai": {"behavior": "guard", "radius": 1}},
+    {"kind": "unit", "id": "legionary_1", "name": "Legionary", "classId": "legionary", "team": "enemy", "level": 3, "pos": {"x": 6, "y": 10}, "ai": {"behavior": "guard", "radius": 1}},
+    {"kind": "unit", "id": "legionary_2", "name": "Legionary", "classId": "legionary", "team": "enemy", "level": 3, "pos": {"x": 7, "y": 10}, "ai": {"behavior": "hold"}},
+    {"kind": "unit", "id": "archer_1", "name": "Archer", "classId": "archer", "team": "enemy", "level": 3, "pos": {"x": 3, "y": 3}, "ai": {"behavior": "guard", "radius": 3}},
+    {"kind": "unit", "id": "hunter_1", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 3, "pos": {"x": 4, "y": 7}, "ai": {"behavior": "charge"}},
+    {"kind": "unit", "id": "hunter_2", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 3, "pos": {"x": 12, "y": 6}, "ai": {"behavior": "charge"}},
+    {"kind": "unit", "id": "inquisitor_1", "name": "Inquisitor", "classId": "inquisitor", "team": "enemy", "level": 3, "pos": {"x": 9, "y": 6}, "ai": {"behavior": "guard", "radius": 2}},
+    {"kind": "unit", "id": "archer_2", "name": "Archer", "classId": "archer", "team": "enemy", "level": 3, "pos": {"x": 12, "y": 3}, "ai": {"behavior": "guard", "radius": 2}},
+    {"kind": "unit", "id": "sergeant", "name": "Legion Sergeant", "classId": "legionary", "team": "enemy", "level": 4, "pos": {"x": 9, "y": 2}, "ai": {"behavior": "guard", "radius": 2}, "items": ["healing_salve"]}
+  ],
+  "objective": {"type": "rout"},
+  "backdrop": "ruin",
+  "reinforcements": [
+    {
+      "turn": 3,
+      "difficulties": ["normal", "hard", "lunatic"],
+      "units": [
+        {"kind": "unit", "id": "flank_1", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 3, "pos": {"x": 0, "y": 6}, "ai": {"behavior": "charge"}},
+        {"kind": "unit", "id": "flank_2", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 3, "pos": {"x": 0, "y": 9}, "ai": {"behavior": "charge"}}
+      ]
+    },
+    {
+      "turn": 4,
+      "difficulties": ["hard", "lunatic"],
+      "units": [
+        {"kind": "unit", "id": "flank_3", "name": "Legionary", "classId": "legionary", "team": "enemy", "level": 4, "pos": {"x": 13, "y": 9}, "ai": {"behavior": "charge"}},
+        {"kind": "unit", "id": "flank_4", "name": "Archer", "classId": "archer", "team": "enemy", "level": 4, "pos": {"x": 13, "y": 12}, "ai": {"behavior": "charge"}}
+      ]
+    }
+  ],
+  "props": [
+    {"id": "banner", "x": 4, "y": 2},
+    {"id": "campfire", "x": 9, "y": 9},
+    {"id": "barrels", "x": 3, "y": 9},
+    {"id": "graves", "x": 12, "y": 12},
+    {"id": "dead_tree", "x": 2, "y": 0},
+    {"id": "signpost", "x": 5, "y": 12},
+    {"id": "barrels", "x": 10, "y": 2},
+    {"id": "rubble", "x": 1, "y": 10}
+  ]
+}
