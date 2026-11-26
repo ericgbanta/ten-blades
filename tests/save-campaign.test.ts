@@ -41,7 +41,7 @@ describe('chapter order', () => {
 describe('new campaign', () => {
   it('starts at the first chapter with nothing carried, and trims the name', () => {
     const c = start('classic');
-    expect(c).toMatchObject({ version: 3, kind: 'campaign', createdAt: 100, updatedAt: 100, party: [], fallen: [], gold: 0, shards: 0, flags: {} });
+    expect(c).toMatchObject({ version: 4, kind: 'campaign', createdAt: 100, updatedAt: 100, party: [], fallen: [], gold: 0, shards: 0, flags: {}, blades: {} });
     expect(c.mc.name).toBe('Ash');
     expect(c.mc.look).toEqual(DEFAULT_LOOK);
     expect(c.progress).toEqual({ current: 'prologue', completed: [], stage: 'intro', scenes: null });

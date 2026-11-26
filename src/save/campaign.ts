@@ -2,7 +2,7 @@
 // battle setup for the current chapter, and what a won battle does to the save
 // (party carried over, permadeath applied, chapter marked complete). Pure.
 
-import { partyAfterBattle, type BattleSetup, type BattleState, type PartyUnit, type Permadeath } from '../core';
+import { partyAfterBattle, type BattleSetup, type BattleState, type GameData, type PartyUnit, type Permadeath } from '../core';
 import { DEFAULT_LOOK, type McLook } from '../art/mc/look';
 import {
   SAVE_VERSION,
@@ -37,7 +37,23 @@ export function newCampaign(choices: NewGameChoices, chapters: readonly ChapterD
     flags: {},
     gold: 0,
     shards: 0,
+    blades: {},
   };
+}
+
+/**
+ * The campaign with every blade the party holds on record (new ones at tier 1, Dormant); blades already on record
+ * keep their tier. Returns the same object when nothing changed.
+ */
+export function withBlades(c: CampaignSave, data: GameData): CampaignSave {
+  let blades: CampaignSave['blades'] | null = null;
+  for (const u of c.party) {
+    const id = u.weaponId === null ? undefined : data.weapons[u.weaponId]?.blade;
+    if (!id || c.blades[id] || blades?.[id]) continue;
+    blades ??= { ...c.blades };
+    blades[id] = { tier: 1 };
+  }
+  return blades ? { ...c, blades } : c;
 }
 
 export function currentChapter(c: CampaignSave, chapters: readonly ChapterDef[]): ChapterDef | null {

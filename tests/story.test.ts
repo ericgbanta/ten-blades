@@ -227,6 +227,8 @@ describe('chapter flow', () => {
       expect(c.flags.prologue_promise).toBe(true);
       expect(c.party.map((u) => u.id)).toEqual(['mc']);
       expect(c.party[0]!.weaponId).toBe(`widows_hush_${style}`);
+      // The inherited blade goes on record, Dormant.
+      expect(c.blades).toEqual({ widows_hush: { tier: 1 } });
       expect(flowStep(c, chapters, gameData)).toMatchObject({ kind: 'unavailable', chapter: { id: 'chapter1' } });
       expect(canPlay(c, chapters, gameData)).toBe(false);
       expect(validateCampaign(c, saveCtx).ok).toBe(true);

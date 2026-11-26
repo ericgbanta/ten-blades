@@ -9,7 +9,7 @@ export type { McLook, ChapterDef, Pronouns, FlagValue };
 export { PRONOUNS };
 
 /** The version every save is written at. Bump it and add a step in migrate.ts on any shape change. */
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 /** Campaign slots. The suspend save has its own slot and remembers which of these it belongs to. */
 export type SlotId = 1 | 2 | 3;
@@ -74,6 +74,15 @@ export interface CampaignSave {
   flags: Record<string, FlagValue>;
   gold: number;
   shards: number;
+  /**
+   * The legendary blades the party has held, by blade id (src/data/blades.json), with each blade's tier: 1
+   * (Dormant) until awakening arrives in phase 6. Added in version 4.
+   */
+  blades: Record<string, BladeRecord>;
+}
+
+export interface BladeRecord {
+  tier: number;
 }
 
 /** Controller state kept across a resume. The selection is never kept: a resume starts with nothing selected. */

@@ -4,6 +4,8 @@
 // fixture of the old version under tests/fixtures (see docs/SAVES.md).
 
 import { DEFAULT_LOOK } from '../art/mc/look';
+import balance from '../data/balance.json';
+import weapons from '../data/weapons.json';
 import { SAVE_VERSION, fail, ok, type Result } from './format';
 import type { Obj } from './shape';
 
@@ -61,12 +63,50 @@ function addStory(save: RawSave): RawSave {
   return campaign(save, false) as RawSave;
 }
 
+/** The blade a weapon id is, from the shipped weapon data (a save step may not depend on later data shapes). */
+function bladeOfWeapon(id: unknown): string | null {
+  if (typeof id !== 'string') return null;
+  const w = (weapons as Record<string, { blade?: string }>)[id];
+  return w?.blade ?? null;
+}
+
+/**
+ * Version 3 to 4: blade powers.
+ * - The campaign records the blades its party holds, each at tier 1 (Dormant).
+ * - A suspended battle state moves to version 3: an empty power log, and every unit gets no Devour stacks and a
+ *   Resolve gauge at the starting value if it holds a blade (0 otherwise).
+ */
+function addBlades(save: RawSave): RawSave {
+  const campaign = (c: Obj): Obj => {
+    const blades: Record<string, { tier: number }> = {};
+    for (const u of Array.isArray(c.party) ? (c.party as Obj[]) : []) {
+      const b = bladeOfWeapon(u.weaponId);
+      if (b) blades[b] = { tier: 1 };
+    }
+    return { ...c, version: 4, blades };
+  };
+  if (save.kind === 'suspend') {
+    const camp = typeof save.campaign === 'object' && save.campaign !== null ? campaign(save.campaign as Obj) : save.campaign;
+    let battle = save.battle;
+    if (typeof battle === 'object' && battle !== null) {
+      const b = battle as Obj;
+      const start = Math.min(balance.resolve.start, balance.resolve.max);
+      const units = Array.isArray(b.units)
+        ? (b.units as Obj[]).map((u) => ({ ...u, resolve: bladeOfWeapon(u.weaponId) ? start : 0, devourStacks: 0 }))
+        : b.units;
+      battle = { ...b, version: 3, units, powerLog: [] };
+    }
+    return { ...save, version: 4, campaign: camp, battle };
+  }
+  return campaign(save) as RawSave;
+}
+
 /**
  * Steps keyed by the version they upgrade from. A step must handle both kinds
  * (`campaign` and `suspend`, whose `campaign` field is a campaign save of the
  * same version).
  */
-export const MIGRATIONS: Readonly<Record<number, MigrationStep>> = { 1: addLook, 2: addStory };
+export const MIGRATIONS: Readonly<Record<number, MigrationStep>> = { 1: addLook, 2: addStory, 3: addBlades };
 
 /**
  * Upgrade a parsed save to `target`. Returns the upgraded object, still unchecked:

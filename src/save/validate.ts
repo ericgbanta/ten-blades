@@ -54,7 +54,7 @@ export function validateBattleState(raw: unknown, data: GameData): Result<Battle
 // Campaign
 // ---------------------------------------------------------------------------
 
-const CAMPAIGN_KEYS = ['version', 'kind', 'createdAt', 'updatedAt', 'settings', 'mc', 'party', 'fallen', 'progress', 'flags', 'gold', 'shards'];
+const CAMPAIGN_KEYS = ['version', 'kind', 'createdAt', 'updatedAt', 'settings', 'mc', 'party', 'fallen', 'progress', 'flags', 'gold', 'shards', 'blades'];
 
 function timestamp(v: unknown, path: string): number {
   if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) throw new ShapeError(path, 'expected a time in milliseconds');
@@ -104,6 +104,13 @@ function checkCampaign(raw: unknown, path: string, ctx: SaveContext): CampaignSa
   checkFlags(o.flags, join(path, 'flags'));
   int(o.gold, join(path, 'gold'), 0, MAX_COUNTER);
   int(o.shards, join(path, 'shards'), 0, MAX_COUNTER);
+  const blades = obj(o.blades, join(path, 'blades'));
+  for (const [id, rec] of Object.entries(blades)) {
+    const p = join(join(path, 'blades'), id);
+    const blade = ctx.data.blades[id];
+    if (!blade) throw new ShapeError(p, `unknown blade "${id}"`);
+    int(exactObj(rec, p, ['tier']).tier, join(p, 'tier'), 1, blade.tiers.length);
+  }
   return o as unknown as CampaignSave;
 }
 
@@ -210,8 +217,9 @@ const BATTLE_KEYS = [
   'flags',
   'firedEvents',
   'recruited',
+  'powerLog',
 ];
-const UNIT_KEYS = ['id', 'name', 'classId', 'team', 'level', 'xp', 'stats', 'hp', 'weaponId', 'pos', 'acted', 'alive', 'ai', 'isBoss', 'isLord', 'tags', 'left'];
+const UNIT_KEYS = ['id', 'name', 'classId', 'team', 'level', 'xp', 'stats', 'hp', 'weaponId', 'pos', 'acted', 'alive', 'ai', 'isBoss', 'isLord', 'tags', 'left', 'resolve', 'devourStacks'];
 const PLACEMENT_KEYS = ['kind', 'id', 'name', 'classId', 'team', 'level', 'pos'];
 const PLACEMENT_OPTIONAL = ['weaponId', 'ai', 'isBoss', 'isLord', 'tags'];
 
@@ -224,7 +232,7 @@ function checkPos(v: unknown, path: string, w: number, h: number): Pos {
 
 function checkBattle(raw: unknown, path: string, data: GameData): BattleState {
   const o = exactObj(raw, path, BATTLE_KEYS);
-  if (o.version !== 2) throw new ShapeError(join(path, 'version'), `unknown battle version ${String(o.version)}`);
+  if (o.version !== 3) throw new ShapeError(join(path, 'version'), `unknown battle version ${String(o.version)}`);
   const mapId = str(o.mapId, join(path, 'mapId'));
   const source = data.maps[mapId];
   if (!source) throw new ShapeError(join(path, 'mapId'), `unknown map "${mapId}"`);
@@ -262,6 +270,20 @@ function checkBattle(raw: unknown, path: string, data: GameData): BattleState {
   for (const [i, id] of recruited.entries()) {
     if (!ids.has(id)) throw new ShapeError(join(join(path, 'recruited'), i), `unknown unit "${id}"`);
   }
+  arr(o.powerLog, join(path, 'powerLog')).forEach((raw2, i) => {
+    const p = join(join(path, 'powerLog'), i);
+    const e = exactObj(raw2, p, ['powerId', 'bearerId', 'at', 'turn', 'witnesses']);
+    const powerId = str(e.powerId, join(p, 'powerId'));
+    if (!data.powers[powerId]) throw new ShapeError(join(p, 'powerId'), `unknown power "${powerId}"`);
+    const bearer = str(e.bearerId, join(p, 'bearerId'));
+    if (!ids.has(bearer)) throw new ShapeError(join(p, 'bearerId'), `unknown unit "${bearer}"`);
+    checkPos(e.at, join(p, 'at'), w, h);
+    int(e.turn, join(p, 'turn'), 1, 10_000);
+    arr(e.witnesses, join(p, 'witnesses')).forEach((id, j) => {
+      const wid = str(id, join(join(p, 'witnesses'), j));
+      if (!ids.has(wid)) throw new ShapeError(join(join(p, 'witnesses'), j), `unknown unit "${wid}"`);
+    });
+  });
   return o as unknown as BattleState;
 }
 
@@ -292,6 +314,8 @@ function checkUnit(raw: unknown, path: string, data: GameData, ids: Set<string>,
   bool(u.acted, join(path, 'acted'));
   bool(u.isBoss, join(path, 'isBoss'));
   bool(u.isLord, join(path, 'isLord'));
+  int(u.resolve, join(path, 'resolve'), 0, data.balance.resolve.max);
+  int(u.devourStacks, join(path, 'devourStacks'), 0, 999);
   if (u.ai === null) {
     if (team !== 'player') throw new ShapeError(join(path, 'ai'), 'enemy and ally units need an AI');
   } else {

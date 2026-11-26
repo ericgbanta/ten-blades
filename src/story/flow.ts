@@ -8,6 +8,7 @@
 
 import { averageStats, storyConditionsHold, type Flags, type GameData, type PartyUnit, type StoryContext } from '../core';
 import type { CampaignSave } from '../save/format';
+import { withBlades } from '../save/campaign';
 import type { ChapterAfter, ChapterDef, SceneVariant } from './types';
 
 export type FlowStep =
@@ -62,7 +63,8 @@ export function applyAfter(c: CampaignSave, after: readonly ChapterAfter[], data
     const weapon = a.mcWeapon?.[c.mc.style];
     if (weapon) party = party.map((u) => (u.isLord ? { ...u, weaponId: weapon } : u));
   }
-  return { ...c, party };
+  // Blades that joined (the MC's inheritance, a recruit's) go on record at tier 1.
+  return withBlades({ ...c, party }, data);
 }
 
 /**

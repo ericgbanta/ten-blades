@@ -5,7 +5,7 @@ import { battleSetup, newCampaign, suspendSave } from '../src/save/campaign';
 import type { CampaignSave, SaveContext, SuspendSave } from '../src/save/format';
 import { readCampaign, readSuspend } from '../src/save/load';
 import { validateCampaign, validateSuspend } from '../src/save/validate';
-import fixture from './fixtures/save-v3.json';
+import fixture from './fixtures/save-v4.json';
 import v2 from './fixtures/save-v2.json';
 
 const ctx: SaveContext = { data: gameData, chapters };
@@ -32,7 +32,7 @@ function errorOf(r: { ok: boolean; error?: string }): string {
 }
 
 describe('campaign validator', () => {
-  it('accepts a new campaign and the v3 fixture', () => {
+  it('accepts a new campaign and the v4 fixture', () => {
     expect(validateCampaign(campaign(), ctx)).toEqual({ ok: true, value: campaign() });
     expect(validateCampaign(fixture, ctx).ok).toBe(true);
   });
@@ -45,7 +45,7 @@ describe('campaign validator', () => {
   const cases: [string, (c: CampaignSave) => unknown, RegExp][] = [
     ['not an object', () => 'hello', /expected an object/],
     ['a list', () => [], /expected an object, found a list/],
-    ['wrong version', (c) => ({ ...c, version: 1 }), /^version: expected 3, found 1/],
+    ['wrong version', (c) => ({ ...c, version: 1 }), /^version: expected 4, found 1/],
     ['wrong kind', (c) => ({ ...c, kind: 'suspend' }), /not a campaign save/],
     ['missing field', (c) => broken(c, (o) => delete (o as Partial<CampaignSave>).gold), /^gold: missing/],
     ['unknown field', (c) => ({ ...c, cheat: true }), /^cheat: not a known field/],
