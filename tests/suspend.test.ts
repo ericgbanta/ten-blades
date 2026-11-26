@@ -245,7 +245,8 @@ describe('suspend and resume', () => {
     await r.queue.idle();
     expect(await r.store.loadSuspend()).toEqual({ ok: true, value: null });
     const slot = await r.store.loadSlot(1);
-    expect(slot.ok && slot.value?.progress).toEqual({ current: null, completed: ['prologue'] });
+    // The chapter moves on to its outro; the flow marks it complete once the outro has played.
+    expect(slot.ok && slot.value?.progress).toEqual({ current: 'prologue', completed: [], stage: 'outro', scenes: null });
     expect(slot.ok && slot.value?.party.map((u) => u.id)).toEqual(['mc', 'stranger']);
   });
 
@@ -259,7 +260,7 @@ describe('suspend and resume', () => {
     expect(r.c.view.ended?.result).toBe('victory');
     expect(await store.loadSuspend()).toEqual({ ok: true, value: null });
     const slot = await store.loadSlot(1);
-    expect(slot.ok && slot.value?.progress.completed).toEqual(['prologue']);
+    expect(slot.ok && slot.value?.progress.stage).toBe('outro');
   });
 
   it('on defeat clears the suspend save and leaves the slot alone', async () => {

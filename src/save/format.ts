@@ -1,20 +1,20 @@
 // The save format: plain JSON objects with a `version` field. Pure types and
 // constants only. See docs/SAVES.md for the rules on changing this shape.
 
-import type { BattleState, Difficulty, GameData, McStyle, PartyUnit, Permadeath } from '../core';
+import type { BattleState, Difficulty, FlagValue, GameData, McStyle, PartyUnit, Permadeath } from '../core';
 import type { McLook } from '../art/mc/look';
+import { PRONOUNS, type ChapterDef, type Pronouns } from '../story/types';
 
-export type { McLook };
+export type { McLook, ChapterDef, Pronouns, FlagValue };
+export { PRONOUNS };
 
 /** The version every save is written at. Bump it and add a step in migrate.ts on any shape change. */
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 /** Campaign slots. The suspend save has its own slot and remembers which of these it belongs to. */
 export type SlotId = 1 | 2 | 3;
 export const SLOT_IDS: readonly SlotId[] = [1, 2, 3];
 
-export type Pronouns = 'he' | 'she' | 'they';
-export const PRONOUNS: readonly Pronouns[] = ['he', 'she', 'they'];
 export const MC_STYLES: readonly McStyle[] = ['vanguard', 'duelist', 'spiritblade'];
 export const DIFFICULTIES: readonly Difficulty[] = ['normal', 'hard', 'lunatic'];
 export const PERMADEATH_MODES: readonly Permadeath[] = ['classic', 'casual'];
@@ -40,14 +40,23 @@ export interface McProfile {
   look: McLook;
 }
 
-export interface ChapterProgress {
-  /** The chapter to play next, or null once the story so far is finished. */
-  current: string | null;
-  /** Chapters won, in the order they were won. */
-  completed: string[];
-}
+/** Where in a chapter the campaign stands (src/story/flow.ts). */
+export type ChapterStage = 'intro' | 'battle' | 'outro';
+export const CHAPTER_STAGES: readonly ChapterStage[] = ['intro', 'battle', 'outro'];
 
-export type FlagValue = boolean | number | string;
+export interface ChapterProgress {
+  /** The chapter being played, or null once the story so far is finished. */
+  current: string | null;
+  /** Chapters finished (outro played), in order. */
+  completed: string[];
+  /** intro scenes, then the battle, then outro scenes. Added in version 3. */
+  stage: ChapterStage;
+  /**
+   * Scenes of this stage still to play, the first being the one in progress (a scene resumes from its first
+   * line). Null until the stage begins, when the chapter data picks the variant. Added in version 3.
+   */
+  scenes: string[] | null;
+}
 
 export interface CampaignSave {
   version: typeof SAVE_VERSION;
@@ -70,6 +79,8 @@ export interface CampaignSave {
 /** Controller state kept across a resume. The selection is never kept: a resume starts with nothing selected. */
 export interface SuspendController {
   showDanger: boolean;
+  /** Mid-battle scenes from the last player action that had not finished playing. A resume plays them first. Added in version 3. */
+  scenes: string[];
 }
 
 /** A battle in progress, written whenever the battle is at rest. */
@@ -88,17 +99,12 @@ export interface SuspendSave {
 
 export type AnySave = CampaignSave | SuspendSave;
 
-/** One entry of the chapter order (src/data/chapters.json). */
-export interface ChapterDef {
-  id: string;
-  name: string;
-  mapId: string;
-}
-
 /** What the validator checks ids against. */
 export interface SaveContext {
   data: GameData;
   chapters: readonly ChapterDef[];
+  /** Dialogue scene ids; when given, scene ids in a save are checked against them. */
+  sceneIds?: readonly string[];
 }
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string };

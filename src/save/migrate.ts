@@ -26,11 +26,47 @@ function addLook(save: RawSave): RawSave {
 }
 
 /**
+ * Version 2 to 3: the story layer.
+ * - The campaign's progress gets a stage and the scenes left in it. A campaign that had finished the story so
+ *   far (current null) goes back to the outro of the last chapter it won, so the outro plays and its party
+ *   changes apply; any other campaign starts its chapter at the intro. Scenes are null: the chapter data picks
+ *   them when the stage begins.
+ * - A suspend save's campaign is in its battle; its controller gets an empty list of unfinished scenes.
+ * - The battle state moves to version 2: it counts as started, with no flags, events fired or recruits, and
+ *   every unit gets no tags and has not left the map.
+ */
+function addStory(save: RawSave): RawSave {
+  const progressOf = (c: Obj, inBattle: boolean): Obj => {
+    const p = (typeof c.progress === 'object' && c.progress !== null ? c.progress : {}) as Obj;
+    const completed = Array.isArray(p.completed) ? [...(p.completed as unknown[])] : [];
+    if (inBattle) return { ...p, stage: 'battle', scenes: [] };
+    if (p.current === null && completed.length > 0) {
+      const last = completed.pop();
+      return { ...p, current: last, completed, stage: 'outro', scenes: null };
+    }
+    return { ...p, stage: 'intro', scenes: null };
+  };
+  const campaign = (c: Obj, inBattle: boolean): Obj => ({ ...c, version: 3, progress: progressOf(c, inBattle) });
+  if (save.kind === 'suspend') {
+    const camp = typeof save.campaign === 'object' && save.campaign !== null ? campaign(save.campaign as Obj, true) : save.campaign;
+    const controller = { ...((save.controller ?? {}) as Obj), scenes: [] };
+    let battle = save.battle;
+    if (typeof battle === 'object' && battle !== null) {
+      const b = battle as Obj;
+      const units = Array.isArray(b.units) ? (b.units as Obj[]).map((u) => ({ ...u, tags: [], left: false })) : b.units;
+      battle = { ...b, version: 2, units, started: true, flags: {}, firedEvents: [], recruited: [] };
+    }
+    return { ...save, version: 3, campaign: camp, controller, battle };
+  }
+  return campaign(save, false) as RawSave;
+}
+
+/**
  * Steps keyed by the version they upgrade from. A step must handle both kinds
  * (`campaign` and `suspend`, whose `campaign` field is a campaign save of the
  * same version).
  */
-export const MIGRATIONS: Readonly<Record<number, MigrationStep>> = { 1: addLook };
+export const MIGRATIONS: Readonly<Record<number, MigrationStep>> = { 1: addLook, 2: addStory };
 
 /**
  * Upgrade a parsed save to `target`. Returns the upgraded object, still unchecked:

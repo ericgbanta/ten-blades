@@ -5,7 +5,8 @@ import { battleSetup, newCampaign, suspendSave } from '../src/save/campaign';
 import type { CampaignSave, SaveContext, SuspendSave } from '../src/save/format';
 import { readCampaign, readSuspend } from '../src/save/load';
 import { validateCampaign, validateSuspend } from '../src/save/validate';
-import fixture from './fixtures/save-v2.json';
+import fixture from './fixtures/save-v3.json';
+import v2 from './fixtures/save-v2.json';
 
 const ctx: SaveContext = { data: gameData, chapters };
 
@@ -15,7 +16,7 @@ const campaign = (): CampaignSave =>
 const suspend = (): SuspendSave => {
   const c = campaign();
   const battle = createBattle(gameData.maps.prologue!, battleSetup(c), 5, gameData);
-  return suspendSave(2, c, battle, { showDanger: false }, 2000);
+  return suspendSave(2, c, battle, { showDanger: false, scenes: [] }, 2000);
 };
 
 /** Deep copy, then let the test break one thing. */
@@ -31,7 +32,7 @@ function errorOf(r: { ok: boolean; error?: string }): string {
 }
 
 describe('campaign validator', () => {
-  it('accepts a new campaign and the v2 fixture', () => {
+  it('accepts a new campaign and the v3 fixture', () => {
     expect(validateCampaign(campaign(), ctx)).toEqual({ ok: true, value: campaign() });
     expect(validateCampaign(fixture, ctx).ok).toBe(true);
   });
@@ -44,7 +45,7 @@ describe('campaign validator', () => {
   const cases: [string, (c: CampaignSave) => unknown, RegExp][] = [
     ['not an object', () => 'hello', /expected an object/],
     ['a list', () => [], /expected an object, found a list/],
-    ['wrong version', (c) => ({ ...c, version: 1 }), /^version: expected 2, found 1/],
+    ['wrong version', (c) => ({ ...c, version: 1 }), /^version: expected 3, found 1/],
     ['wrong kind', (c) => ({ ...c, kind: 'suspend' }), /not a campaign save/],
     ['missing field', (c) => broken(c, (o) => delete (o as Partial<CampaignSave>).gold), /^gold: missing/],
     ['unknown field', (c) => ({ ...c, cheat: true }), /^cheat: not a known field/],
@@ -62,16 +63,20 @@ describe('campaign validator', () => {
     ['a look field that is not text', (c) => broken(c, (o) => ((o.mc.look as unknown as { eyes: number }).eyes = 2)), /mc.look: eyes: expected text/],
     ['an extra look field', (c) => broken(c, (o) => ((o.mc.look as unknown as { hat: string }).hat = 'tricorn')), /mc.look: hat: unknown field/],
     ['unknown chapter', (c) => broken(c, (o) => (o.progress.current = 'chapter9')), /progress.current: expected one of prologue/],
-    ['completed twice', (c) => broken(c, (o) => (o.progress = { current: null, completed: ['prologue', 'prologue'] })), /listed twice/],
+    ['completed twice', (c) => broken(c, (o) => (o.progress = { current: null, completed: ['prologue', 'prologue'], stage: 'intro', scenes: null })), /listed twice/],
     ['current already done', (c) => broken(c, (o) => (o.progress.completed = ['prologue'])), /already completed/],
     ['negative gold', (c) => ({ ...c, gold: -1 }), /^gold: -1 is out of range/],
     ['fractional shards', (c) => ({ ...c, shards: 1.5 }), /^shards: expected a whole number/],
     ['bad timestamp', (c) => ({ ...c, createdAt: 'yesterday' }), /createdAt: expected a time/],
     ['bad flag', (c) => ({ ...c, flags: { x: null } }), /flags.x: expected true, false, a number or text/],
+    ['no stage', (c) => broken(c, (o) => delete (o.progress as Partial<CampaignSave['progress']>).stage), /^progress.stage: missing/],
+    ['a bad stage', (c) => broken(c, (o) => ((o.progress as { stage: string }).stage = 'epilogue')), /progress.stage: expected one of intro, battle, outro/],
+    ['an unknown scene', (c) => broken(c, (o) => (o.progress.scenes = ['nope'])), /progress.scenes\[0\]: unknown scene "nope"/],
   ];
+  const withScenes: SaveContext = { ...ctx, sceneIds: ['prologue_intro'] };
   for (const [name, make, message] of cases) {
     it(`rejects ${name}`, () => {
-      expect(errorOf(validateCampaign(make(campaign()), ctx))).toMatch(message);
+      expect(errorOf(validateCampaign(make(campaign()), withScenes))).toMatch(message);
     });
   }
 
@@ -87,7 +92,9 @@ describe('campaign validator', () => {
   ];
   for (const [name, edit, message] of partyCases) {
     it(`rejects a party with ${name}`, () => {
-      const c = structuredClone(fixture) as CampaignSave;
+      const r = readCampaign(v2, ctx);
+      if (!r.ok) throw new Error(r.error);
+      const c = structuredClone(r.value);
       edit(c);
       expect(errorOf(validateCampaign(c, ctx))).toMatch(message);
     });
@@ -117,12 +124,19 @@ describe('suspend validator', () => {
     ['a reinforcement with an unknown class', (s) => (s.battle.reinforcements[0]!.units[0]!.classId = 'ghost'), /reinforcements\[0\].units\[0\].classId/],
     ['a missing controller field', (s) => ((s as { controller: object }).controller = {}), /controller.showDanger: missing/],
     ['an extra battle field', (s) => ((s.battle as unknown as Record<string, unknown>).cheat = 1), /battle.cheat: not a known field/],
+    ['an unknown fired event', (s) => s.battle.firedEvents.push('ghost_event'), /battle.firedEvents\[0\]: expected one of/],
+    ['an event fired twice', (s) => s.battle.firedEvents.push('start_lesson', 'start_lesson'), /an event is listed twice/],
+    ['a recruit that is not on the map', (s) => s.battle.recruited.push('ghost'), /battle.recruited\[0\]: unknown unit "ghost"/],
+    ['a bad flag in the battle', (s) => ((s.battle.flags as Record<string, unknown>).x = null), /battle.flags.x/],
+    ['a unit both on the map and gone', (s) => (s.battle.units[0]!.left = true), /battle.units\[0\].left: a unit that left the map cannot be on it/],
+    ['tags that are not text', (s) => ((s.battle.units[0]! as unknown as { tags: unknown[] }).tags = [3]), /battle.units\[0\].tags\[0\]: expected text/],
+    ['an unknown owed scene', (s) => s.controller.scenes.push('nope'), /controller.scenes\[0\]: unknown scene "nope"/],
   ];
   for (const [name, edit, message] of cases) {
     it(`rejects ${name}`, () => {
       const s = structuredClone(suspend());
       edit(s);
-      expect(errorOf(validateSuspend(s, ctx))).toMatch(message);
+      expect(errorOf(validateSuspend(s, { ...ctx, sceneIds: ['prologue_b_start'] }))).toMatch(message);
     });
   }
 

@@ -29,21 +29,24 @@ function wonWithLoss(permadeath: 'classic' | 'casual'): BattleState {
 }
 
 describe('chapter order', () => {
-  it('has unique ids and every map exists', () => {
+  it('has unique ids, every map exists, and each chapter names a real next one', () => {
     expect(new Set(chapters.map((c) => c.id)).size).toBe(chapters.length);
-    for (const c of chapters) expect(gameData.maps[c.mapId], c.id).toBeDefined();
+    for (const c of chapters) {
+      if (c.mapId !== null) expect(gameData.maps[c.mapId], c.id).toBeDefined();
+      if (c.next !== null) expect(chapters.some((n) => n.id === c.next), c.id).toBe(true);
+    }
   });
 });
 
 describe('new campaign', () => {
   it('starts at the first chapter with nothing carried, and trims the name', () => {
     const c = start('classic');
-    expect(c).toMatchObject({ version: 2, kind: 'campaign', createdAt: 100, updatedAt: 100, party: [], fallen: [], gold: 0, shards: 0, flags: {} });
+    expect(c).toMatchObject({ version: 3, kind: 'campaign', createdAt: 100, updatedAt: 100, party: [], fallen: [], gold: 0, shards: 0, flags: {} });
     expect(c.mc.name).toBe('Ash');
     expect(c.mc.look).toEqual(DEFAULT_LOOK);
-    expect(c.progress).toEqual({ current: 'prologue', completed: [] });
+    expect(c.progress).toEqual({ current: 'prologue', completed: [], stage: 'intro', scenes: null });
     expect(currentChapter(c, chapters)?.mapId).toBe('prologue');
-    expect(battleSetup(c)).toEqual({ difficulty: 'normal', permadeath: 'classic', mc: { name: 'Ash', style: 'vanguard' }, party: [] });
+    expect(battleSetup(c)).toEqual({ difficulty: 'normal', permadeath: 'classic', mc: { name: 'Ash', style: 'vanguard' }, party: [], flags: {} });
   });
 
   it('keeps the look the creator made, as a copy', () => {
@@ -77,28 +80,29 @@ describe('permadeath', () => {
 
 describe('completing a chapter', () => {
   const twoChapters: ChapterDef[] = [
-    { id: 'prologue', name: 'Prologue', mapId: 'prologue' },
-    { id: 'ch1', name: 'Chapter 1', mapId: 'prologue' },
+    { id: 'prologue', name: 'Prologue', title: 'P', mapId: 'prologue', intro: [], outro: [], after: [], next: 'ch1' },
+    { id: 'ch1', name: 'Chapter 1', title: 'One', mapId: 'prologue', intro: [], outro: [], after: [], next: null },
   ];
 
-  it('carries the party, records losses and moves to the next chapter', () => {
-    const c = start('classic');
-    const s = wonWithLoss('classic');
+  it('carries the party, records losses, keeps the flags and moves on to the outro', () => {
+    const c = { ...start('classic'), flags: { kept: 1, changed: 'old' } };
+    const s = { ...wonWithLoss('classic'), flags: { changed: 'new', won: true } };
     const next = completeChapter(c, s, twoChapters, 500);
     expect(next.updatedAt).toBe(500);
     expect(next.createdAt).toBe(100);
     expect(next.party.map((u) => u.id)).toEqual(['p', 'r']);
     expect(next.fallen.map((u) => u.id)).toEqual(['q']);
-    expect(next.progress).toEqual({ current: 'ch1', completed: ['prologue'] });
+    expect(next.flags).toEqual({ kept: 1, changed: 'new', won: true });
+    expect(next.progress).toEqual({ current: 'prologue', completed: [], stage: 'outro', scenes: null });
     expect(c.progress.completed).toEqual([]);
   });
 
-  it('ends at "to be continued" after the last chapter, and the result is a valid save', () => {
+  it('a won prologue is a valid save, waiting on its outro', () => {
     const c = start('casual');
     const battle = createBattle(gameData.maps.prologue!, battleSetup(c), 1, gameData);
     const won: BattleState = { ...battle, result: 'victory' };
     const next = completeChapter(c, won, chapters, 900);
-    expect(next.progress).toEqual({ current: null, completed: ['prologue'] });
+    expect(next.progress).toEqual({ current: 'prologue', completed: [], stage: 'outro', scenes: null });
     expect(next.party.map((u) => u.id)).toEqual(['mc', 'stranger']);
     const ctx: SaveContext = { data: gameData, chapters };
     expect(validateCampaign(next, ctx).ok).toBe(true);

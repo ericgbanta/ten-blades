@@ -5,6 +5,7 @@
 import { STAT_KEYS, type BattleState, type GameData, type PartyUnit, type Pos } from '../core';
 import { lookProblem } from '../art/mc/look';
 import {
+  CHAPTER_STAGES,
   DIFFICULTIES,
   MC_NAME_MAX,
   MC_STYLES,
@@ -89,7 +90,7 @@ function checkCampaign(raw: unknown, path: string, ctx: SaveContext): CampaignSa
   if (party.length > 0 && !party.some((u) => u.isLord)) throw new ShapeError(join(path, 'party'), 'the main character is missing');
   if (fallen.some((u) => u.isLord)) throw new ShapeError(join(path, 'fallen'), 'the main character cannot be among the fallen');
 
-  const progress = exactObj(o.progress, join(path, 'progress'), ['current', 'completed']);
+  const progress = exactObj(o.progress, join(path, 'progress'), ['current', 'completed', 'stage', 'scenes']);
   const chapterIds = ctx.chapters.map((c) => c.id);
   if (progress.current !== null) oneOf(progress.current, join(path, 'progress.current'), chapterIds);
   const done = arr(progress.completed, join(path, 'progress.completed')).map((c, i) => oneOf(c, join(join(path, 'progress.completed'), i), chapterIds));
@@ -97,15 +98,29 @@ function checkCampaign(raw: unknown, path: string, ctx: SaveContext): CampaignSa
   if (typeof progress.current === 'string' && done.includes(progress.current)) {
     throw new ShapeError(join(path, 'progress.current'), 'the current chapter is already completed');
   }
+  oneOf(progress.stage, join(path, 'progress.stage'), CHAPTER_STAGES);
+  if (progress.scenes !== null) checkSceneList(progress.scenes, join(path, 'progress.scenes'), ctx);
 
-  const flags = obj(o.flags, join(path, 'flags'));
-  for (const [k, v] of Object.entries(flags)) {
-    const ok = typeof v === 'boolean' || typeof v === 'string' || (typeof v === 'number' && Number.isFinite(v));
-    if (!ok) throw new ShapeError(join(join(path, 'flags'), k), 'expected true, false, a number or text');
-  }
+  checkFlags(o.flags, join(path, 'flags'));
   int(o.gold, join(path, 'gold'), 0, MAX_COUNTER);
   int(o.shards, join(path, 'shards'), 0, MAX_COUNTER);
   return o as unknown as CampaignSave;
+}
+
+function checkSceneList(v: unknown, path: string, ctx: SaveContext): string[] {
+  return arr(v, path).map((id, i) => {
+    const s = str(id, join(path, i));
+    if (ctx.sceneIds && !ctx.sceneIds.includes(s)) throw new ShapeError(join(path, i), `unknown scene "${s}"`);
+    return s;
+  });
+}
+
+function checkFlags(v: unknown, path: string): void {
+  const flags = obj(v, path);
+  for (const [k, val] of Object.entries(flags)) {
+    const ok = typeof val === 'boolean' || typeof val === 'string' || (typeof val === 'number' && Number.isFinite(val));
+    if (!ok) throw new ShapeError(join(path, k), 'expected true, false, a number or text');
+  }
 }
 
 export function checkName(v: unknown, path: string): string {
@@ -169,8 +184,9 @@ function checkSuspend(raw: unknown, ctx: SaveContext): SuspendSave {
   if (battle.options.difficulty !== campaign.settings.difficulty || battle.options.permadeath !== campaign.settings.permadeath) {
     throw new ShapeError('battle.options', 'do not match the campaign settings');
   }
-  const controller = exactObj(o.controller, 'controller', ['showDanger']);
+  const controller = exactObj(o.controller, 'controller', ['showDanger', 'scenes']);
   bool(controller.showDanger, 'controller.showDanger');
+  checkSceneList(controller.scenes, 'controller.scenes', ctx);
   return o as unknown as SuspendSave;
 }
 
@@ -178,10 +194,26 @@ function checkSuspend(raw: unknown, ctx: SaveContext): SuspendSave {
 // Battle state
 // ---------------------------------------------------------------------------
 
-const BATTLE_KEYS = ['version', 'mapId', 'map', 'units', 'turn', 'phase', 'rng', 'objective', 'reinforcements', 'options', 'result'];
-const UNIT_KEYS = ['id', 'name', 'classId', 'team', 'level', 'xp', 'stats', 'hp', 'weaponId', 'pos', 'acted', 'alive', 'ai', 'isBoss', 'isLord'];
+const BATTLE_KEYS = [
+  'version',
+  'mapId',
+  'map',
+  'units',
+  'turn',
+  'phase',
+  'rng',
+  'objective',
+  'reinforcements',
+  'options',
+  'result',
+  'started',
+  'flags',
+  'firedEvents',
+  'recruited',
+];
+const UNIT_KEYS = ['id', 'name', 'classId', 'team', 'level', 'xp', 'stats', 'hp', 'weaponId', 'pos', 'acted', 'alive', 'ai', 'isBoss', 'isLord', 'tags', 'left'];
 const PLACEMENT_KEYS = ['kind', 'id', 'name', 'classId', 'team', 'level', 'pos'];
-const PLACEMENT_OPTIONAL = ['weaponId', 'ai', 'isBoss', 'isLord'];
+const PLACEMENT_OPTIONAL = ['weaponId', 'ai', 'isBoss', 'isLord', 'tags'];
 
 function checkPos(v: unknown, path: string, w: number, h: number): Pos {
   const p = exactObj(v, path, ['x', 'y']);
@@ -192,7 +224,7 @@ function checkPos(v: unknown, path: string, w: number, h: number): Pos {
 
 function checkBattle(raw: unknown, path: string, data: GameData): BattleState {
   const o = exactObj(raw, path, BATTLE_KEYS);
-  if (o.version !== 1) throw new ShapeError(join(path, 'version'), `unknown battle version ${String(o.version)}`);
+  if (o.version !== 2) throw new ShapeError(join(path, 'version'), `unknown battle version ${String(o.version)}`);
   const mapId = str(o.mapId, join(path, 'mapId'));
   const source = data.maps[mapId];
   if (!source) throw new ShapeError(join(path, 'mapId'), `unknown map "${mapId}"`);
@@ -221,7 +253,20 @@ function checkBattle(raw: unknown, path: string, data: GameData): BattleState {
   oneOf(options.difficulty, join(path, 'options.difficulty'), DIFFICULTIES);
   oneOf(options.permadeath, join(path, 'options.permadeath'), PERMADEATH_MODES);
   oneOf(o.result, join(path, 'result'), RESULTS);
+  bool(o.started, join(path, 'started'));
+  checkFlags(o.flags, join(path, 'flags'));
+  const eventIds = (source.events ?? []).map((e) => e.id);
+  const fired = arr(o.firedEvents, join(path, 'firedEvents')).map((e, i) => oneOf(e, join(join(path, 'firedEvents'), i), eventIds));
+  if (new Set(fired).size !== fired.length) throw new ShapeError(join(path, 'firedEvents'), 'an event is listed twice');
+  const recruited = arr(o.recruited, join(path, 'recruited')).map((id, i) => str(id, join(join(path, 'recruited'), i)));
+  for (const [i, id] of recruited.entries()) {
+    if (!ids.has(id)) throw new ShapeError(join(join(path, 'recruited'), i), `unknown unit "${id}"`);
+  }
   return o as unknown as BattleState;
+}
+
+function checkTags(v: unknown, path: string): void {
+  arr(v, path).forEach((t, i) => str(t, join(path, i)));
 }
 
 function checkUnit(raw: unknown, path: string, data: GameData, ids: Set<string>, w: number, h: number): void {
@@ -237,7 +282,11 @@ function checkUnit(raw: unknown, path: string, data: GameData, ids: Set<string>,
   checkStats(u.stats, join(path, 'stats'));
   const maxHp = (u.stats as Obj).hp as number;
   const alive = bool(u.alive, join(path, 'alive'));
-  int(u.hp, join(path, 'hp'), alive ? 1 : 0, alive ? maxHp : 0);
+  const left = bool(u.left, join(path, 'left'));
+  if (alive && left) throw new ShapeError(join(path, 'left'), 'a unit that left the map cannot be on it');
+  // A fallen unit has 0 HP; one that left keeps the HP it had.
+  int(u.hp, join(path, 'hp'), alive ? 1 : 0, alive || left ? maxHp : 0);
+  checkTags(u.tags, join(path, 'tags'));
   checkWeapon(u.weaponId, join(path, 'weaponId'), data);
   checkPos(u.pos, join(path, 'pos'), w, h);
   bool(u.acted, join(path, 'acted'));
@@ -287,6 +336,7 @@ function checkWave(raw: unknown, path: string, data: GameData, ids: Set<string>,
     if ('weaponId' in u) checkWeapon(u.weaponId, join(p, 'weaponId'), data);
     if ('isBoss' in u) bool(u.isBoss, join(p, 'isBoss'));
     if ('isLord' in u) bool(u.isLord, join(p, 'isLord'));
+    if ('tags' in u) checkTags(u.tags, join(p, 'tags'));
     if ('ai' in u) {
       const ai = exactObj(u.ai, join(p, 'ai'), ['behavior'], ['tile', 'radius']);
       oneOf(ai.behavior, join(p, 'ai.behavior'), BEHAVIORS);

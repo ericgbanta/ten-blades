@@ -6,51 +6,86 @@ import { MIGRATIONS, migrate, type MigrationStep } from '../src/save/migrate';
 import v1 from './fixtures/save-v1.json';
 import v1Suspend from './fixtures/suspend-v1.json';
 import v2 from './fixtures/save-v2.json';
+import v2Suspend from './fixtures/suspend-v2.json';
+import v3 from './fixtures/save-v3.json';
 import { DEFAULT_LOOK } from '../src/art/mc/look';
 
 const ctx: SaveContext = { data: gameData, chapters };
 
 describe('migration pipeline', () => {
-  it('is at version 2 with one step, from 1', () => {
-    expect(SAVE_VERSION).toBe(2);
-    expect(Object.keys(MIGRATIONS)).toEqual(['1']);
+  it('is at version 3 with two steps, from 1 and 2', () => {
+    expect(SAVE_VERSION).toBe(3);
+    expect(Object.keys(MIGRATIONS)).toEqual(['1', '2']);
   });
 
-  it('loads the v1 campaign fixture: everything kept, the default look added', () => {
+  it('loads the v1 campaign fixture: everything kept, the default look added, back at the prologue outro', () => {
     const r = readCampaign(v1, ctx);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.value.version).toBe(2);
+    expect(r.value.version).toBe(3);
     expect(r.value.mc).toEqual({ name: 'Ysolde Ærwyn', pronouns: 'she', style: 'duelist', look: DEFAULT_LOOK });
-    expect(r.value.progress).toEqual({ current: null, completed: ['prologue'] });
+    expect(r.value.progress).toEqual({ current: 'prologue', completed: [], stage: 'outro', scenes: null });
     expect(r.value.party.map((u) => u.id)).toEqual(['mc', 'stranger']);
-    expect({ ...r.value, mc: null, version: null }).toEqual({ ...v1, mc: null, version: null });
+    expect({ ...r.value, mc: null, version: null, progress: null }).toEqual({ ...v1, mc: null, version: null, progress: null });
   });
 
-  it('loads the v1 suspend fixture: the nested campaign gets the look, the battle is untouched', () => {
+  it('loads the v1 suspend fixture: the nested campaign gets the look, the battle the story fields', () => {
     const r = readSuspend(v1Suspend, ctx);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.value.version).toBe(2);
-    expect(r.value.campaign.version).toBe(2);
+    expect(r.value.version).toBe(3);
+    expect(r.value.campaign.version).toBe(3);
     expect(r.value.campaign.mc.look).toEqual(DEFAULT_LOOK);
+    expect(r.value.campaign.progress.stage).toBe('battle');
     expect(r.value.slot).toBe(1);
-    expect(r.value.controller.showDanger).toBe(true);
-    expect(r.value.battle).toEqual(v1Suspend.battle);
+    expect(r.value.controller).toEqual({ showDanger: true, scenes: [] });
+    expect(r.value.battle.version).toBe(2);
   });
 
-  it('loads the v2 fixture as it is', () => {
+  it('loads the v2 campaign fixture: a finished prologue goes back to its outro, nothing else changes', () => {
     const r = readCampaign(v2, ctx);
-    expect(r).toEqual({ ok: true, value: v2 });
-  });
-
-  it('the 1 to 2 step never changes its input and lands on version 2', () => {
-    const input = structuredClone(v1);
-    const r = migrate(input);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.value.version).toBe(2);
-    expect(input).toEqual(v1);
+    expect(r.value.version).toBe(3);
+    expect(r.value.progress).toEqual({ current: 'prologue', completed: [], stage: 'outro', scenes: null });
+    expect({ ...r.value, version: 2, progress: v2.progress }).toEqual(v2);
+  });
+
+  it('a v2 campaign still in its chapter starts at the intro', () => {
+    const before = { ...structuredClone(v2), progress: { current: 'prologue', completed: [] } };
+    const r = readCampaign(before, ctx);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.progress).toEqual({ current: 'prologue', completed: [], stage: 'intro', scenes: null });
+  });
+
+  it('loads the v2 suspend fixture: started, no flags or events, every unit untagged and on the map', () => {
+    const r = readSuspend(v2Suspend, ctx);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const b = r.value.battle;
+    expect(b).toMatchObject({ version: 2, started: true, flags: {}, firedEvents: [], recruited: [] });
+    expect(b.units.every((u) => u.tags.length === 0 && !u.left)).toBe(true);
+    const old = v2Suspend.battle as unknown as { units: object[] };
+    expect(b.units.map((u) => ({ ...u, tags: undefined, left: undefined }))).toEqual(old.units.map((u) => ({ ...u, tags: undefined, left: undefined })));
+    expect(r.value.campaign.progress).toEqual({ current: 'prologue', completed: [], stage: 'battle', scenes: [] });
+    expect(r.value.controller.scenes).toEqual([]);
+  });
+
+  it('loads the v3 fixture as it is', () => {
+    const r = readCampaign(v3, { ...ctx, sceneIds: [] });
+    expect(r).toEqual({ ok: true, value: v3 });
+  });
+
+  it('the steps never change their input and land on version 3', () => {
+    for (const fixture of [v1, v1Suspend, v2, v2Suspend]) {
+      const input = structuredClone(fixture);
+      const r = migrate(input);
+      expect(r.ok).toBe(true);
+      if (!r.ok) return;
+      expect(r.value.version).toBe(3);
+      expect(input).toEqual(fixture);
+    }
   });
 
   it('runs the steps in order up to the target and never changes the input', () => {
