@@ -11,7 +11,7 @@
 // pass, until nothing new fires. Nothing here waits for the UI: a `scene` effect only emits
 // `sceneRequested`, and the UI plays the scene before it plays the next event.
 
-import { distance, findUnit, inBounds, samePos, unitAt } from './grid';
+import { distance, findUnit, inBounds, moveCostAt, samePos, unitAt } from './grid';
 import { endBattle } from './objectives';
 import { aiStateFrom, unitFromPlacement } from './units';
 import type {
@@ -27,6 +27,7 @@ import type {
   Pos,
   StoryCondition,
   Unit,
+  UnitPlacement,
 } from './types';
 
 /** Passes after the first; a script that keeps firing new events past this is a data bug. */
@@ -142,6 +143,26 @@ function living(s: BattleState, id: string): Unit | null {
   return u && u.alive ? u : null;
 }
 
+/**
+ * The free tile nearest to a placement's tile that its class can stand on: the least Manhattan distance, then the
+ * least row, then the least column. Null when the map has none.
+ */
+function nearestFreeTile(s: BattleState, p: UnitPlacement, data: GameData): Pos | null {
+  const moveType = data.classes[p.classId]?.movementType ?? 'foot';
+  let best: Pos | null = null;
+  let bestD = Infinity;
+  for (let y = 0; y < s.map.height; y++) {
+    for (let x = 0; x < s.map.width; x++) {
+      const q = { x, y };
+      const d = distance(q, p.pos);
+      if (d >= bestD || unitAt(s, q) || moveCostAt(s, q, moveType, data) === null) continue;
+      best = q;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
 function applyEffect(s: BattleState, ev: MapEvent, fx: EventEffect, data: GameData, out: BattleEvent[]): void {
   switch (fx.type) {
     case 'scene':
@@ -150,8 +171,10 @@ function applyEffect(s: BattleState, ev: MapEvent, fx: EventEffect, data: GameDa
     case 'spawn': {
       const ids: string[] = [];
       for (const p of fx.units) {
-        if (!inBounds(s, p.pos) || unitAt(s, p.pos) || findUnit(s, p.id)) continue;
-        const u = unitFromPlacement(p, s.options.difficulty, data);
+        if (!inBounds(s, p.pos) || findUnit(s, p.id)) continue;
+        const pos = unitAt(s, p.pos) ? (fx.nearest ? nearestFreeTile(s, p, data) : null) : p.pos;
+        if (!pos) continue;
+        const u = unitFromPlacement({ ...p, pos }, s.options.difficulty, data);
         // As with reinforcements, only units of the phase in progress wait for their next phase.
         u.acted = u.team === s.phase;
         s.units.push(u);

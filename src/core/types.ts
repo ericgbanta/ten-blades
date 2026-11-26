@@ -420,7 +420,8 @@ export type EventEffect =
   /** Ask the UI to play a dialogue scene (src/data/dialogue/<sceneId>.json). The core does not wait. */
   | { type: 'scene'; sceneId: string }
   /** Units arrive, like a reinforcement wave. A taken tile drops that unit. */
-  | { type: 'spawn'; units: UnitPlacement[] }
+  /** `nearest`: a unit whose tile is taken arrives on the nearest free tile it can stand on, instead of not at all. */
+  | { type: 'spawn'; units: UnitPlacement[]; nearest?: boolean }
   /** The unit leaves the map. Not a death: it is not counted as fallen. */
   | { type: 'remove'; unitId: string }
   /** The unit changes side. Joining the player team recruits it: it stays with the party after the battle. */

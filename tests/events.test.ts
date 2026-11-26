@@ -230,6 +230,22 @@ describe('effects', () => {
     expect(r.state.units.find((u) => u.id === 'x')!.acted).toBe(false);
   });
 
+  it('spawn with nearest moves a unit off a taken tile to the nearest free tile it can stand on', () => {
+    const r = fire([{ type: 'spawn', nearest: true, units: [place('y', 'fighter', 'enemy', 3, 1), place('z', 'rogue', 'player', 0, 0)] }]);
+    expect(r.events).toContainEqual({ type: 'reinforcementsArrived', unitIds: ['y', 'z'] });
+    // (3, 1) is n's: of the tiles one step away, (3, 0) comes first in reading order. (0, 0) is p's and (0, 1) q's.
+    expect(r.state.units.find((u) => u.id === 'y')!.pos).toEqual(pos(3, 0));
+    expect(r.state.units.find((u) => u.id === 'z')!.pos).toEqual(pos(1, 0));
+    // Walls and water are skipped: the nearest tile a foot unit can stand on.
+    const walled = scripted(
+      ['.#~', '#..'],
+      [place('p', 'fighter', 'player', 0, 0, { isLord: true }), place('e', 'fighter', 'enemy', 2, 1, { ai: { behavior: 'hold' } })],
+      [{ id: 'go', trigger: { type: 'battleStart' }, effects: [{ type: 'spawn', nearest: true, units: [place('w', 'rogue', 'player', 0, 0)] }] }],
+      { objective: { type: 'survive', turns: 9 } },
+    );
+    expect(startBattle(walled.state, walled.data).state.units.find((u) => u.id === 'w')!.pos).toEqual(pos(1, 1));
+  });
+
   it('remove takes a unit off the map without a death', () => {
     const r = fire([{ type: 'remove', unitId: 'q' }]);
     expect(r.events).toContainEqual({ type: 'unitLeft', unitId: 'q' });

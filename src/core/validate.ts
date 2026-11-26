@@ -422,6 +422,7 @@ function validateEvents(m: MapData, data: GameData, story: StoryRefs | undefined
           break;
         case 'spawn':
           if (!Array.isArray(fx.units) || fx.units.length === 0) errs.push(`${label}: spawn needs units`);
+          if (fx.nearest !== undefined && typeof fx.nearest !== 'boolean') errs.push(`${label}: spawn nearest must be true or false`);
           for (const p of fx.units ?? []) refs.checkUnit(p, `${label} spawn ${p.id}`);
           break;
         case 'remove':
