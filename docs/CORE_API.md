@@ -15,7 +15,7 @@ The core is pure. Every function takes the state and data as arguments and retur
 
 | Field | Meaning |
 | --- | --- |
-| `version` | Always 1 for now. |
+| `version` | 2 (version 1 had no story fields; the save migration adds them). |
 | `mapId` | Id of the map in `gameData.maps`. |
 | `map` | `width`, `height` and `terrain`, a flat row-major list of terrain ids (`terrain[y * width + x]`). |
 | `units` | Every unit, fallen ones included (`alive: false`). Order never changes, except that reinforcements are appended. |
@@ -25,8 +25,12 @@ The core is pure. Every function takes the state and data as arguments and retur
 | `reinforcements` | Waves still to come, already filtered by difficulty. |
 | `options` | `difficulty` and `permadeath`. |
 | `result` | `ongoing`, `victory` or `defeat`. |
+| `started` | False until the battle start events have run (see Scripted events). |
+| `flags` | Story flags: the campaign's, copied in at creation, plus whatever events set. Returned to the campaign after a win. |
+| `firedEvents` | Ids of the map events that have fired. |
+| `recruited` | Ids of units that joined the player team during the battle, in order. |
 
-A `Unit` has `id`, `name`, `classId`, `team`, `level`, `xp`, `stats` (max stats, so `stats.hp` is max HP), `hp` (current), `weaponId`, `pos`, `acted`, `alive`, `ai` (null for player units), `isBoss` and `isLord`. Look up class and weapon details in `gameData.classes` and `gameData.weapons`.
+A `Unit` has `id`, `name`, `classId`, `team`, `level`, `xp`, `stats` (max stats, so `stats.hp` is max HP), `hp` (current), `weaponId`, `pos`, `acted`, `alive`, `ai` (null for player units), `isBoss`, `isLord`, `tags` (labels from the map for event triggers) and `left`. A unit an event took off the map has `alive` false and `left` true: every query treats it as gone, but it did not fall, so it is never among the fallen and keeps its HP. Look up class and weapon details in `gameData.classes` and `gameData.weapons`.
 
 Positions are `{ x, y }`, with x the column and y the row, and (0, 0) at the top left. Distances are Manhattan.
 
@@ -38,10 +42,13 @@ Positions are `{ x, y }`, with x the column and y the row, and (0, 0) at the top
 - `permadeath`: `classic` or `casual`. It changes nothing during the battle. `battleSummary(state).lostForGood` lists the fallen player units that are gone for good.
 - `mc`: `{ name, style }`, where style is `vanguard`, `duelist` or `spiritblade`. Used to build the MC (id `mc`) when the party has no lord.
 - `party` (optional): carried-over units. A lord fills the map's MC slot, and the others fill its party slots in order. `partyAfterBattle` (below) builds this list from a finished battle.
+- `flags` (optional): the campaign's story flags, copied into `state.flags`.
 
 Enemy stats are clamped to `balance.statCaps` after difficulty scaling.
 
-`createBattle` throws an `Error` if two units would share an id (party members, map placements and every reinforcement wave all count), or if a `protect` objective's unit is not a player or ally unit at the start.
+`createBattle` throws an `Error` if two units would share an id (party members, map placements, every reinforcement wave and every unit an event can spawn all count), or if a `protect` objective's unit is not a player or ally unit at the start.
+
+`startBattle(state, data)` runs the battle start events and returns `{ state, events }` with `started` true. Call it once before the first action and play its events (an opening scene, say). It does nothing to a battle already started. If it is never called, the first `applyAction` starts the battle and returns the start events ahead of its own, so tests and the simulator need no change.
 
 ## Actions
 
@@ -52,6 +59,7 @@ Pass one to `applyAction(state, action, data)`. It returns `{ state, events }` a
 | `{ type: 'wait', unitId, to }` | Move to `to` (it can be the current tile) and end the unit's turn. |
 | `{ type: 'attack', unitId, to, targetId }` | Move to `to`, then fight `targetId`. |
 | `{ type: 'heal', unitId, to, targetId }` | Move to `to`, then heal a wounded friend with a staff. |
+| `{ type: 'talk', unitId, to, targetId }` | Move to `to`, then talk to `targetId`. Legal when the map has a ready talk event from `unitId` to `targetId` and the target stands next to `to`. Uses the unit's action and fires the event. |
 | `{ type: 'endPhase' }` | End the current phase. |
 
 The move is part of the action, so the UI keeps the "moved but not yet confirmed" step locally and only calls `applyAction` once the player picks Wait, Attack or Heal. Cancel needs no core call.
@@ -75,6 +83,19 @@ Events come back in order. Play them one after another.
 | `phaseChanged` | `phase`, `turn` |
 | `reinforcementsArrived` | `unitIds` |
 | `battleEnded` | `result`, `fallenPlayerUnitIds` |
+| `talked` | `unitId`, `targetId` (the talk action; events match it) |
+| `eventFired` | `eventId` (a map event fired; its effects' events follow) |
+| `sceneRequested` | `sceneId`, `eventId`. Play this dialogue scene now. The core does not wait. |
+| `unitLeft` | `unitId` (an event took it off the map) |
+| `unitTeamChanged` | `unitId`, `from`, `to` (a recruit when `to` is `player`) |
+| `aiChanged` | `unitId` |
+| `flagSet` | `flag`, `value` |
+| `objectiveChanged` | `objective` |
+| `weaponChanged` | `unitId`, `weaponId` |
+| `unitDamaged` | `unitId`, `amount`, `hpAfter` (an event's damage; a lethal one is followed by `unitDefeated` with `byId` null) |
+| `unitLocked` | `unitId`, `locked` |
+
+`unitHealed` has the cause `event` for an event's heal.
 
 In a strike, `attackerId` is the unit swinging, so a counter has the defender as `attackerId`. Damage is already capped at the target's remaining HP.
 
@@ -95,7 +116,9 @@ All are pure and cheap enough to call on every tap.
 - `checkOutcome(state)` and `battleSummary(state)`.
 - `objectiveStatus(state)`: `{ type, turnLimit, turnsLeft }`. For `survive` and `protect`, `turnLimit` is the objective's last turn and `turnsLeft` counts the turns still to play, the current one included (so 1 on the last turn, 0 once it has passed). Both are null for other objectives.
 - `turnLimitReached(state, turn)`: true if finishing `turn` completes a `survive` or `protect` objective.
-- `partyAfterBattle(state)`: `{ survivors, fallen }`, each a list of `PartyUnit`s in unit order, for every player-team unit with its current level, xp, max stats and weapon. Guests placed on the player team by the map (such as the Stranger) are included; ally-team units are not. HP is not carried, since units start each map at full HP. Pass `survivors` (plus any fallen units that casual permadeath keeps) as the next battle's `party`.
+- `partyAfterBattle(state)`: `{ survivors, fallen, left, recruited }`. The first three are lists of `PartyUnit`s in unit order, for every player-team unit with its current level, xp, max stats and weapon: living, fallen, and taken off the map by an event. Guests placed on the player team by the map (such as the Stranger) are included, and so are units recruited during the battle; ally-team units are not. `recruited` lists the ids that joined. HP is not carried, since units start each map at full HP. The campaign carries `survivors`, `left` and any fallen units that casual permadeath keeps into the next battle; the chapter data can then drop units (see `docs/STORY.md`).
+- `talkTargets(state, unitId, from, data)`: units `unitId` could talk to from a tile (a ready talk event for the pair, the target living next to `from`). `canTalk(state, unitId, targetId, data)`: a ready talk event links the pair, wherever they stand.
+- `battleSummary(state)` also gives `flags` (the story flags as the battle leaves them) and `recruited`.
 
 ## Objectives
 
@@ -110,6 +133,45 @@ All are pure and cheap enough to call on every tap.
 For `defeatBoss`, every boss must start on the map: `validateGameData` rejects a boss in a reinforcement wave, since the battle could be won before it arrived.
 
 The battle is always lost if a lord falls or no player units are left.
+
+## Scripted events
+
+A map can list events (`MapData.events`). Each has an `id` (unique on the map), a `trigger`, optional `conditions`, a list of `effects`, and `repeatable` (default false). The definitions are read from `gameData.maps[state.mapId]`; the state only keeps `firedEvents` and `flags`, so a suspended battle resumes exactly. The code is `src/core/events.ts`.
+
+When triggers are checked: once at battle start (`startBattle`), then after every action, against the events that action produced and the state after it. Events are checked in the order the map lists them. An event fires at most once unless it is repeatable. The events its effects produce (a unit falling to a damage effect, say) are checked in a further pass, until nothing new fires. Checking stops as soon as the battle is over. Events fired during an AI phase come back in order inside that AI action's events, and the AI never looks at scenes.
+
+Triggers:
+
+| Trigger | Fires |
+| --- | --- |
+| `{ type: 'battleStart' }` | At battle start. |
+| `{ type: 'flag', flag, value? }` | At battle start, if the flag has that value (default true). |
+| `{ type: 'phaseStart', turn, phase? }` | At the start of that phase (default `player`) of that turn. Turn 1's player phase is the battle start. |
+| `{ type: 'enter', unitId?, team?, tiles?, area? }` | A unit ends a move on one of the `tiles` or inside `area` (`{ x, y, w, h }`). Matches `unitId`, else any unit of `team`, else any player unit. Staying in place is not entering. |
+| `{ type: 'defeated', unitId?, tag?, team?, byId? }` | A unit falls. Each given field narrows it; `byId` is the unit that struck the blow. |
+| `{ type: 'hpBelow', unitId, percent }` | The unit is alive with HP below `percent` of its max. |
+| `{ type: 'talk', unitId, targetId }` | The talk action from `unitId` to `targetId`. |
+| `{ type: 'allDefeated', tag }` | No enemy with the tag is alive or still due in a wave, and at least one has fallen. |
+
+Only enter, defeated and talk events may repeat. Conditions must all hold when the trigger matches, or the event does not fire and stays ready: `{ type: 'flag', flag, value? }` (an unset flag reads as false), `{ type: 'permadeath', mode }`, `{ type: 'difficulty', difficulties }`, `{ type: 'alive', unitId }` and `{ type: 'fallen', unitId }` (fell, not left).
+
+Effects, applied in order:
+
+| Effect | Does |
+| --- | --- |
+| `{ type: 'scene', sceneId }` | Emits `sceneRequested`. The UI plays the scene before the next event. |
+| `{ type: 'spawn', units }` | Units arrive like a wave: a taken tile drops that unit, and only units of the phase in progress wait for their next phase. Emits `reinforcementsArrived`. |
+| `{ type: 'remove', unitId }` | The unit leaves the map (`left`), not a death. |
+| `{ type: 'setTeam', unitId, team, ai? }` | The unit changes side with its current HP. Joining the player team recruits it: it is listed in `recruited` and joins the party after the battle. A unit leaving the player team gets the `ai` given, or charge. |
+| `{ type: 'setAi', unitId, ai }` | New AI for a non-player unit. |
+| `{ type: 'setFlag', flag, value }` | Sets a story flag. |
+| `{ type: 'objective', objective }` | Replaces the objective. |
+| `{ type: 'endBattle', result }` | Ends the battle now. Later effects do not run. |
+| `{ type: 'giveWeapon', unitId, weaponId }` | Puts the weapon in the unit's hand. |
+| `{ type: 'heal', unitId, amount }`, `{ type: 'damage', unitId, amount, lethal? }` | Damage leaves at least 1 HP unless `lethal`. |
+| `{ type: 'lock', unitId }`, `{ type: 'unlock', unitId }` | Lock: the unit counts as having acted, so it cannot act this turn (an enemy locked in the player phase skips the enemy phase). Unlock lets it act again this phase. |
+
+`validateGameData(data, story?)` checks every event: unique ids, known unit ids (placements, waves, spawns and `mc`), tags that some unit carries, tiles and areas on the map, flag names, weapons, objectives, the repeat rule, and, when `story.sceneIds` is given, the scene ids. `src/story/validate.ts` also checks that each scene an event plays is marked as a mid-battle scene.
 
 ## Turn order
 
@@ -151,7 +213,7 @@ for (let a = planAiAction(state, gameData); a; a = planAiAction(state, gameData)
 
 ## Data
 
-`gameData` (from `src/data/index.ts`) bundles `balance.json`, `terrain.json`, `classes.json`, `weapons.json` and the maps (`prologue`, and `skirmish_test`, a 14 by 18 map only the quick battle URL reaches). Every balance number is in `balance.json`, including the hit roll mode (`1rn` or `2rn`). Terrain move costs are given per movement type, so new movement types only need new keys. A weapon with `heal` above 0 is a staff: it heals and never attacks or counters. `validateGameData(gameData)` checks every cross reference, that the balance divisors (`combat.hitLckDiv`, `combat.critSklDiv`, `xp.hitDiv`, `xp.perLevel`) are above 0, and the objective rules above. A unit test runs it, and another checks that every foot-passable tile on every map can be reached from the MC slot.
+`gameData` (from `src/data/index.ts`) bundles `balance.json`, `terrain.json`, `classes.json`, `weapons.json` and the maps (`prologue`, and `skirmish_test`, a 14 by 18 map only the quick battle URL reaches), each with its events from `<id>.events.json`. Every balance number is in `balance.json`, including the hit roll mode (`1rn` or `2rn`). Terrain move costs are given per movement type, so new movement types only need new keys. A weapon with `heal` above 0 is a staff: it heals and never attacks or counters. `validateGameData(gameData)` checks every cross reference, that the balance divisors (`combat.hitLckDiv`, `combat.critSklDiv`, `xp.hitDiv`, `xp.perLevel`) are above 0, and the objective rules above. A unit test runs it, and another checks that every foot-passable tile on every map can be reached from the MC slot.
 
 ### Terrain
 
@@ -170,7 +232,7 @@ The numbers live in `terrain.json`; this table is a summary. `tests/crossings.te
 
 ### Map files
 
-A map in `src/data/maps/<id>.json` has `id`, `name`, `width`, `height`, `tiles` (one string per row) with a `legend` from tile character to terrain id, `placements`, `objective`, `reinforcements`, and an optional `props` list of `{ id, x, y }`. Props are decorative: the rules ignore them. `validateGameData` only checks that each prop has a plain id, sits on the map and does not share a tile with another prop; which prop suits which terrain, and that no tall prop stands on a unit's start tile, is checked by `checkProps` in `tools/maps/tiled.ts` (used by the Tiled import and by `tests/maps-tiled.test.ts`) against `src/data/props.json`. Maps are drawn in Tiled and imported with `npm run maps`; see `docs/MAPS.md`.
+A map in `src/data/maps/<id>.json` has `id`, `name`, `width`, `height`, `tiles` (one string per row) with a `legend` from tile character to terrain id, `placements`, `objective`, `reinforcements`, and an optional `props` list of `{ id, x, y }`. A unit placement may carry `tags`. The map's events live beside it in `src/data/maps/<id>.events.json` (a list of events), which `src/data/index.ts` merges in as `events`. Props are decorative: the rules ignore them. `validateGameData` only checks that each prop has a plain id, sits on the map and does not share a tile with another prop; which prop suits which terrain, and that no tall prop stands on a unit's start tile, is checked by `checkProps` in `tools/maps/tiled.ts` (used by the Tiled import and by `tests/maps-tiled.test.ts`) against `src/data/props.json`. Maps are drawn in Tiled and imported with `npm run maps`; see `docs/MAPS.md`.
 
 ## Errors
 

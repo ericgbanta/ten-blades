@@ -16,6 +16,7 @@ Download Tiled from mapeditor.org (Windows, macOS and Linux builds; on Linux the
 | `tools/maps/tiled.ts` | The conversion both ways, and the prop checks. |
 | `tools/maps/import.ts` | `npm run maps`: Tiled to game JSON. |
 | `tools/maps/export.ts` | `npx tsx tools/maps/export.ts <id>`: game JSON to Tiled, for a map made before this workflow. |
+| `src/data/maps/<id>.events.json` | The map's scripted events. Not in Tiled: see Events below. |
 
 The tileset only holds the base tile of each terrain. Variants, roads, walls, shores and crossings are drawn by the game from the terrain alone, so paint road where the road goes and the game joins it up.
 
@@ -27,7 +28,7 @@ The tileset only holds the base tile of each terrain. Variants, roads, walls, sh
 4. Add an object layer named `units`. Put a point object on each starting tile. Its class (type) says what it is:
    - `mc`: the main character's start. Exactly one.
    - `party`: a deploy slot filled from the player's party, in layer order.
-   - `unit`: a fixed unit. Its name is the unit's display name, and it has custom properties `id` (string, unique on the map), `classId` (a class in `classes.json`), `team` (`player`, `enemy` or `ally`), `level` (int), and optionally `weaponId` (string), `ai` (`charge`, `hold` or `guard`; needed for enemies and allies unless the unit is a boss), `radius` (int, for guard), `guardTile` (string `x,y`, for guard; defaults to the start tile), `isBoss` (bool) and `isLord` (bool).
+   - `unit`: a fixed unit. Its name is the unit's display name, and it has custom properties `id` (string, unique on the map), `classId` (a class in `classes.json`), `team` (`player`, `enemy` or `ally`), `level` (int), and optionally `weaponId` (string), `ai` (`charge`, `hold` or `guard`; needed for enemies and allies unless the unit is a boss), `radius` (int, for guard), `guardTile` (string `x,y`, for guard; defaults to the start tile), `isBoss` (bool), `isLord` (bool) and `tags` (string, a comma list such as `recruitable,gate_guard`, for event triggers).
 5. Reinforcements: one more object layer per wave, named `wave 1`, `wave 2` and so on, with layer properties `turn` (int: the wave arrives at the start of that turn's enemy phase) and `difficulties` (string, a comma list such as `hard,lunatic`; all three when left out). Its objects are `unit` objects as above.
 6. Props: an object layer named `props`. Each point object's class (type) is a prop id from `src/data/props.json` (fence, cart, barrels, rubble, banner, well, haystack, dead_tree, campfire, signpost, graves, wheel). A prop may only stand on the terrains listed for it there, and a tall prop may not stand on a unit's start tile. Props are decorative: units can still walk onto their tile, and a tall prop fades while a unit stands there.
 7. Map properties (Map, Map Properties, custom properties): `id` (string; defaults to the file name), `name` (string, shown in game), `objective` (`rout`, `defeatBoss`, `survive`, `escape` or `protect`; defaults to rout), and as the objective needs: `objectiveTurns` (int, for survive and protect), `objectiveUnit` (string unit id, for protect), `objectiveTiles` (string `x,y;x,y`, for escape).
@@ -41,6 +42,14 @@ Run `npm run maps` to convert every map in `tools/maps/src/`, or `npm run maps -
 A new map also needs a line in `src/data/index.ts` to join `gameData.maps`, and a chapter entry if it is part of the story.
 
 `tests/maps-tiled.test.ts` imports every `.tmj` file and checks the result matches the shipped JSON byte for byte, so a map edited in JSON and not in Tiled (or the other way round) fails the tests until the two agree. The prologue was exported from its hand-written JSON with `export.ts`, and importing that export reproduced it exactly.
+
+## Events
+
+A map's scripted events (mid-battle scenes, reinforcements from a trigger, talk to recruit, flags) are not drawn in Tiled. They live in a sidecar file, `src/data/maps/<id>.events.json`: a JSON list of events in the format of `docs/CORE_API.md` (Scripted events). The import only ever writes `src/data/maps/<id>.json`, so redrawing a map in Tiled and importing it never touches its events. `src/data/index.ts` merges the two when it builds `gameData`.
+
+Events refer to the map by unit id, tag and tile. The import checks the new map together with its existing events file, so if a redraw removes or renames a unit an event names, or moves the edge of the map past an event's tiles, the import reports it and writes nothing. Give units that events match as a group a `tags` property in Tiled.
+
+A new map with events needs its events file imported in `src/data/index.ts` beside the map (the `withEvents` helper). A map with no events needs no file.
 
 ## Adding a terrain
 

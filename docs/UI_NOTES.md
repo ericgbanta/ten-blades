@@ -17,6 +17,8 @@ How the battle screen is put together (phase 2). The rules live in `src/core`; e
 | `src/game/start.ts` | Boots Phaser and returns a small `GameHandle`. |
 | `src/ui/Battle.tsx` | The battle route: plays the campaign run (new, loaded or resumed) or a quick battle, builds the controller, mounts Phaser, renders the overlays, measures them for the camera. |
 | `src/ui/Title.tsx`, `src/ui/menus/*` | Title (Continue, New game, Load game, Settings), the new game flow and creator, load game, settings and the chapter complete screen. |
+| `src/ui/Story.tsx` | The story route, `#/story`: plays the campaign's intro or outro scenes one after another and saves after each (see `docs/STORY.md`). |
+| `src/ui/dialogue/Dialogue.tsx`, `dialogue.css` | The dialogue player, used by the story route and over the battle map. See Dialogue below. |
 | `src/ui/mc/McPicture.tsx` | Canvas elements that show a composed MC portrait, face crop, token or pose. |
 | `src/ui/DevMc.tsx` | The hidden MC art check page, `#/dev/mc`. |
 | `src/ui/battle/*` | Preact overlays: top bar, bottom bar, unit card, action menu, forecast, heal preview, phase banner, level-up, dialogs, end screen, and the test hook. |
@@ -36,7 +38,7 @@ How the battle screen is put together (phase 2). The rules live in `src/core`; e
 
 `tapTile` and `runCommand` move between them. Taps: a ready unit selects it; any other unit inspects it; a reachable tile (the unit's own included) opens the menu there; tapping another reachable tile from the menu moves the preview; anything else steps back one level or clears the selection. Commands: Attack and Heal go to `target`, Back steps back, Cancel returns to `unit`, and Wait or Confirm return an `Action`. Every question goes through core queries (`moveTiles`, `attackTargets`, `healTargets`, `forecast`, `healAmount`, ...), and a committed action is checked with `validateAction` first.
 
-The menu only offers what is valid from the previewed tile: Attack when `attackTargets` is not empty, Heal when `healTargets` is not empty, then Wait and Cancel.
+The menu only offers what is valid from the previewed tile: Attack when `attackTargets` is not empty, Heal when `healTargets` is not empty, Talk when `talkTargets` is not empty, then Wait and Cancel. Talk goes to `target` with the talk mode ("Tap someone to talk to."), and tapping a talk target sends the talk action at once: there is no forecast to confirm (`tapTileAction`).
 
 ## Controller and playback queue
 
@@ -49,7 +51,9 @@ When the player commits an action, the controller:
 3. Snaps the stage to the new state with `Stage.sync`, so the picture always matches the core at the end of each action.
 4. Picks the next automatic action: `planAiAction` during enemy and ally phases, or `endPhase` once no player unit can act (the turn ends by itself when everyone has acted). It loops until the player has a choice or the battle ends, checkpoints again, then shows the end screen if the battle is over.
 
-The opening banner ("Turn 1, Player phase", or the current turn and phase on a resume) is shown by `start()`, because turn 1 has no phase event. On a resumed state that is not waiting on the player, `start()` then plays the automatic actions on to the next rest.
+The opening banner ("Turn 1, Player phase", or the current turn and phase on a resume) is shown by `start()`, because turn 1 has no phase event. Before it, `start()` runs the battle start events (`startBattle`) on a new battle and plays them, or on a resume plays the scenes the save still owes. On a resumed state that is not waiting on the player, `start()` then plays the automatic actions on to the next rest.
+
+Mid-battle scenes: with the `scenes` option on (campaign battles, and quick battles with `scenes=1`), a `sceneRequested` event snaps the stage to the state, sets `view.scene` and waits until the UI calls `sceneDone()`. The playback queue does not move on meanwhile, so events fired during the enemy phase play in order and the AI only plans after the scene. Scenes from the player action just applied are listed in the checkpoint (`CheckpointExtra.scenes`) until they have played; see `docs/SAVES.md`. With the option off the events still fire and the scenes are passed over.
 
 Timing: every animation length goes through `Timing.ms(base)`, scaled by the speed setting (normal or fast) and shortened under `prefers-reduced-motion` (which also drops the lunge and the screen shake). A tap during playback sets the skip flag, which makes the remaining animations of that playback instant. The level-up card is still shown while skipping; a tap closes it.
 
@@ -181,7 +185,23 @@ With `test=1` in the URL (`?test=1&seed=7#/battle`), `window.__tb` offers:
 | `suggest(unitId)` | The charge AI's choice for a player unit, so a test can script a strategy and still play it by taps. |
 | `saved()` | Resolves true once every queued save write has finished, so a test can reload safely. |
 | `tokenTexture(unitId)` | The texture key a unit's map token shows (`token.mc` for the composed MC), or null for a placeholder. |
+| `scene()` | The id of the mid-battle scene on screen, or null. While one is up, `isBusy()` is true. |
 
-URL overrides (query or after the hash route): `seed=N` fixes the seed of every battle, campaign ones included; without it each battle seeds from the clock. `quick=1` on the battle route (`?test=1&quick=1&seed=7#/battle`) plays an unsaved quick battle, which also takes `style=vanguard|duelist|spiritblade`, `difficulty=normal|hard|lunatic`, `mode=classic|casual` and `map=<id>` (any map in `gameData.maps`; an unknown id plays the prologue). Without `quick=1` and without a campaign run (for example after a page reload), the battle route goes back to the title, where Continue resumes the suspended battle.
+URL overrides (query or after the hash route): `seed=N` fixes the seed of every battle, campaign ones included; without it each battle seeds from the clock. `quick=1` on the battle route (`?test=1&quick=1&seed=7#/battle`) plays an unsaved quick battle, which also takes `style=vanguard|duelist|spiritblade`, `difficulty=normal|hard|lunatic`, `mode=classic|casual`, `map=<id>` (any map in `gameData.maps`; an unknown id plays the first chapter's map) and `scenes=1` (show mid-battle scenes; quick battles skip them otherwise). Without `quick=1` and without a campaign run (for example after a page reload), the battle route goes back to the title, where Continue resumes the suspended battle.
 
-`e2e/battle.spec.ts` uses the hook on a quick battle to play a turn by taps (select, move, wait, end turn, forecast, attack, enemy phase) and to play the whole prologue to the victory screen.
+`e2e/battle.spec.ts` uses the hook on a quick battle to play a turn by taps (select, move, wait, end turn, forecast, attack, enemy phase) and to play the whole prologue to the victory screen. `e2e/story.spec.ts` covers the intro, skipping, mid-battle scenes over the map, resuming in the middle of a scene and talking to recruit; `e2e/saves.spec.ts` plays the prologue through its outro and choice. The e2e helper `idle` skips any mid-battle scene that comes up unless told to stop at it.
+
+## Dialogue
+
+`Dialogue` plays one scene through the pure runner (`src/story/runner.ts`); it holds no story rules. Props: the scene, the text context (MC name, pronouns, world names), the story context for conditions, the speakers, the MC's look, `overlay` for a mid-battle scene, and `onDone` with the flags the choices set.
+
+- Layout at 375 x 667: the tools (Auto, Log, Skip, each 44 px tall) top right; two portrait slots standing on the text box, left and right, about 230 px square; the framed text box at the bottom with the name plate (crimson plate art) over its top edge on the speaker's side. The speaker is lit; the other slot is darkened and slightly smaller. The art faces the viewer's right, so the right slot is mirrored to face the middle. In landscape on a phone the portraits stand at the sides and the box sits between them. At 320 px the box padding and text shrink a little; a 16 character name and a three line line still fit.
+- Portraits: the MC is composed from their look in the line's expression (`McPortrait`); others are `portrait.<sheet>.<expr>` with the neutral fallback (`speakerPortraitId` in `artMap.ts`); anyone without art is a silhouette drawn in SVG.
+- Text: Alegreya at 17 px, 1.42 line height, wrapping anywhere a word is too long. A typewriter reveals each line at 26 ms a character; the rest of the line is laid out but hidden, so the box never changes size as it types. A tap (anywhere outside the tools, or the Next arrow) shows the whole line, and a tap on a whole line goes on. Enter and Space do the same on a desktop. Under reduced motion lines appear whole, and shake, flash and the portrait slide are off.
+- Narration is italic in dim bone with no plate. The blade's voice has no plate and no portrait: centered, spaced, cold blue italic text with a faint glow, in a darker box without the iron frame.
+- Choices replace the box: two or three full-width plates at least 52 px tall.
+- Log lists every line so far (speaker, text, and the answers picked), styled like the box. Skip asks first ("Skip this scene?", Keep reading or Skip) and then runs to the next choice or the end; a choice is never skipped. Auto, off by default, goes on 1.3 s plus 22 ms a character after a line is shown.
+- Effects: shake moves the portraits and backdrop for 380 ms, flash is a white fade, fadeOut and fadeIn darken the whole scene (it stays dark until a fade in).
+- Standalone scenes show their backdrop (`backdrop.<id>`, darkened by a gradient; a missing one is a plain dark gradient). Over the battle map the backdrop is replaced by a veil that keeps the map visible and darkens the top bar.
+
+The story route keys each scene by its id and the number of scenes left, saves after each, then goes to the battle, the next scene or the chapter complete screen. Title shows Continue for a suspended battle, or else for the campaign played last when it has a scene or a battle to play ("Name · Prologue · Story"). The chapter complete screen lists each unit's weapon and says "To be continued" when the next chapter has no map.

@@ -10,14 +10,15 @@ How Ten Blades keeps progress: the save shape, the versioning rule, the storage 
 | `src/save/validate.ts` | Strict runtime checks for a campaign save, a suspend save and a battle state. |
 | `src/save/migrate.ts` | The migration pipeline and the `MIGRATIONS` table. |
 | `src/save/load.ts` | `readCampaign` and `readSuspend`: migrate, then validate. |
-| `src/save/campaign.ts` | New campaign, battle setup for the current chapter, permadeath, chapter completion, building a suspend save. |
+| `src/save/campaign.ts` | New campaign, battle setup for the current chapter, permadeath, a won battle (on to the outro), building a suspend save. |
+| `src/story/flow.ts` | The chapter flow over the campaign's progress: intro scenes, battle, outro scenes, the chapter's after rules, the next chapter. See `docs/STORY.md`. |
 | `src/save/battleSaver.ts` | Turns the battle controller's checkpoints into save writes for one attempt at a map. |
 | `src/save/queue.ts` | `SaveQueue`: runs writes one at a time in the background and coalesces suspend writes. |
 | `src/save/storage.ts` | The `SaveStorage` interface, the in-memory backend and `openSaveStorage`. |
 | `src/save/idb.ts` | The IndexedDB backend. |
 | `src/save/code.ts` | Save codes for export and import. |
 | `src/save/prefs.ts` | Small UI preferences in `localStorage` (animation speed). Not part of any save. |
-| `src/data/chapters.json` | The chapter order. Only the prologue for now. |
+| `src/data/chapters.json` | The campaign script: chapters, their scenes, maps and after rules (`docs/STORY.md`). |
 | `src/ui/saves.ts` | The app's storage instance, write queue and the campaign run the battle route plays. |
 
 ## Campaign save
@@ -26,7 +27,7 @@ One JSON object per slot.
 
 | Field | Meaning |
 | --- | --- |
-| `version` | The save version, 2 now. |
+| `version` | The save version, 3 now. |
 | `kind` | Always `campaign`. |
 | `createdAt`, `updatedAt` | Epoch milliseconds, passed in by the UI. `updatedAt` is the "last played" time on the load screen. It changes when the campaign is written: at new game and after each won chapter. |
 | `settings` | `difficulty` (`normal`, `hard`, `lunatic`) and `permadeath` (`classic`, `casual`), chosen at new game and fixed after. |
@@ -34,8 +35,8 @@ One JSON object per slot.
 | `mc.look` | The creator's choices: `body`, `skin`, `hairStyle`, `hairColor`, `eyes`, `scar` (or `none`) and `accent`, each an id from `src/data/looks.json`. Added in version 2. |
 | `party` | `PartyUnit[]` carried into the next map, in unit order, as built by `partyAfterBattle`. Empty before the prologue, when the MC is built from `mc`. When not empty it holds exactly one lord (the MC). |
 | `fallen` | `PartyUnit[]` lost for good in Classic mode. Never the MC. |
-| `progress` | `current`: the chapter id to play next, or null once the story so far is finished. `completed`: chapter ids won, in order. |
-| `flags` | Story flags: a record of string keys to `true`/`false`, numbers or text. Empty until phase 4. |
+| `progress` | `current`: the chapter being played, or null once the story so far is finished. `completed`: chapter ids finished (outro played), in order. `stage`: `intro`, `battle` or `outro` (version 3). `scenes`: the scenes of this stage still to play, the first being the one in progress, or null until the stage begins and the chapter data picks them (version 3). |
+| `flags` | Story flags: a record of string keys to `true`/`false`, numbers or text. Set by scene choices and by map events (a won battle hands its flags back). An unset flag reads as false. |
 | `gold`, `shards` | Counters, 0 for now. |
 
 ## Suspend save
@@ -50,14 +51,14 @@ There is one suspend slot. It holds the battle in progress, written whenever the
 | `campaign` | The full campaign save as it was when the map started. A victory is applied to this. |
 | `mapId` | The map being played. Must match `battle.mapId`. |
 | `battle` | The whole `BattleState`, RNG state included. Its options must match `campaign.settings`. |
-| `controller` | Small controller state a resume keeps: `showDanger`. The selection is never kept. |
+| `controller` | Small controller state a resume keeps: `showDanger`, and `scenes`, the mid-battle scenes from the last player action (or the battle start) that had not finished playing (version 3). The selection is never kept. |
 
 ## Validation
 
 `validateCampaign`, `validateSuspend` and `validateBattleState` return `{ ok: true, value }` with a typed save, or `{ ok: false, error }` with a readable path and problem, such as `party[0].classId: unknown class "dragon"`. They check:
 
 - The shape: every field present, no unknown fields, the right types, whole numbers in range.
-- Ids against game data: classes, weapons, maps, terrain and chapter ids, and every field of `mc.look` against `src/data/looks.json` (`lookProblem` in `src/art/mc/look.ts`).
+- Ids against game data: classes, weapons, maps, terrain and chapter ids, every field of `mc.look` against `src/data/looks.json` (`lookProblem` in `src/art/mc/look.ts`), fired event ids against the map's events, recruits against the battle's units, and scene ids against the dialogue scenes when the context lists them (`SaveContext.sceneIds`; the app always passes them).
 - Invariants: unit ids unique, at most one lord and none among the fallen, the current chapter not already completed, a living unit with HP from 1 to its max and a fallen one at 0, positions on the map, enemy and ally units with an AI, the battle's map size matching the map data.
 
 `readCampaign` and `readSuspend` run `migrate` first and wrap any error in a plain sentence for the player. Storage also validates every save before writing it, so a bad object never reaches the disk.
@@ -78,8 +79,9 @@ Steps so far:
 | From | To | Change |
 | --- | --- | --- |
 | 1 | 2 | `mc.look` added. Version 1 saves predate the creator, so they get the default look from `looks.json`. A suspend save gets it in its nested `campaign`; the battle state is untouched. |
+| 2 | 3 | The story layer. `progress` gets `stage` and `scenes`: a campaign that had finished the story so far (current null) goes back to the outro of the last chapter it won, so the outro plays and its party changes apply (the Stranger leaves, the MC gets the Widow's Hush); any other campaign starts its chapter at the intro; scenes are null, picked when the stage begins. A suspend save's campaign is in its battle (`stage` battle, no scenes) and its controller owes no scenes. The battle state goes to version 2: `started` true, no flags, fired events or recruits, every unit with no tags and not left. A battle suspended before the update therefore plays on without the events that would have fired before its turn. |
 
-`tests/save-migrate.test.ts` loads `tests/fixtures/save-v1.json` and `tests/fixtures/suspend-v1.json` through `readCampaign` and `readSuspend` and checks the default look, loads `tests/fixtures/save-v2.json` as it is, and runs a pretend chain to prove the pipeline. `tests/save-code.test.ts` also imports a save code made from a version 1 save.
+`tests/save-migrate.test.ts` loads `tests/fixtures/save-v1.json`, `suspend-v1.json`, `save-v2.json` and `suspend-v2.json` through `readCampaign` and `readSuspend` and checks each step's changes, loads `tests/fixtures/save-v3.json` as it is, checks that no step changes its input, and runs a pretend chain to prove the pipeline. `tests/save-code.test.ts` also imports a save code made from a version 1 save.
 
 ## Storage
 
@@ -102,9 +104,12 @@ The IndexedDB connection closes itself when another tab or a test deletes or upg
 
 The battle controller calls `onCheckpoint(state, extra)` with every state the battle can be resumed from:
 
-- when the battle starts or resumes,
-- right after each player action is applied, before its animations play,
+- when the battle starts or resumes (a new battle right after its start events, with the opening scenes owed),
+- right after each player action is applied, before its animations play, with that action's scenes owed,
+- after each owed scene has played, with it crossed off,
 - when playback comes to rest: the player has a choice again, or the battle is over.
+
+Mid-battle scenes never change the battle state (they have no choices), so suspending inside one is safe. A resume plays the scenes the save still owes from their first line, then goes on. Scenes fired by the enemy phase are not owed: the resume replays that phase from the last checkpoint, and the scene with it. Either way a scene can play again after a reload, but nothing is applied twice.
 
 The enemy and ally phases are not saved step by step. A checkpoint taken just after a player's action can be in the middle of a turn (for example right after End turn). `start()` on such a state plays the automatic actions on to the next rest: it is the same code path as live play, the AI is deterministic and the RNG state is in the battle state, so a resume replays the enemy phase exactly. This was simpler than saving after every AI action and needs no extra state.
 
@@ -112,7 +117,7 @@ The enemy and ally phases are not saved step by step. A checkpoint taken just af
 
 When the battle ends, `BattleSaver` writes the final state to the suspend slot first, then:
 
-- on victory, applies the result to the campaign (`completeChapter`) and writes it to its slot, then clears the suspend save;
+- on victory, applies the result to the campaign (`completeChapter`: party, permadeath, flags, on to the outro) and writes it to its slot, then clears the suspend save;
 - on defeat, clears the suspend save and leaves the slot as it was.
 
 If the tab closes between those writes, the suspend slot holds a finished battle; Continue shows its end screen and finishes the same writes.
@@ -120,6 +125,10 @@ If the tab closes between those writes, the suspend slot holds a finished battle
 Why a reload cannot reroll: the RNG state is part of `BattleState`, and the state after an action, outcome included, is queued for saving before the first animation frame of that action. Reloading gives back either that state (the outcome stands) or, if the write had not finished, the state before the action with the same RNG state, where the same action gives the same result. The tests in `tests/suspend.test.ts` check both, and that a run suspended and resumed at several points matches an uninterrupted run with the same seed, state for state and event for event. Retry after a defeat and Load game restart the map with a new seed; that is a deliberate restart of the whole map, not a reroll of one action.
 
 The battle route takes its run once (`takeRun`), so going back to it in the browser history cannot replay a stale resume. Starting a new game or loading a slot while a battle is suspended asks first, since it ends that battle.
+
+## Story position
+
+Between battles the campaign save is the only record. The story route writes the slot each time a scene finishes: the scene leaves the head of `progress.scenes`, and the flags its choices set are merged in, in one write. Closing the tab during a scene therefore replays that scene from its first line, with its choices still to make. When the last outro scene finishes, the chapter's after rules apply and the next chapter begins, in the same write. See `docs/STORY.md`.
 
 ## Save codes
 
