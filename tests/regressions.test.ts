@@ -103,7 +103,7 @@ describe('defect 2: protect and defeatBoss targets must exist at battle start', 
   });
 });
 
-describe('defect 3: reinforcements act in their team’s next phase', () => {
+describe('defect 3: reinforcements act in the next phase of their team', () => {
   it('a player reinforcement acts in the next player phase', () => {
     const wave = { turn: 1, difficulties: ['normal' as const], units: [place('r', 'fighter', 'player', 2, 0)] };
     let s = makeBattle(['..........'], [place('p', 'fighter', 'player', 0, 0, { isLord: true }), place('e', 'fighter', 'enemy', 9, 0, { ai: { behavior: 'hold' } })], {
@@ -115,7 +115,7 @@ describe('defect 3: reinforcements act in their team’s next phase', () => {
     expect(validateAction(s, { type: 'wait', unitId: 'r', to: pos(3, 0) }, data)).toBeNull();
   });
 
-  it('an ally reinforcement arriving in the enemy phase acts in that turn’s ally phase', () => {
+  it('an ally reinforcement arriving in the enemy phase acts in the ally phase of that turn', () => {
     const wave = { turn: 1, difficulties: ['normal' as const], units: [place('r', 'fighter', 'ally', 2, 0)] };
     const s = makeBattle(['..........'], [place('p', 'fighter', 'player', 0, 0, { isLord: true }), place('e', 'fighter', 'enemy', 9, 0, { ai: { behavior: 'hold' } })], {
       reinforcements: [wave],
