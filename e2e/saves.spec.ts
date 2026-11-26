@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { idle, newGame, playByTaps, saved, state, trackErrors } from './helpers';
+import { idle, newGame, playByTaps, readScene, saved, state, trackErrors } from './helpers';
 
 // Campaign battles take a fixed seed from the URL; `test=1` installs window.__tb.
 const URL = './?test=1&seed=7#/';
@@ -118,8 +118,8 @@ test('export a code, wipe storage, import it and see the slot back', async ({ pa
   expect(errors).toEqual([]);
 });
 
-test('winning the prologue saves the campaign and shows Chapter complete', async ({ page }) => {
-  test.setTimeout(180_000);
+test('winning the prologue plays the outro with its choice, then saves the flag and the Widow\'s Hush', async ({ page }) => {
+  test.setTimeout(240_000);
   const errors = trackErrors(page);
   await page.goto(URL);
   await newGame(page, { name: 'Ash', style: 'Vanguard', permadeath: 'Casual' });
@@ -132,12 +132,33 @@ test('winning the prologue saves the campaign and shows Chapter complete', async
   }
   await expect(page.getByRole('heading', { name: 'Victory' })).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: 'Continue' }).tap();
+
+  // The outro: read to the choice, promise, then read on through the binding.
+  await expect(page).toHaveURL(/#\/story$/);
+  const before = await readScene(page);
+  expect(before[0]).toContain('The last hunter runs for the trees');
+  await expect(page.locator('.dlg-choice')).toHaveCount(2);
+  for (const b of await page.locator('.dlg-choice').all()) expect((await b.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await page.getByRole('button', { name: /carry it north/ }).tap();
+  const after = await readScene(page);
+  expect(after[0]).toContain('North, then');
+  await expect(page.getByRole('dialog', { name: 'Scene' })).toHaveAttribute('data-scene', 'prologue_binding');
+  expect(await readScene(page)).toContain('There you are.');
+
   await expect(page.getByRole('heading', { name: 'Chapter complete' })).toBeVisible();
   await expect(page.getByText('To be continued')).toBeVisible();
-  await expect(page.getByRole('list', { name: 'Your party' })).toContainText('Ash');
+  const party = page.getByRole('list', { name: 'Your party' });
+  await expect(party).toContainText('Ash');
+  await expect(party).toContainText("Widow's Hush");
+  await expect(party).not.toContainText('Stranger');
+  await expect.poll(async () => (await page.evaluate(readSlot, 1)).progress).toMatchObject({ current: 'chapter1' });
+  const slot = await page.evaluate(readSlot, 1);
+  expect(slot.flags).toMatchObject({ prologue_promise: true });
+  expect(slot.party.map((u) => [u.id, u.weaponId])).toEqual([['mc', 'widows_hush_vanguard']]);
+  expect(slot.progress).toEqual({ current: 'chapter1', completed: ['prologue'], stage: 'intro', scenes: null });
   await page.getByRole('link', { name: 'Title' }).tap();
 
-  // The suspend save is gone and the slot has moved past the prologue.
+  // The suspend save is gone and the slot has moved on to chapter 1, which has no map yet.
   await expect(page.getByRole('link', { name: 'New game' })).toBeVisible();
   await expect(page.getByRole('button', { name: /Continue/ })).toHaveCount(0);
   await page.getByRole('link', { name: 'Load game' }).tap();
@@ -145,3 +166,26 @@ test('winning the prologue saves the campaign and shows Chapter complete', async
   await expect(page.getByRole('dialog')).toContainText('finished the story so far');
   expect(errors).toEqual([]);
 });
+
+interface SlotSave {
+  version: number;
+  flags: Record<string, unknown>;
+  party: { id: string; weaponId: string | null }[];
+  progress: unknown;
+}
+
+/** The campaign save in a slot, read straight from IndexedDB. */
+function readSlot(slot: number): Promise<SlotSave> {
+  return new Promise((resolve, reject) => {
+    const open = indexedDB.open('ten-blades');
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const get = open.result.transaction('saves', 'readonly').objectStore('saves').get(`slot${slot}`);
+      get.onsuccess = () => {
+        open.result.close();
+        resolve(get.result);
+      };
+      get.onerror = () => reject(get.error);
+    };
+  });
+}

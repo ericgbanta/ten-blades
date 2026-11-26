@@ -38,7 +38,7 @@ test('the creator: change the look, begin, and the save and the map token follow
   const look = { body: 'broad', skin: 'deep', hairStyle: 'ponytail', hairColor: 'copper', eyes: 'round', scar: 'tattoo', accent: 'teal' };
   await saved(page);
   const save = await page.evaluate(readSlot, 2);
-  expect(save.version).toBe(2);
+  expect(save.version).toBe(3);
   expect(save.mc).toEqual({ name: 'Corvin', pronouns: 'they', style: 'duelist', look });
 
   // The map draws the composed token for the main character, and the other units keep theirs.
