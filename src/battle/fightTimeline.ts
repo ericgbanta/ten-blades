@@ -16,6 +16,8 @@ export interface FighterFacts {
   maxHp: number;
   /** HP after the action: used for units the events do not show taking damage (a healer, Scatter's bearer). */
   hp: number;
+  /** Bears an Awakened (or Unbound) blade: its strikes carry the blade's glow. Optional for older callers. */
+  awakened?: boolean;
 }
 
 export interface Fighter {
@@ -27,6 +29,8 @@ export interface Fighter {
   maxHp: number;
   fx: FxKind;
   school: School;
+  /** Bears an Awakened blade: its strikes glow. */
+  awakened: boolean;
 }
 
 interface StepBase {
@@ -94,6 +98,9 @@ const FX_BY_KIND: Record<string, FxKind> = {
   talisman: 'smoke',
   staff: 'mend',
 };
+
+/** Powers with a look of their own: Pin throws a needle like Scatter's. */
+const POWER_FX: Record<string, FxKind> = { pin: 'needles' };
 
 export function fxOf(weapon: FighterFacts['weapon']): FxKind {
   if (!weapon) return 'thrust';
@@ -168,7 +175,8 @@ export function buildFightScript(group: readonly BattleEvent[], facts: (unitId: 
     if (!f) return;
     // HP before: from the forecast for a fight or the strikes taken; Scatter's bearer takes no damage.
     const before = hpBefore.get(id) ?? f.hp;
-    fighters.push({ unitId: id, side, slot, hpBefore: before, maxHp: f.maxHp, fx: fxOf(f.weapon), school: f.weapon?.school ?? 'none' });
+    const fx = power && id === bearerId && POWER_FX[power.powerId] ? POWER_FX[power.powerId]! : fxOf(f.weapon);
+    fighters.push({ unitId: id, side, slot, hpBefore: before, maxHp: f.maxHp, fx, school: f.weapon?.school ?? 'none', awakened: f.awakened ?? false });
   };
   add(bearerId, bearerSide, 0);
   foeIds.forEach((id, i) => add(id, foeSide, i));
@@ -207,7 +215,7 @@ export function buildFightScript(group: readonly BattleEvent[], facts: (unitId: 
     for (const st of strikes) {
       if (!shown.has(st.attackerId) || !shown.has(st.defenderId)) continue;
       const af = facts(st.attackerId);
-      const fx = fxOf(af?.weapon ?? null);
+      const fx = power && st.attackerId === bearerId && POWER_FX[power.powerId] ? POWER_FX[power.powerId]! : fxOf(af?.weapon ?? null);
       const motion = isRanged(af?.weapon ?? null, distance) ? 'ranged' : 'melee';
       const ghost = st.echo === true || (power !== null && power.echoOf !== null && st.attackerId === bearerId);
       steps.push({ kind: 'windup', at: t, dur: FIGHT_MS.windup, actor: st.attackerId });
@@ -259,8 +267,17 @@ function healScript(ev: Extract<BattleEvent, { type: 'unitHealed' }>, facts: (un
   const target = facts(ev.unitId);
   if (!healer || !target) return null;
   const fighters: Fighter[] = [
-    { unitId: ev.sourceId, side: 'left', slot: 0, hpBefore: healer.hp, maxHp: healer.maxHp, fx: 'mend', school: 'none' },
-    { unitId: ev.unitId, side: 'right', slot: 0, hpBefore: ev.hpAfter - ev.amount, maxHp: target.maxHp, fx: fxOf(target.weapon), school: target.weapon?.school ?? 'none' },
+    { unitId: ev.sourceId, side: 'left', slot: 0, hpBefore: healer.hp, maxHp: healer.maxHp, fx: 'mend', school: 'none', awakened: false },
+    {
+      unitId: ev.unitId,
+      side: 'right',
+      slot: 0,
+      hpBefore: ev.hpAfter - ev.amount,
+      maxHp: target.maxHp,
+      fx: fxOf(target.weapon),
+      school: target.weapon?.school ?? 'none',
+      awakened: target.awakened ?? false,
+    },
   ];
   const steps: SceneStep[] = [];
   let t = 0;

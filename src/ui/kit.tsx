@@ -85,14 +85,17 @@ export function Icon(props: { name: IconName; size?: number; label?: string; cla
  * A round portrait in the iron medallion. The main character (a player lord with a look) shows their composed
  * face; other units their neutral portrait, cut to the face; anyone else a disc with their initial.
  */
-export function Medallion(props: { unit: Unit; look?: McLook; size: number; class?: string }): JSX.Element {
+export function Medallion(props: { unit: Pick<Unit, 'id' | 'name' | 'classId' | 'team' | 'isLord'>; look?: McLook; size: number; class?: string; glow?: boolean }): JSX.Element {
   const { unit, look, size } = props;
   const mc = look && unit.isLord && unit.team === 'player';
   const pid = mc ? null : portraitId(unit);
   const url = pid ? imageUrl(pid) : undefined;
   const label = `${unit.name}'s portrait`;
   return (
-    <span class={`medal team-${unit.team}${props.class ? ` ${props.class}` : ''}`} style={{ width: `${size}px`, height: `${size}px` }}>
+    <span
+      class={`medal team-${unit.team}${props.glow ? ' awakened' : ''}${props.class ? ` ${props.class}` : ''}`}
+      style={{ width: `${size}px`, height: `${size}px` }}
+    >
       <span class="medal-face">
         {mc ? (
           <McFace look={look} size={size} label={label} class="medal-img" />

@@ -25,7 +25,17 @@ describe('inventories', () => {
     expect(unit(s, 'p').inventory).toEqual(['axe']);
     expect(unit(s, 'e').inventory).toEqual(['dagger', 'salve']);
     const map = makeMap(['....'], [{ kind: 'mc', pos: pos(0, 0) }, place('e', 'rogue', 'enemy', 3, 0)]);
-    const lord = { id: 'hero', name: 'Hero', classId: 'fighter', level: 1, xp: 0, stats: d.classes.fighter!.baseStats, weaponId: 'axe', isLord: true, inventory: ['salve', 'sure_axe'] };
+    const lord = {
+      id: 'hero',
+      name: 'Hero',
+      classId: 'fighter',
+      level: 1,
+      xp: 0,
+      stats: d.classes.fighter!.baseStats,
+      weaponId: 'axe',
+      isLord: true,
+      inventory: ['salve', 'sure_axe'],
+    };
     const b = createBattle(map, { ...SETUP, party: [lord] }, 1, d);
     expect(unit(b, 'hero').inventory).toEqual(['axe', 'salve', 'sure_axe']);
     expect(unit(b, 'hero').statuses).toEqual([]);
@@ -55,7 +65,10 @@ describe('inventories', () => {
 });
 
 describe('the item action', () => {
-  const base = () => patchUnit(makeBattle(ROW, [place('p', 'fighter', 'player', 0, 0, { items: ['salve', 'draught'] }), place('e', 'rogue', 'enemy', 5, 2)], { data: d }), 'p', { hp: 8 });
+  const base = () =>
+    patchUnit(makeBattle(ROW, [place('p', 'fighter', 'player', 0, 0, { items: ['salve', 'draught'] }), place('e', 'rogue', 'enemy', 5, 2)], { data: d }), 'p', {
+      hp: 8,
+    });
 
   it('moves, heals up to the item, uses it up and ends the turn', () => {
     const r = applyAction(base(), { type: 'item', unitId: 'p', to: pos(1, 0), itemIndex: 1 }, d);
@@ -83,7 +96,7 @@ describe('the item action', () => {
     expect(validateAction(s, { type: 'item', unitId: 'p', to: pos(0, 0), itemIndex: 1.5 } as never, d)).toMatch(/itemIndex/);
   });
 
-  it('a draught fills a bearer\'s gauge', () => {
+  it("a draught fills a bearer's gauge", () => {
     const s = makeBattle(ROW, [place('b', 'brute', 'player', 0, 0, { weaponId: 'maw', items: ['draught'] }), place('e', 'rogue', 'enemy', 5, 2)], { data: d });
     const r = applyAction(s, { type: 'item', unitId: 'b', to: pos(0, 0), itemIndex: 1 }, d);
     expect(unit(r.state, 'b').resolve).toBe(50);
@@ -92,7 +105,8 @@ describe('the item action', () => {
 });
 
 describe('the equip action', () => {
-  const base = () => makeBattle(ROW, [place('p', 'fighter', 'player', 0, 0, { items: ['sure_axe', 'dagger'] }), place('e', 'rogue', 'enemy', 1, 0)], { data: d });
+  const base = () =>
+    makeBattle(ROW, [place('p', 'fighter', 'player', 0, 0, { items: ['sure_axe', 'dagger'] }), place('e', 'rogue', 'enemy', 1, 0)], { data: d });
 
   it('is free: swaps the weapon in hand, keeps the unit ready and in place, and the forecast uses it', () => {
     const s = base();
@@ -162,15 +176,15 @@ describe('skirmish scaling in the core', () => {
 describe('suspend and resume across item and equip actions', () => {
   it('a JSON round trip between actions plays out exactly like an uninterrupted run', () => {
     const start = patchUnit(
-      makeBattle(['......', '......', '......'], [place('p', 'fighter', 'player', 0, 0, { items: ['sure_axe', 'salve'] }), place('e', 'fighter', 'enemy', 3, 0, { items: ['salve'] })], { data: d, seed: 77 }),
+      makeBattle(
+        ['......', '......', '......'],
+        [place('p', 'fighter', 'player', 0, 0, { items: ['sure_axe', 'salve'] }), place('e', 'fighter', 'enemy', 3, 0, { items: ['salve'] })],
+        { data: d, seed: 77 },
+      ),
       'p',
       { hp: 9 },
     );
-    const script = [
-      { type: 'equip', unitId: 'p', itemIndex: 1 },
-      { type: 'item', unitId: 'p', to: pos(1, 0), itemIndex: 2 },
-      { type: 'endPhase' },
-    ] as const;
+    const script = [{ type: 'equip', unitId: 'p', itemIndex: 1 }, { type: 'item', unitId: 'p', to: pos(1, 0), itemIndex: 2 }, { type: 'endPhase' }] as const;
     const run = (resumeEach: boolean) => {
       let s = start;
       const events: BattleEvent[][] = [];

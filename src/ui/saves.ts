@@ -2,14 +2,18 @@
 // campaign run the battle route should play. Lives at the UI boundary, so the
 // clock is read here.
 
-import { chapters, gameData } from '../data';
+import { campContent, chapters, gameData } from '../data';
 import { sceneIds } from '../data/story';
+import type { CampCtx } from '../camp/ctx';
 import type { CampaignSave, SaveContext, SlotId, SuspendSave } from '../save/format';
 import { SaveQueue } from '../save/queue';
 import { openSaveStorage, type SaveStorage } from '../save/storage';
 import { flowStep, settle } from '../story/flow';
 
-export const saveContext: SaveContext = { data: gameData, chapters, sceneIds };
+export const saveContext: SaveContext = { data: gameData, chapters, sceneIds, skirmishIds: Object.keys(campContent.skirmishes) };
+
+/** What the camp's rules read. */
+export const campCtx: CampCtx = { data: gameData, chapters, camp: campContent };
 
 let opened: Promise<SaveStorage> | null = null;
 
@@ -35,6 +39,31 @@ export interface CampaignRun {
   campaign: CampaignSave;
   /** Set when resuming a suspended battle. */
   resume: SuspendSave | null;
+  /** The side skirmish to play (an id in skirmishes.json), or null for the chapter's story map. */
+  skirmish?: string | null;
+}
+
+/** The campaign the camp screens show, and its slot. Set when the flow reaches camp; every change is saved. */
+export interface CampSession {
+  slot: SlotId;
+  campaign: CampaignSave;
+}
+
+let campSession: CampSession | null = null;
+const campListeners = new Set<() => void>();
+
+export const currentCamp = (): CampSession | null => campSession;
+
+export function onCampChange(fn: () => void): () => void {
+  campListeners.add(fn);
+  return () => campListeners.delete(fn);
+}
+
+/** Set the camp's campaign and write it to its slot (entering camp saves, and so does every change made there). */
+export function commitCamp(slot: SlotId, campaign: CampaignSave): void {
+  campSession = { slot, campaign };
+  saveCampaign(slot, campaign);
+  for (const fn of campListeners) fn();
 }
 
 let run: CampaignRun | null = null;
@@ -59,8 +88,8 @@ export function saveCampaign(slot: SlotId, campaign: CampaignSave): void {
  */
 export function startRun(next: CampaignRun): void {
   finished = null;
-  if (next.resume) {
-    run = next;
+  if (next.resume || next.skirmish) {
+    run = { ...next, skirmish: next.resume ? next.resume.skirmish : (next.skirmish ?? null) };
     window.location.hash = '#/battle';
     return;
   }
@@ -70,7 +99,11 @@ export function startRun(next: CampaignRun): void {
   const step = flowStep(campaign, chapters, gameData);
   if (step.kind === 'scene') window.location.hash = '#/story';
   else if (step.kind === 'battle') window.location.hash = '#/battle';
-  else {
+  else if (step.kind === 'camp') {
+    run = null;
+    commitCamp(next.slot, campaign);
+    window.location.hash = '#/camp';
+  } else {
     run = null;
     const done = campaign.progress.completed.at(-1);
     finishRun(next.slot, campaign, chapters.find((c) => c.id === done)?.name ?? 'Chapter');

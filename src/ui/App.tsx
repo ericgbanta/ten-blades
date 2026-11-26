@@ -9,9 +9,13 @@ import { LoadGame } from './menus/LoadGame';
 import { Settings } from './menus/Settings';
 import { ChapterComplete } from './menus/ChapterComplete';
 import { DevMc } from './DevMc';
+import { Camp } from './camp/Camp';
+import { installCampTestHook } from './camp/testHook';
 import { installKit } from './kit';
 
 installKit();
+// Test only (`?test=1`): window.__camp, for reaching every camp screen.
+installCampTestHook();
 
 function currentRoute(): string {
   // A query after the route (`#/battle?seed=3`) carries test overrides, not a route.
@@ -25,6 +29,7 @@ export function App() {
     window.addEventListener('hashchange', onChange);
     return () => window.removeEventListener('hashchange', onChange);
   }, []);
+  if (route === '/camp' || route.startsWith('/camp/')) return <Camp path={route} />;
   switch (route) {
     case '/battle':
       return <Battle />;

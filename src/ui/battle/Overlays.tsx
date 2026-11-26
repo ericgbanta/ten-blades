@@ -2,7 +2,9 @@
 // dialog and the end of battle screen.
 
 import type { BattleState, BattleSummary, Stats, Team } from '../../core';
-import { STAT_KEYS } from '../../core';
+import { STAT_KEYS, itemDef, weaponDef } from '../../core';
+import type { Rewards } from '../../camp/rewards';
+import { gameData } from '../../data';
 import type { LevelUpPopup } from '../../battle/controller';
 import { Divider, Icon } from '../kit';
 import { PHASE_LABEL, STAT_LABEL } from './text';
@@ -69,7 +71,46 @@ export interface EndButton {
   primary?: boolean;
 }
 
-export function EndScreen(props: { summary: BattleSummary; state: BattleState; note?: string; buttons: EndButton[] }) {
+/** The battle's pay on the end screen: gold, shards, each bonus objective met or missed, and the drops. */
+function Spoils({ r }: { r: Rewards }) {
+  const items = r.items.map((id) => itemDef(id, gameData)?.name ?? weaponDef(id, gameData)?.name ?? id);
+  return (
+    <section class="spoils framed" aria-label="Spoils">
+      <h3 class="spoils-h">Spoils</h3>
+      <p class="spoils-row">
+        <span class="spoils-k">
+          <Icon name="coins" size={20} />
+          Gold
+        </span>
+        <strong class="num">+{r.gold}</strong>
+      </p>
+      <p class="spoils-row">
+        <span class="spoils-k">
+          <Icon name="shard" size={20} />
+          Blade Shards
+        </span>
+        <strong class="num">+{r.shards}</strong>
+      </p>
+      {r.bonuses.length > 0 && (
+        <ul class="spoils-bonus">
+          {r.bonuses.map((b) => (
+            <li key={b.id} class={b.met ? 'met' : 'missed'}>
+              <span class="mark" aria-hidden="true">
+                {b.met ? '✓' : '✗'}
+              </span>
+              <span class="visually-hidden">{b.met ? 'Met: ' : 'Missed: '}</span>
+              <span class="b-text">{b.text}</span>
+              <span class="b-pay num">{[b.gold > 0 ? `+${b.gold} gold` : '', b.shards > 0 ? `+${b.shards} ${b.shards === 1 ? 'shard' : 'shards'}` : ''].filter(Boolean).join(', ')}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {items.length > 0 && <p class="spoils-items">Found: {items.join(', ')} (to the convoy)</p>}
+    </section>
+  );
+}
+
+export function EndScreen(props: { summary: BattleSummary; state: BattleState; note?: string; buttons: EndButton[]; rewards?: Rewards }) {
   const { summary, state } = props;
   const won = summary.result === 'victory';
   const fallen = summary.fallenPlayerUnitIds.map((id) => state.units.find((u) => u.id === id)?.name ?? id);
@@ -89,6 +130,7 @@ export function EndScreen(props: { summary: BattleSummary; state: BattleState; n
           <dd>{fallen.length === 0 ? 'None' : fallen.join(', ')}</dd>
         </div>
       </dl>
+      {won && props.rewards && (props.rewards.gold > 0 || props.rewards.shards > 0 || props.rewards.bonuses.length > 0) && <Spoils r={props.rewards} />}
       <div class="btn-col">
         {props.buttons.map((b) => (
           <button key={b.label} type="button" class={`btn${b.primary ? ' primary' : ''}`} onClick={b.onTap}>

@@ -1521,3 +1521,154 @@
 .action-menu .btn-row .btn.power-btn {
   order: 1;
 }
+
+/* ---- Spoils on the end screen ------------------------------------------------------------------------- */
+
+.spoils {
+  width: min(300px, 86vw);
+  margin: 0 0 var(--sp-2);
+  padding: 12px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.spoils-h {
+  margin: 0 0 2px;
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.14em;
+  color: var(--c-gold);
+  text-align: center;
+}
+
+.spoils-row {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--fs-lg);
+}
+
+.spoils-row strong {
+  color: var(--c-gold);
+}
+
+.spoils-k {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.spoils-bonus {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 6px 0 0;
+  border-top: 1px solid var(--c-line);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--fs-sm);
+}
+
+.spoils-bonus li {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.spoils-bonus .met .mark {
+  color: var(--c-good);
+}
+
+.spoils-bonus .missed {
+  color: var(--c-muted);
+}
+
+.spoils-bonus .missed .mark {
+  color: var(--c-bad);
+}
+
+.spoils-bonus .b-pay {
+  color: var(--c-gold);
+}
+
+.spoils-bonus .missed .b-pay {
+  color: var(--c-muted);
+  text-decoration: line-through;
+}
+
+.spoils-items {
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--c-bone-dim);
+  font-style: italic;
+}
+
+/* ---- Items panel ------------------------------------------------------------------------------------- */
+
+.inv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inv-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--tap);
+  padding: 0 2px;
+  border-bottom: 1px solid var(--c-line);
+}
+
+.inv-row:last-child {
+  border-bottom: none;
+}
+
+.inv-row .btn {
+  min-width: 88px;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-sm);
+}
+
+.inv-row.equipped .inv-name > span:first-child {
+  color: var(--c-gold);
+}
+
+.inv-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.inv-name > span:first-child {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inv-why {
+  font-size: var(--fs-xs);
+  color: var(--c-muted);
+}
+
+/* Statuses and an Awakened blade on the unit card. */
+.tag.status-silence,
+.tag.status-pin {
+  border-color: var(--c-steel);
+  color: #b8d4f0;
+}
+
+.blade-power.awakened {
+  color: #cfe6ff;
+  text-shadow: 0 0 6px rgba(150, 205, 255, 0.6);
+}

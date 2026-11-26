@@ -941,3 +941,9 @@
     flex: 1 1 140px;
   }
 }
+
+.menu-head-right {
+  flex: 0 0 68px;
+  display: flex;
+  justify-content: flex-end;
+}

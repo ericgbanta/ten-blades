@@ -36,9 +36,11 @@ export interface BladeView {
   next: NextTier | null;
 }
 
-/** The party member holding a blade, or null. */
+/**
+ * The party member carrying a blade (in hand or in the inventory: a blade never leaves its bearer), or null.
+ */
 export function bearerOf(c: CampaignSave, bladeId: string, ctx: CampCtx): PartyUnit | null {
-  return c.party.find((u) => u.weaponId !== null && weaponDef(u.weaponId, ctx.data)?.blade === bladeId) ?? null;
+  return c.party.find((u) => u.inventory.some((id) => weaponDef(id, ctx.data)?.blade === bladeId)) ?? null;
 }
 
 function powersAt(blade: BladeDef, tier: number, ctx: CampCtx): BladeView['powers'] {

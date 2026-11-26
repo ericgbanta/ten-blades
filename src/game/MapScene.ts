@@ -3,7 +3,7 @@
 // controller tells it what to draw; it holds no rules.
 
 import Phaser from 'phaser';
-import { isBearer, type BattleEvent, type BattleState, type GameData, type Pos, type Unit } from '../core';
+import { isBearer, unitBladeTier, weaponDef, type BattleEvent, type BattleState, type GameData, type Pos, type Unit } from '../core';
 import { imageMeta, imageUrl } from '../art/manifest';
 import propDefs from '../data/props.json';
 import type { Overlay } from '../battle/selection';
@@ -349,7 +349,7 @@ export class MapScene extends Phaser.Scene implements Stage {
     let t = this.tokens.get(u.id);
     if (!t) {
       const cls = this.gameData.classes[u.classId];
-      const weapon = u.weaponId ? this.gameData.weapons[u.weaponId] : undefined;
+      const weapon = u.weaponId ? (weaponDef(u.weaponId, this.gameData) ?? undefined) : undefined;
       const key = u.isLord && u.team === 'player' && this.textures.exists(MC_TOKEN_KEY) ? MC_TOKEN_KEY : `token.${u.classId}`;
       t = new UnitToken(
         this,
@@ -360,6 +360,7 @@ export class MapScene extends Phaser.Scene implements Stage {
           isLord: u.isLord,
           isBoss: u.isBoss,
           texture: this.textures.exists(key) ? key : null,
+          awakened: unitBladeTier(this.lastState, u, this.gameData) >= 2,
         },
         u.stats.hp,
         u.hp,

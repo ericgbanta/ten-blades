@@ -19,6 +19,7 @@ const SCHOOL_FX: Record<School, number> = { heavy: 0xec9450, swift: 0x52c8bc, ar
 const HEAL_FX = 0x9cf0a8;
 const DRAIN_FX = 0xd8303a;
 const GHOST_TINT = 0xa8d0ff;
+const AWAKENED_FX = 0xcfe8ff;
 const POSE_CANVAS = { w: 512, h: 384, anchorX: 192, groundY: 360, figure: 240 };
 const FALLBACK_BACKDROP = 'village';
 const FONT = 'Cinzel, Georgia, serif';
@@ -461,6 +462,10 @@ export class FightScene extends Phaser.Scene implements FightStage {
     this.tweens.add({ targets: a.c, x: toX, duration: this.ms(step.dur), ease: step.motion === 'melee' ? 'Expo.easeOut' : 'Quad.easeOut' });
     if (step.ghost) this.ghost(a, toX);
     if (step.fx === 'mend') this.glowRing(this.hand(a), HEAL_FX, 0.6);
+    // An Awakened blade leaves a cold glow along its swing.
+    if (a.f.awakened && step.fx !== 'mend') {
+      this.time.delayedCall(this.ms(Math.round(step.dur * 0.6)), () => this.glowRing(this.hand(a), AWAKENED_FX, 1.1));
+    }
   }
 
   /** Echo's afterimage: a pale copy of the bearer follows the strike a beat later and fades. */

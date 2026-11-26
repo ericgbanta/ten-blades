@@ -77,6 +77,8 @@ export interface TokenLook {
   isBoss: boolean;
   /** Texture key of real art, or null to draw the placeholder. */
   texture: string | null;
+  /** The unit bears an Awakened (or Unbound) blade: a pale glow rings its base. */
+  awakened?: boolean;
 }
 
 export class UnitToken extends Phaser.GameObjects.Container {
@@ -171,6 +173,13 @@ export class UnitToken extends Phaser.GameObjects.Container {
   /** The flat team-colored base at the feet: dark edge, light rim, team fill. Grey once the unit has acted. */
   private drawBase(g: Phaser.GameObjects.Graphics): void {
     const c = this.acted ? ACTED_COLORS : TEAM_COLORS[this.look.team];
+    if (this.look.awakened) {
+      // The Awakened blade's glow: two soft pale-blue rings under the base.
+      g.fillStyle(0x9fd0ff, 0.16);
+      g.fillEllipse(0, BASE_Y, BASE_RX * 2 + 22, BASE_RY * 2 + 16);
+      g.fillStyle(0xbfe0ff, 0.26);
+      g.fillEllipse(0, BASE_Y, BASE_RX * 2 + 12, BASE_RY * 2 + 9);
+    }
     g.fillStyle(0x000000, 0.35);
     g.fillEllipse(0, BASE_Y + 3, BASE_RX * 2 + 8, BASE_RY * 2 + 6);
     g.fillStyle(0x0c0a0f, 1);

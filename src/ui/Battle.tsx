@@ -2,7 +2,7 @@ import { useEffect, useMemo, useReducer, useRef, useState } from 'preact/hooks';
 import { createBattle, type BattleSetup, type BattleState, type BattleSummary } from '../core';
 import { composeMcToken } from '../art/mc/compose';
 import { DEFAULT_LOOK, type McLook } from '../art/mc/look';
-import { chapters, gameData } from '../data';
+import { campContent, chapters, gameData } from '../data';
 import { scenes as sceneData, speakers, worldNames } from '../data/story';
 import type { TextContext } from '../story/text';
 import { Dialogue } from './dialogue/Dialogue';
@@ -11,13 +11,15 @@ import { BattleSaver } from '../save/battleSaver';
 import { battleSetup } from '../save/campaign';
 import { loadPrefs, savePrefs, sceneModeOf } from '../save/prefs';
 import type { SaveStorage } from '../save/storage';
-import { startRun, takeRun, now, storage, writes, type CampaignRun } from './saves';
+import { campCtx, commitCamp, startRun, takeRun, now, storage, writes, type CampaignRun } from './saves';
+import { deployInfo } from '../camp/barracks';
+import { battleRewards, type Rewards } from '../camp/rewards';
 import { battleSeed, parseLaunch, type LaunchOptions } from '../battle/setup';
 import { flowStep } from '../story/flow';
 import type { Insets } from '../game/camera';
 import type { GameHandle } from '../game/start';
-import { powerDirections, powerPlan } from '../core';
-import { ActionMenu, ForecastPanel, HealPanel, PowerPanel, TargetHint } from './battle/ActionPanels';
+import { powerDirections, powerPlan, unitBladeTier } from '../core';
+import { ActionMenu, ForecastPanel, HealPanel, ItemsPanel, PowerPanel, TargetHint } from './battle/ActionPanels';
 import { CutIn, FightHud } from './battle/FightHud';
 import { BottomBar, TopBar } from './battle/Hud';
 import { ConfirmDialog, EndScreen, LevelUp, PhaseBanner, type EndButton } from './battle/Overlays';
@@ -91,16 +93,35 @@ function CampaignAttempts({ run, launch, store }: { run: CampaignRun; launch: La
   const [attempt, setAttempt] = useState(0);
   // The map comes from the chapter data through the chapter flow (or from the suspended battle on a resume).
   const step = flowStep(run.campaign, chapters, gameData);
-  const mapId = run.resume?.mapId ?? (step.kind === 'battle' ? step.mapId : FIRST_MAP);
+  const skirmishId = run.skirmish ?? null;
+  const skirmish = skirmishId ? (campContent.skirmishes[skirmishId] ?? null) : null;
+  const mapId = run.resume?.mapId ?? skirmish?.mapId ?? (step.kind === 'battle' ? step.mapId : FIRST_MAP);
   const { initial, saver } = useMemo(() => {
     const resume = attempt === 0 ? run.resume : null;
-    const state = resume ? resume.battle : newBattle(battleSetup(run.campaign), mapId, launch);
+    // The deployment chosen in camp (src/camp/barracks.ts): who goes, in what order, and a skirmish's scaling.
+    const info = deployInfo(run.campaign, campCtx, skirmishId);
+    const plan = info ? { party: info.deployed, enemyLevelShift: info.enemyLevelShift } : undefined;
+    const state = resume ? resume.battle : newBattle(battleSetup(run.campaign, plan), mapId, launch);
     return {
       initial: state,
-      saver: new BattleSaver({ store, queue: writes, slot: run.slot, campaign: run.campaign, chapters, now }),
+      saver: new BattleSaver({
+        store,
+        queue: writes,
+        slot: run.slot,
+        campaign: run.campaign,
+        chapters,
+        now,
+        economy: campContent.economy,
+        skirmish: skirmishId && skirmish ? { id: skirmishId, def: skirmish } : null,
+      }),
     };
   }, [run, attempt, mapId, launch, store]);
   const mc = run.campaign.mc.name;
+  const toCamp = () => {
+    commitCamp(run.slot, saver.completed ?? run.campaign);
+    window.location.hash = '#/camp';
+  };
+  const rewardDef = skirmish ? skirmish.rewards : campContent.economy.rewards[mapId];
   return (
     <BattleRun
       key={attempt}
@@ -118,19 +139,22 @@ function CampaignAttempts({ run, launch, store }: { run: CampaignRun; launch: La
         const lord = state.units.find((u) => u.isLord && u.team === 'player');
         return lord && !lord.alive ? `${mc} has fallen. The tale ends here.` : undefined;
       }}
+      rewards={(state) => battleRewards(state, rewardDef)}
       endButtons={(summary) =>
         summary.result === 'victory'
           ? [
-              {
-                label: 'Continue',
-                primary: true,
-                // On to the outro (src/story/flow.ts); the won campaign is already being saved.
-                onTap: () => startRun({ slot: run.slot, campaign: saver.completed ?? run.campaign, resume: null }),
-              },
+              skirmish
+                ? { label: 'Back to camp', primary: true, onTap: toCamp }
+                : {
+                    label: 'Continue',
+                    primary: true,
+                    // On to the outro (src/story/flow.ts); the won campaign is already being saved.
+                    onTap: () => startRun({ slot: run.slot, campaign: saver.completed ?? run.campaign, resume: null }),
+                  },
             ]
           : [
               { label: 'Retry', primary: true, onTap: () => setAttempt((a) => a + 1) },
-              { label: 'Title', onTap: goTitle },
+              skirmish ? { label: 'Back to camp', onTap: toCamp } : { label: 'Title', onTap: goTitle },
             ]
       }
     />
@@ -163,9 +187,11 @@ interface BattleRunProps {
   quitText: string;
   endNote?: (summary: BattleSummary, state: BattleState) => string | undefined;
   endButtons: (summary: BattleSummary) => EndButton[];
+  /** What a won battle pays, for the end screen. */
+  rewards?: (state: BattleState) => Rewards;
 }
 
-function BattleRun({ initial, launch, look, text, scenes, pendingScenes, showDanger, onCheckpoint, quitText, endNote, endButtons }: BattleRunProps) {
+function BattleRun({ initial, launch, look, text, scenes, pendingScenes, showDanger, onCheckpoint, quitText, endNote, endButtons, rewards }: BattleRunProps) {
   const reduced = useMemo(prefersReducedMotion, []);
   const controller = useMemo(
     () =>
@@ -282,7 +308,7 @@ function BattleRun({ initial, launch, look, text, scenes, pendingScenes, showDan
       )}
       {view.fight && <FightHud view={view.fight} state={state} data={gameData} look={look} onSkip={() => controller.skip()} />}
       {view.cutIn && <CutIn cut={view.cutIn} state={state} look={look} reduced={reduced} onSkip={() => controller.skip()} />}
-      {ended && <EndScreen summary={ended} state={state} note={endNote?.(ended, state)} buttons={endButtons(ended)} />}
+      {ended && <EndScreen summary={ended} state={state} note={endNote?.(ended, state)} buttons={endButtons(ended)} rewards={rewards?.(state)} />}
       {view.scene && <BattleScene key={view.scene} sceneId={view.scene} controller={controller} state={state} look={look} text={text} reduced={reduced} />}
     </div>
   );
@@ -332,13 +358,17 @@ function DockPanel({ view, controller, look }: { view: BattleView; controller: B
   if (view.heal && sel.kind === 'confirm') {
     return <HealPanel healer={unit(sel.unitId)} target={unit(view.heal.targetId)} amount={view.heal.amount} run={run} look={look} />;
   }
-  if (sel.kind === 'menu') return <ActionMenu unit={unit(sel.unitId)} options={view.menu} run={run} data={gameData} power={view.powerOption} />;
+  if (sel.kind === 'menu') return <ActionMenu unit={unit(sel.unitId)} options={view.menu} run={run} data={gameData} powers={view.powerOptions} />;
+  if (sel.kind === 'items') return <ItemsPanel unit={unit(sel.unitId)} items={view.items} run={run} data={gameData} />;
   if (sel.kind === 'target') {
     if (sel.mode !== 'power') return <TargetHint mode={sel.mode} run={run} />;
-    const plan = powerPlan(state, sel.unitId, gameData);
-    const dirs = plan?.aim === 'line' ? powerDirections(state, sel.unitId, sel.to, gameData) : null;
+    const plan = powerPlan(state, sel.unitId, gameData, sel.powerId);
+    const dirs = plan?.aim === 'line' ? powerDirections(state, sel.unitId, sel.to, gameData, sel.powerId) : null;
     return <TargetHint mode="power" run={run} dirs={dirs} powerName={plan?.name} />;
   }
-  if (sel.kind === 'unit' || sel.kind === 'inspect') return <UnitCard unit={unit(sel.unitId)} data={gameData} look={look} />;
+  if (sel.kind === 'unit' || sel.kind === 'inspect') {
+    const u = unit(sel.unitId);
+    return <UnitCard unit={u} data={gameData} look={look} tier={unitBladeTier(state, u, gameData)} />;
+  }
   return null;
 }

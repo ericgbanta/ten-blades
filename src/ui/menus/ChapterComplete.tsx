@@ -1,6 +1,7 @@
 // Shown after a won chapter. The campaign is already saved by then.
 
 import { useEffect } from 'preact/hooks';
+import { weaponDef } from '../../core';
 import { chapters, gameData } from '../../data';
 import { canPlay } from '../../story/flow';
 import { finishedRun } from '../saves';
@@ -26,7 +27,7 @@ export function ChapterComplete() {
             <span>{u.name}</span>
             <span class="muted">
               {gameData.classes[u.classId]?.name ?? u.classId} · Lv {u.level}
-              {u.weaponId && gameData.weapons[u.weaponId] ? ` · ${gameData.weapons[u.weaponId]!.name}` : ''}
+              {u.weaponId && weaponDef(u.weaponId, gameData) ? ` · ${weaponDef(u.weaponId, gameData)!.name}` : ''}
             </span>
           </li>
         ))}

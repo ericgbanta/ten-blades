@@ -9,9 +9,18 @@ import { settledStorage } from '../saves';
 import { formatTime, slotLine } from './copy';
 import './menus.css';
 
-export function Screen(props: { title: string; back?: () => void; backLabel?: string; wide?: boolean; children: ComponentChildren }) {
+export function Screen(props: {
+  title: string;
+  back?: () => void;
+  backLabel?: string;
+  wide?: boolean;
+  class?: string;
+  /** Shown at the right of the header, in the place the spacer keeps (68 px). */
+  right?: ComponentChildren;
+  children: ComponentChildren;
+}) {
   return (
-    <div class={`menu-screen${props.wide ? ' wide' : ''}`}>
+    <div class={`menu-screen${props.wide ? ' wide' : ''}${props.class ? ` ${props.class}` : ''}`}>
       <header class="menu-head">
         {props.back ? (
           <button type="button" class="btn quiet menu-back" onClick={props.back}>
@@ -23,7 +32,7 @@ export function Screen(props: { title: string; back?: () => void; backLabel?: st
         <h1 class="menu-title">
           <span class="ribbon">{props.title}</span>
         </h1>
-        <span class="menu-back-spacer" />
+        {props.right ? <span class="menu-head-right">{props.right}</span> : <span class="menu-back-spacer" />}
       </header>
       <main class="menu-body">{props.children}</main>
     </div>

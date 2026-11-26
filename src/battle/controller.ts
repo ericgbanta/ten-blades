@@ -23,6 +23,8 @@ import {
   type Pos,
   type Stats,
   type Team,
+  unitBladeTier,
+  weaponDef,
 } from '../core';
 import { buildFightScript, isSceneStart, sceneGroupEnd, type FightScript, type FighterFacts } from './fightTimeline';
 import {
@@ -31,6 +33,9 @@ import {
   menuOptions,
   powerForecastFor,
   powerOption,
+  powerOptions,
+  itemOptions,
+  type ItemOption,
   type PowerOption,
   overlayFor,
   previewOf,
@@ -110,8 +115,12 @@ export interface BattleView {
   /** The battle scene playing, or null. */
   fight: FightView | null;
   cutIn: CutInView | null;
-  /** The Power option while the menu is open (null when the unit has no power). */
+  /** The first Power option while the menu is open (null when the unit has no power). */
   powerOption: PowerOption | null;
+  /** Every Power option while the menu is open: two for an Awakened blade. */
+  powerOptions: PowerOption[];
+  /** The Items panel's entries while it is open. */
+  items: ItemOption[];
   /** The power forecast while a power waits for Confirm. */
   power: ReturnType<typeof powerForecastFor>;
 }
@@ -235,6 +244,8 @@ export class BattleController {
       fight: this.fight,
       cutIn: this.cutIn,
       powerOption: this.busy ? null : powerOption(s, sel, this.data),
+      powerOptions: this.busy ? [] : powerOptions(s, sel, this.data),
+      items: this.busy ? [] : itemOptions(s, sel, this.data),
       power: this.busy ? null : powerForecastFor(s, sel, this.data),
     };
     return this.cached;
@@ -324,8 +335,23 @@ export class BattleController {
   command(cmd: Command): void {
     if (this.busy || this.ended) return;
     const t = runCommand(this.state, this.selection, cmd, this.data);
-    if (t.action) this.perform(t.action);
+    if (t.action?.type === 'equip') this.equipNow(t.action, t.selection);
+    else if (t.action) this.perform(t.action);
     else this.select(t.selection);
+  }
+
+  /**
+   * Equip is free: apply it at once, with nothing to play, and keep the menu open on the previewed tile. The token
+   * stays where it is previewed (equipping does not move it), so the stage is not synced.
+   */
+  private equipNow(action: Action, next: Selection): void {
+    const r = applyAction(this.state, action, this.data);
+    this.state = r.state;
+    this.pending = [];
+    this.checkpoint();
+    this.selection = next;
+    this.refreshOverlay();
+    this.changed();
   }
 
   /** The End turn button: ends at once, or asks first if units can still act. */
@@ -575,8 +601,8 @@ export class BattleController {
   private facts = (unitId: string): FighterFacts | null => {
     const u = this.state.units.find((x) => x.id === unitId);
     if (!u) return null;
-    const w = u.weaponId ? (this.data.weapons[u.weaponId] ?? null) : null;
-    return { team: u.team, weapon: w, maxHp: u.stats.hp, hp: u.hp };
+    const w = u.weaponId ? weaponDef(u.weaponId, this.data) : null;
+    return { team: u.team, weapon: w, maxHp: u.stats.hp, hp: u.hp, awakened: unitBladeTier(this.state, u, this.data) >= 2 };
   };
 
   /**
@@ -620,7 +646,7 @@ export class BattleController {
     if (this.skipping) return;
     const def = this.data.powers[bladePowerId];
     const u = this.state.units.find((x) => x.id === unitId);
-    const w = u?.weaponId ? this.data.weapons[u.weaponId] : undefined;
+    const w = u?.weaponId ? (weaponDef(u.weaponId, this.data) ?? undefined) : undefined;
     const echoed = echoOf ? this.data.powers[powerId] : undefined;
     const name = echoed && def ? `${def.name}: ${echoed.name}` : (def?.name ?? powerId);
     const scale = (this.sceneMode === 'off' ? SCENE_SCALE.fast : SCENE_SCALE[this.sceneMode]) * SPEED_SCALE[this.speed];

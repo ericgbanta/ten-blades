@@ -1,4 +1,4 @@
-import { bladeOf, implementedPower, type GameData, type School, type Unit } from '../../core';
+import { bladeOf, implementedPower, weaponDef, type GameData, type School, type Unit } from '../../core';
 import type { McLook } from '../../art/mc/look';
 import { Icon, Medallion, schoolIcon, weaponIcon } from '../kit';
 import { SCHOOL_LABEL, STAT_LABEL } from './text';
@@ -68,15 +68,16 @@ export function TriangleHint({ school, data }: { school: School; data: GameData 
   );
 }
 
-/** For a bearer: the power's name and the Resolve gauge. */
-function BladeRow({ unit, data }: { unit: Unit; data: GameData }) {
+/** For a bearer: the power's name (both, for an Awakened blade) and the Resolve gauge. */
+function BladeRow({ unit, data, tier }: { unit: Unit; data: GameData; tier: number }) {
   const blade = bladeOf(unit, data);
   if (!blade) return null;
   const power = implementedPower(blade.power, data);
-  const name = power?.def.name ?? data.powers[blade.power]?.name ?? blade.power;
+  const extra = blade.tiers.filter((t) => t.tier >= 2 && t.tier <= tier && t.power).map((t) => data.powers[t.power!]?.name ?? t.power!);
+  const name = [power?.def.name ?? data.powers[blade.power]?.name ?? blade.power, ...extra].join(' · ');
   return (
     <div class="blade-row" data-testid="blade-row">
-      <span class="blade-power">
+      <span class={`blade-power${tier >= 2 ? ' awakened' : ''}`}>
         <Icon name="tenblade" size={14} />
         {name}
         {!power && <span class="muted"> (sealed)</span>}
@@ -86,20 +87,25 @@ function BladeRow({ unit, data }: { unit: Unit; data: GameData }) {
   );
 }
 
-/** Compact sheet for any unit: portrait, name, class, level, HP, stats and weapon. */
-export function UnitCard({ unit, data, look }: { unit: Unit; data: GameData; look?: McLook }) {
+/** Compact sheet for any unit: portrait, name, class, level, HP, stats and weapon. `tier`: its blade's tier. */
+export function UnitCard({ unit, data, look, tier = 0 }: { unit: Unit; data: GameData; look?: McLook; tier?: number }) {
   const cls = data.classes[unit.classId];
-  const w = unit.weaponId ? data.weapons[unit.weaponId] : undefined;
+  const w = unit.weaponId ? (weaponDef(unit.weaponId, data) ?? undefined) : undefined;
   const school = w?.school ?? cls?.school ?? 'none';
   const sIcon = schoolIcon(school);
   return (
     <section class={`unit-card team-${unit.team}`} aria-label={`${unit.name} details`}>
-      <Medallion unit={unit} look={look} size={46} class="unit-medal" />
+      <Medallion unit={unit} look={look} size={46} class="unit-medal" glow={tier >= 2} />
       <div class="unit-main">
         <header class="unit-head">
           <strong class="unit-name">{unit.name}</strong>
           {unit.isLord && <span class="tag">Lord</span>}
           {unit.isBoss && <span class="tag boss">Boss</span>}
+          {unit.statuses.map((st) => (
+            <span key={st.kind} class={`tag status-${st.kind}`}>
+              {st.kind === 'silence' ? 'Silenced' : 'Pinned'}
+            </span>
+          ))}
           <span class="unit-school">
             {sIcon && <Icon name={sIcon} size={18} />}
             <span class={`school-${school}`}>{SCHOOL_LABEL[school]}</span>
@@ -121,7 +127,7 @@ export function UnitCard({ unit, data, look }: { unit: Unit; data: GameData; loo
             <HpBar hp={unit.hp} max={unit.stats.hp} />
           </div>
         </div>
-        <BladeRow unit={unit} data={data} />
+        <BladeRow unit={unit} data={data} tier={tier} />
       </div>
       <dl class="stats">
         {SHOWN.map((k) => (

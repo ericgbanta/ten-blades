@@ -39,7 +39,7 @@ function StoryRun({ run }: { run: CampaignRun }) {
     saveCampaign(run.slot, next);
     const after = flowStep(next, chapters, gameData);
     if (after.kind === 'scene') setCampaign(next);
-    else if (after.kind === 'battle') startRun({ slot: run.slot, campaign: next, resume: null });
+    else if (after.kind === 'battle' || after.kind === 'camp') startRun({ slot: run.slot, campaign: next, resume: null });
     else {
       finishRun(run.slot, next, step.chapter.name);
       window.location.hash = '#/complete';

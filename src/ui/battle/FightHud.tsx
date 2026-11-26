@@ -2,7 +2,7 @@
 // portrait cut-in that announces a power. Both only show what the controller's view says.
 
 import { useEffect, useState } from 'preact/hooks';
-import type { BattleState, GameData, Unit } from '../../core';
+import { unitBladeTier, weaponDef, type BattleState, type GameData, type Unit } from '../../core';
 import type { CutInView, FightView } from '../../battle/controller';
 import type { McLook } from '../../art/mc/look';
 import { imageUrl } from '../../art/manifest';
@@ -22,19 +22,19 @@ function useWindowSize(): { w: number; h: number } {
   return size;
 }
 
-function Side(props: { unit: Unit; view: FightView; data: GameData; look: McLook; align: 'left' | 'right'; healText?: string }) {
+function Side(props: { unit: Unit; view: FightView; data: GameData; look: McLook; align: 'left' | 'right'; healText?: string; tier: number }) {
   const { unit, view, data, look, align } = props;
   const hp = view.hp[unit.id] ?? { hp: unit.hp, ms: 0 };
   const max = unit.stats.hp;
   const pct = max > 0 ? Math.max(0, Math.min(100, (hp.hp / max) * 100)) : 0;
-  const w = unit.weaponId ? data.weapons[unit.weaponId] : undefined;
+  const w = unit.weaponId ? (weaponDef(unit.weaponId, data) ?? undefined) : undefined;
   const s = w ? schoolIcon(w.school) : null;
   const n = view.numbers[unit.id];
   const tone = pct > 50 ? 'ok' : pct > 25 ? 'low' : 'crit';
   return (
     <div class={`fh-side ${align} team-${unit.team}`} data-testid={`fight-side-${unit.id}`}>
       <div class="fh-who">
-        <Medallion unit={unit} look={look} size={44} />
+        <Medallion unit={unit} look={look} size={44} glow={props.tier >= 2} />
         <div class="fh-id">
           <p class="fh-name">{unit.name}</p>
           <p class="fh-arms">
@@ -143,12 +143,12 @@ export function FightHud(props: { view: FightView; state: BattleState; data: Gam
           {crowd === 'left' ? (
             <Crowd ids={view.script.fighters.filter((f) => f.side === 'left').map((f) => f.unitId)} view={view} state={state} align="left" />
           ) : (
-            left && <Side unit={left} view={view} data={data} look={look} align="left" healText={healText(view, left.id)} />
+            left && <Side unit={left} view={view} data={data} look={look} align="left" healText={healText(view, left.id)} tier={unitBladeTier(state, left, data)} />
           )}
           {crowd === 'right' ? (
             <Crowd ids={shownFoes.map((f) => f.unitId)} view={view} state={state} align="right" />
           ) : (
-            right && <Side unit={right} view={view} data={data} look={look} align="right" />
+            right && <Side unit={right} view={view} data={data} look={look} align="right" tier={unitBladeTier(state, right, data)} />
           )}
         </div>
         {unshown > 0 && <p class="fh-more">and {unshown} more in the line</p>}

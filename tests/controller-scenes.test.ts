@@ -187,7 +187,8 @@ describe('powers in the controller', () => {
     c.tapTile(pos(0, 2));
     c.tapTile(pos(1, 2));
     expect(c.view.menu).toContain('power');
-    expect(c.view.powerOption).toEqual({ name: 'Devour', resolve: 20, cost: 100, reason: 'Resolve 20/100' });
+    expect(c.view.powerOption).toEqual({ powerId: 'devour', name: 'Devour', resolve: 20, cost: 100, reason: 'Resolve 20/100' });
+    expect(c.view.powerOptions).toEqual([c.view.powerOption]);
     c.command('power');
     expect(c.view.selection.kind).toBe('menu');
     c.command('cancel');

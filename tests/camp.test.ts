@@ -36,7 +36,12 @@ const recruit = (id: string, classId: string, level: number, weaponId: string): 
 /** The fixture with four more units, so deployment has choices. */
 function bigParty(): CampaignSave {
   const c = camp();
-  c.party.push(recruit('ana', 'soldier', 3, 'iron_lance'), recruit('bo', 'ranger', 2, 'short_bow'), recruit('cy', 'adept', 4, 'ember_tome'), recruit('di', 'medic', 1, 'mending_rod'));
+  c.party.push(
+    recruit('ana', 'soldier', 3, 'iron_lance'),
+    recruit('bo', 'ranger', 2, 'short_bow'),
+    recruit('cy', 'adept', 4, 'ember_tome'),
+    recruit('di', 'medic', 1, 'mending_rod'),
+  );
   return c;
 }
 
@@ -68,7 +73,10 @@ describe('rewards', () => {
   const def = campContent.economy.rewards.prologue!;
 
   it('pays the map, each bonus met, and the drops of fallen enemies', () => {
-    const r = battleRewards(won((s) => (s.turn = 4)), def);
+    const r = battleRewards(
+      won((s) => (s.turn = 4)),
+      def,
+    );
     expect(r.bonuses.map((b) => [b.id, b.met])).toEqual([
       ['swift', true],
       ['none_lost', true],
@@ -92,7 +100,14 @@ describe('rewards', () => {
   it('pays nothing for a lost battle and adds what was won to the campaign', () => {
     const lost = won((s) => (s.result = 'defeat'));
     expect(battleRewards(lost, def).gold).toBe(0);
-    const c = applyRewards(camp(), battleRewards(won((s) => (s.turn = 2)), def), campContent.economy);
+    const c = applyRewards(
+      camp(),
+      battleRewards(
+        won((s) => (s.turn = 2)),
+        def,
+      ),
+      campContent.economy,
+    );
     expect(c.gold).toBe(1250 + 700);
     expect(c.shards).toBe(3 + 2);
     expect(c.convoy.at(-1)).toBe('healing_salve');
@@ -234,7 +249,7 @@ describe('the barracks', () => {
     expect(ok(setBenched(c, 'ana', true, ctx, 'ridge')).benched).toEqual(['ana']);
   });
 
-  it('deploys the main character, then the roster in order up to the map\'s limit; the bench and the wounded stay', () => {
+  it("deploys the main character, then the roster in order up to the map's limit; the bench and the wounded stay", () => {
     let c = bigParty();
     let info = deployInfo(c, ctx, 'ridge')!;
     expect(info.max).toBe(4);
@@ -260,19 +275,20 @@ describe('the barracks', () => {
 });
 
 describe('skirmishes', () => {
-  it('scale enemies to the deployed party\'s average level, clamped', () => {
+  it("scale enemies to the deployed party's average level, clamped", () => {
     const s = { baseLevel: 1, offset: 0, min: 1, max: 20 };
     expect(scalingShift([recruit('a', 'soldier', 2, 'iron_lance'), recruit('b', 'soldier', 5, 'iron_lance')], s)).toBe(3);
     expect(scalingShift([recruit('a', 'soldier', 1, 'iron_lance')], s)).toBe(0);
     expect(scalingShift([recruit('a', 'soldier', 30, 'iron_lance')], { ...s, max: 10 })).toBe(9);
     const info = deployInfo(bigParty(), ctx, 'ridge')!;
     const shift = info.enemyLevelShift;
-    expect(shift).toBe(Math.round((2 + 3 + 2 + 4) / 4) - 1);
+    // Average level 3, the offset -1, the map's base level 1.
+    expect(shift).toBe(Math.round((2 + 3 + 2 + 4) / 4) - 1 - 1);
     const b = createBattle(gameData.maps.skirmish_ridge!, battleSetup(bigParty(), { party: info.deployed, enemyLevelShift: shift }), 1, gameData);
     expect(b.units.find((u) => u.id === 'deserter_6')!.level).toBe(2 + shift);
   });
 
-  it('are listed with the wins left under the chapter\'s cap', () => {
+  it("are listed with the wins left under the chapter's cap", () => {
     const list = skirmishList(camp(), ctx);
     expect(list.map((x) => [x.id, x.left, x.cap, x.open, x.loreUnread])).toEqual([['ridge', 2, 3, true, true]]);
     const capped = { ...camp(), skirmishWins: { chapter1: 3 } };
@@ -285,7 +301,9 @@ describe('skirmishes', () => {
     const def = campContent.skirmishes.ridge!;
     let won: BattleState | null = null;
     for (let seed = 1; seed < 40 && !won; seed++) {
-      const s = autoplay(createBattle(gameData.maps.skirmish_ridge!, battleSetup(c, { party: info.deployed, enemyLevelShift: info.enemyLevelShift }), seed, gameData));
+      const s = autoplay(
+        createBattle(gameData.maps.skirmish_ridge!, battleSetup(c, { party: info.deployed, enemyLevelShift: info.enemyLevelShift }), seed, gameData),
+      );
       if (s.result === 'victory') won = s;
     }
     expect(won).not.toBeNull();
@@ -338,7 +356,9 @@ describe('wounded bearers and the fallen', () => {
   });
 
   it('the wound heals when the story moves on to a new act', () => {
-    const acts = chapters.map((ch) => (ch.id === 'chapter1' ? { ...ch, mapId: 'prologue', campAfter: undefined } : ch.id === 'chapter2' ? { ...ch, act: 2 } : ch));
+    const acts = chapters.map((ch) =>
+      ch.id === 'chapter1' ? { ...ch, mapId: 'prologue', campAfter: undefined } : ch.id === 'chapter2' ? { ...ch, act: 2 } : ch,
+    );
     const c: CampaignSave = { ...camp(), wounded: { mc: 1 }, progress: { current: 'chapter1', completed: ['prologue'], stage: 'outro', scenes: [] } };
     const next = settle(c, acts, gameData, 9);
     expect(next.progress.current).toBe('chapter2');
@@ -351,7 +371,8 @@ describe('the camp hub', () => {
     expect(facilityOpen(camp(), 'forge', ctx)).toBe(true);
     const none = chapters.map((ch) => ({ ...ch, campAfter: ch.id === 'prologue' ? { unlocks: ['barracks' as const] } : ch.campAfter }));
     expect(facilityOpen(camp(), 'forge', { chapters: none })).toBe(false);
-    expect(facilityOpensText('forge', { chapters: none })).toBe('Opens after Chapter 2');
+    expect(facilityOpensText(camp(), 'forge', { chapters: none })).toBe('Opens after Chapter 2');
+    expect(facilityOpensText(camp(), 'forge', ctx)).toBe('Opens after Chapter 2');
     expect(campBackdrop(camp(), ctx)).toBe('camp');
   });
 
@@ -363,7 +384,7 @@ describe('the camp hub', () => {
     expect(read.flags.told).toBe(true);
   });
 
-  it('the war map: the route, chapter 1 coming soon, and leaving camp starts a chapter\'s intro', () => {
+  it("the war map: the route, chapter 1 coming soon, and leaving camp starts a chapter's intro", () => {
     const c = camp();
     expect(routeNodes(c, ctx).map((n) => n.kind)).toEqual(['done', 'next', 'later', 'later']);
     expect(routeNodes(c, ctx)[1]).toMatchObject({ chapterId: 'chapter1', playable: false });

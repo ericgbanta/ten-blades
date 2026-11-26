@@ -55,7 +55,11 @@ describe('two powers on an Awakened blade', () => {
   });
 
   it('both powers share one gauge, each at its own cost', () => {
-    const s = patchUnit(makeBattle(ROW, [place('h', 'fighter', 'player', 0, 0, { weaponId: 'hush' }), place('e', 'brute', 'enemy', 1, 0)], { data: d, setup: AWAKE }), 'h', { resolve: 60 });
+    const s = patchUnit(
+      makeBattle(ROW, [place('h', 'fighter', 'player', 0, 0, { weaponId: 'hush' }), place('e', 'brute', 'enemy', 1, 0)], { data: d, setup: AWAKE }),
+      'h',
+      { resolve: 60 },
+    );
     expect(powerBlock(s, 'h', d)).toBe('Resolve 60/100');
     expect(powerBlock(s, 'h', d, 'silence')).toBeNull();
     const r = applyAction(s, { type: 'power', unitId: 'h', to: pos(0, 0), targetId: 'e', powerId: 'silence' }, d);
@@ -66,7 +70,11 @@ describe('two powers on an Awakened blade', () => {
 describe('Silence (a strike that hushes)', () => {
   const base = () =>
     patchUnit(
-      makeBattle(ROW, [place('h', 'fighter', 'player', 0, 0, { weaponId: 'hush' }), place('e', 'fighter', 'enemy', 1, 0), place('far', 'fighter', 'enemy', 3, 0)], { data: d, setup: AWAKE }),
+      makeBattle(
+        ROW,
+        [place('h', 'fighter', 'player', 0, 0, { weaponId: 'hush' }), place('e', 'fighter', 'enemy', 1, 0), place('far', 'fighter', 'enemy', 3, 0)],
+        { data: d, setup: AWAKE },
+      ),
       'h',
       { resolve: 100 },
     );
@@ -97,7 +105,13 @@ describe('Silence (a strike that hushes)', () => {
     expect(unit(r.state, 'h').hp).toBe(unit(s, 'h').hp - 2);
     const types = r.events.map((x) => x.type);
     expect(types.indexOf('statusApplied')).toBeLessThan(types.indexOf('powerEnded'));
-    expect(r.events[types.indexOf('powerEnded') + 1]).toEqual({ type: 'unitDamaged', unitId: 'h', amount: 2, hpAfter: unit(s, 'h').hp - 2, cause: 'bloodPrice' });
+    expect(r.events[types.indexOf('powerEnded') + 1]).toEqual({
+      type: 'unitDamaged',
+      unitId: 'h',
+      amount: 2,
+      hpAfter: unit(s, 'h').hp - 2,
+      cause: 'bloodPrice',
+    });
   });
 
   it('a silenced foe cannot counter or fire a power until the next player phase', () => {
@@ -184,7 +198,11 @@ describe('Cleave', () => {
 describe('Pin', () => {
   const base = () =>
     patchUnit(
-      makeBattle(ROW, [place('t', 'rogue', 'player', 0, 0, { weaponId: 'needles' }), place('e', 'fighter', 'enemy', 3, 0), place('x', 'fighter', 'enemy', 4, 0)], { data: d, setup: AWAKE }),
+      makeBattle(
+        ROW,
+        [place('t', 'rogue', 'player', 0, 0, { weaponId: 'needles' }), place('e', 'fighter', 'enemy', 3, 0), place('x', 'fighter', 'enemy', 4, 0)],
+        { data: d, setup: AWAKE },
+      ),
       't',
       { resolve: 100 },
     );
@@ -203,7 +221,11 @@ describe('Pin', () => {
   it('a miss pins no one', () => {
     const miss = fixtureData();
     miss.weapons.needles!.hit = -300;
-    const s = patchUnit(makeBattle(ROW, [place('t', 'rogue', 'player', 0, 0, { weaponId: 'needles' }), place('e', 'fighter', 'enemy', 3, 0)], { data: miss, setup: AWAKE }), 't', { resolve: 100 });
+    const s = patchUnit(
+      makeBattle(ROW, [place('t', 'rogue', 'player', 0, 0, { weaponId: 'needles' }), place('e', 'fighter', 'enemy', 3, 0)], { data: miss, setup: AWAKE }),
+      't',
+      { resolve: 100 },
+    );
     const r = applyAction(s, { type: 'power', unitId: 't', to: pos(0, 0), targetId: 'e', powerId: 'pin' }, miss);
     expect(unit(r.state, 'e').statuses).toEqual([]);
     expect(summaryOf(r.events).statuses).toEqual([]);
@@ -220,17 +242,31 @@ describe('Pin', () => {
 
 describe('the AI with two powers, and Echo', () => {
   it('an enemy bearer with an Awakened blade picks the power that scores best, naming the second one', () => {
-    let s = makeBattle(ROW, [place('p', 'fighter', 'player', 0, 2), place('q', 'fighter', 'player', 1, 1), place('r', 'fighter', 'player', 1, 3), place('b', 'brute', 'enemy', 2, 2, { weaponId: 'maw', ai: { behavior: 'hold' } })], { data: d, setup: AWAKE });
+    let s = makeBattle(
+      ROW,
+      [
+        place('p', 'fighter', 'player', 0, 2),
+        place('q', 'fighter', 'player', 1, 1),
+        place('r', 'fighter', 'player', 1, 3),
+        place('b', 'brute', 'enemy', 2, 2, { weaponId: 'maw', ai: { behavior: 'hold' } }),
+      ],
+      { data: d, setup: AWAKE },
+    );
     s = applyAction(s, { type: 'endPhase' }, d).state;
     s = patchUnit(s, 'b', { resolve: 60 });
     const plan = planAiAction(s, d)!;
     expect(plan).toMatchObject({ type: 'power', unitId: 'b', powerId: 'cleave' });
   });
 
-  it('an Echo bearer that saw a Pin re-casts it: the pin is the echoer\'s', () => {
+  it("an Echo bearer that saw a Pin re-casts it: the pin is the echoer's", () => {
     let s = makeBattle(
       ROW,
-      [place('h', 'fighter', 'player', 0, 1, { weaponId: 'hush' }), place('t', 'rogue', 'player', 0, 0, { weaponId: 'needles' }), place('e', 'fighter', 'enemy', 3, 0), place('f', 'fighter', 'enemy', 3, 1)],
+      [
+        place('h', 'fighter', 'player', 0, 1, { weaponId: 'hush' }),
+        place('t', 'rogue', 'player', 0, 0, { weaponId: 'needles' }),
+        place('e', 'fighter', 'enemy', 3, 0),
+        place('f', 'fighter', 'enemy', 3, 1),
+      ],
       { data: d, setup: AWAKE },
     );
     s = patchUnit(patchUnit(s, 't', { resolve: 100 }), 'h', { resolve: 100 });
@@ -238,5 +274,30 @@ describe('the AI with two powers, and Echo', () => {
     expect(powerPlan(s, 'h', d)).toMatchObject({ powerId: 'pin', echoOf: 't' });
     const r = applyAction(s, { type: 'power', unitId: 'h', to: pos(0, 1), targetId: 'f' }, d);
     expect(unit(r.state, 'f').statuses).toEqual([{ kind: 'pin', by: 'player', turn: 1 }]);
+  });
+});
+
+describe('the battle scene script for Awakened powers', () => {
+  it('Pin throws a needle, and an Awakened bearer is marked to glow', async () => {
+    const { buildFightScript, sceneGroupEnd } = await import('../src/battle/fightTimeline');
+    const s = patchUnit(
+      makeBattle(ROW, [place('t', 'rogue', 'player', 0, 0, { weaponId: 'needles' }), place('e', 'fighter', 'enemy', 3, 0)], { data: d, setup: AWAKE }),
+      't',
+      { resolve: 100 },
+    );
+    const r = applyAction(s, { type: 'power', unitId: 't', to: pos(0, 0), targetId: 'e', powerId: 'pin' }, d);
+    const i = r.events.findIndex((e) => e.type === 'powerUsed');
+    const group = r.events.slice(i, sceneGroupEnd(r.events, i));
+    const facts = (id: string) => {
+      const u = r.state.units.find((x) => x.id === id)!;
+      return { team: u.team, weapon: d.weapons[u.weaponId!]!, maxHp: u.stats.hp, hp: u.hp, awakened: id === 't' };
+    };
+    const script = buildFightScript(group, facts)!;
+    expect(script.kind).toBe('power');
+    expect(script.fighters.map((f) => [f.unitId, f.fx, f.awakened])).toEqual([
+      ['t', 'needles', true],
+      ['e', 'chop', false],
+    ]);
+    expect(script.steps.some((st) => st.kind === 'projectile' && st.fx === 'needles')).toBe(true);
   });
 });

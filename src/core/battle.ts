@@ -65,7 +65,7 @@ export function createBattle(map: MapData, setup: BattleSetup, seed: number, dat
     if (carried) return carried;
     const mc = newMc(setup, data);
     const w = slot.weapons?.[setup.mc.style];
-    return w ? { ...mc, weaponId: w } : mc;
+    return w ? { ...mc, weaponId: w, inventory: [w] } : mc;
   };
   const others = party.filter((m) => !m.isLord);
   const shift = setup.enemyLevelShift ?? 0;

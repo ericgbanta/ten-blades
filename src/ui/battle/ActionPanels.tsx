@@ -1,9 +1,9 @@
 // The action menu, the combat forecast and the heal preview.
 
 import { Fragment } from 'preact';
-import type { BattleState, CombatSide, Direction, Forecast, GameData, PowerForecast, TriangleEdge, Unit } from '../../core';
+import { itemDef, weaponDef, type BattleState, type CombatSide, type Direction, type Forecast, type GameData, type PowerForecast, type TriangleEdge, type Unit } from '../../core';
 import type { McLook } from '../../art/mc/look';
-import type { Command, MenuOption, PowerOption, TargetMode } from '../../battle/selection';
+import type { Command, ItemOption, MenuOption, PowerOption, TargetMode } from '../../battle/selection';
 import { Icon, Medallion, schoolIcon, weaponIcon, type IconName } from '../kit';
 import { HpBar, ResolveGauge } from './UnitCard';
 import { SCHOOL_LABEL, triangleMark } from './text';
@@ -13,6 +13,7 @@ const OPTION_LABEL: Record<MenuOption, string> = {
   power: 'Power',
   heal: 'Heal',
   talk: 'Talk',
+  items: 'Items',
   wait: 'Wait',
   cancel: 'Cancel',
 };
@@ -20,13 +21,13 @@ const OPTION_LABEL: Record<MenuOption, string> = {
 type Run = (cmd: Command) => void;
 
 function optionIcon(o: MenuOption, unit: Unit, data: GameData): IconName | null {
-  const w = unit.weaponId ? data.weapons[unit.weaponId] : undefined;
+  const w = unit.weaponId ? (weaponDef(unit.weaponId, data) ?? undefined) : undefined;
   if (o === 'attack') return w ? weaponIcon(w) : 'sabre';
   if (o === 'heal') return 'staff';
   return null;
 }
 
-function PowerButton({ power, run }: { power: PowerOption; run: Run }) {
+function PowerButton({ power, run, first }: { power: PowerOption; run: Run; first: boolean }) {
   const ready = power.reason === null;
   return (
     <button
@@ -34,7 +35,7 @@ function PowerButton({ power, run }: { power: PowerOption; run: Run }) {
       class={`btn power-btn${ready ? ' primary' : ''}`}
       disabled={!ready}
       aria-label={ready ? `Power: ${power.name}` : `Power: ${power.name}, not ready. ${power.reason}`}
-      onClick={() => run('power')}
+      onClick={() => run(first ? 'power' : `power:${power.powerId}`)}
     >
       <Icon name="tenblade" size={20} />
       <span class="power-btn-text">
@@ -46,7 +47,7 @@ function PowerButton({ power, run }: { power: PowerOption; run: Run }) {
   );
 }
 
-export function ActionMenu({ unit, options, run, data, power }: { unit: Unit; options: MenuOption[]; run: Run; data: GameData; power: PowerOption | null }) {
+export function ActionMenu({ unit, options, run, data, powers }: { unit: Unit; options: MenuOption[]; run: Run; data: GameData; powers: PowerOption[] }) {
   return (
     <section class="panel action-menu" aria-label={`Orders for ${unit.name}`}>
       <p class="panel-title">
@@ -55,7 +56,7 @@ export function ActionMenu({ unit, options, run, data, power }: { unit: Unit; op
       </p>
       <div class="btn-row">
         {options.map((o) => {
-          if (o === 'power') return power ? <PowerButton key={o} power={power} run={run} /> : null;
+          if (o === 'power') return powers.map((p, i) => <PowerButton key={p.powerId} power={p} run={run} first={i === 0} />);
           const icon = optionIcon(o, unit, data);
           const kind = o === 'attack' || o === 'heal' || o === 'talk' ? ' primary' : o === 'cancel' ? ' quiet' : '';
           return (
@@ -128,18 +129,22 @@ export function PowerPanel({ fc, state, run, data, look }: { fc: PowerForecast; 
   if (fc.plan.effect.type === 'devour') notes.push(`A kill adds ${fc.plan.effect.attackPerKill} attack for the rest of the map.`);
   if (fc.echoStrike) notes.push(`Then an echo strike: ${fc.echoStrike.damage} damage, ${fc.echoStrike.hit}% hit, no counter.`);
   if (fc.plan.effect.type === 'scatter') notes.push('No counters.');
+  if (fc.plan.effect.type === 'strike') notes.push('No counter.');
+  if (fc.status === 'silence') notes.push(fc.statusOnHit ? 'On a hit, silences it until your next turn: no counters, no powers.' : 'Silences it until your next turn, hit or miss: no counters, no powers.');
+  if (fc.status === 'pin') notes.push(fc.statusOnHit ? 'On a hit, pins it in place until your next turn.' : 'Pins it in place until your next turn.');
+  if (fc.plan.effect.type === 'cleave' && fc.targets.length > 1) notes.push('Then a half-strength blow on each other foe beside the bearer (no counter, no crit).');
+  if (fc.bloodPrice > 0) notes.push(`The blade's price: ${bearer.name} loses ${fc.bloodPrice} HP.`);
   return (
     <section class="panel forecast power-fc" aria-label={`${fc.plan.name} forecast`}>
       <p class="panel-title power-title">
         <Icon name="tenblade" size={18} />
-        <span class={`school-${data.weapons[bearer.weaponId ?? '']?.school ?? 'none'}`}>{fc.plan.name}</span>
+        <span class={`school-${(bearer.weaponId ? weaponDef(bearer.weaponId, data)?.school : undefined) ?? 'none'}`}>{fc.plan.name}</span>
         {echoOf && <span class="panel-sub">echoing {echoOf.name}</span>}
       </p>
-      {fc.combat ? (
-        <ForecastTable fc={fc.combat} state={state} data={data} look={look} />
-      ) : (
+      {fc.combat && <ForecastTable fc={fc.combat} state={state} data={data} look={look} />}
+      {(!fc.combat || fc.targets.length > 1) && (
         <ul class="power-targets">
-          {fc.targets.map((t) => {
+          {(fc.combat ? fc.targets.slice(1) : fc.targets).map((t) => {
             const u = state.units.find((x) => x.id === t.unitId)!;
             const left = Math.max(0, t.hp - t.side.damage);
             return (
@@ -193,7 +198,7 @@ function Edge({ edge }: { edge: TriangleEdge }) {
 }
 
 function Head({ unit, edge, data, look, align }: { unit: Unit; edge: TriangleEdge; data: GameData; look: McLook; align: 'left' | 'right' }) {
-  const w = unit.weaponId ? data.weapons[unit.weaponId] : undefined;
+  const w = unit.weaponId ? (weaponDef(unit.weaponId, data) ?? undefined) : undefined;
   const sIcon = w ? schoolIcon(w.school) : null;
   return (
     <div class={`fc-head ${align} team-${unit.team}`}>
@@ -338,6 +343,51 @@ export function HealPanel({ healer, target, amount, run, look }: { healer: Unit;
         </button>
         <button type="button" class="btn primary" onClick={() => run('confirm')}>
           Confirm
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The Items panel: the unit's inventory. Items are used on the unit itself from the previewed tile (that is its
+ * action); weapons can be equipped for free and the menu comes back, so the forecast then uses the new weapon.
+ */
+export function ItemsPanel({ unit, items, run, data }: { unit: Unit; items: ItemOption[]; run: Run; data: GameData }) {
+  return (
+    <section class="panel items-panel" aria-label={`${unit.name}'s items`}>
+      <p class="panel-title">
+        <span class={`team-name team-${unit.team}`}>{unit.name}</span>
+        <span class="panel-sub">Items</span>
+      </p>
+      <ul class="inv-list">
+        {items.map((o) => {
+          const w = o.kind === 'weapon' ? weaponDef(o.id, data) : null;
+          const icon: IconName = w ? weaponIcon(w) : (itemDef(o.id, data)?.heal ?? 0) > 0 ? 'hp' : 'tenblade';
+          const label = o.kind === 'weapon' ? (o.equipped ? 'Equipped' : 'Equip') : 'Use';
+          return (
+            <li key={o.index} class={`inv-row${o.equipped ? ' equipped' : ''}`}>
+              <Icon name={icon} size={22} />
+              <span class="inv-name">
+                <span>{o.name}</span>
+                {o.reason && !o.equipped && <span class="inv-why">{o.reason}</span>}
+              </span>
+              <button
+                type="button"
+                class={`btn${o.kind === 'item' && !o.reason ? ' primary' : ''}`}
+                disabled={o.equipped || o.reason !== null}
+                aria-label={`${label} ${o.name}`}
+                onClick={() => run(o.kind === 'weapon' ? `equip:${o.index}` : `use:${o.index}`)}
+              >
+                {label}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <div class="btn-row">
+        <button type="button" class="btn quiet" onClick={() => run('back')}>
+          Back
         </button>
       </div>
     </section>

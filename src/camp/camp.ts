@@ -16,9 +16,9 @@ export function facilityOpen(c: CampaignSave, f: Facility, ctx: Pick<CampCtx, 'c
   return campsSoFar(c, ctx).some((camp) => camp.unlocks?.includes(f));
 }
 
-/** When a closed facility opens, in plain words ("Opens after Chapter 2"). */
-export function facilityOpensText(f: Facility, ctx: Pick<CampCtx, 'chapters'>): string {
-  const ch = ctx.chapters.find((x) => x.campAfter?.unlocks?.includes(f));
+/** When a closed facility opens, in plain words ("Opens after Chapter 2"): the next chapter still to finish whose camp opens it. */
+export function facilityOpensText(c: CampaignSave, f: Facility, ctx: Pick<CampCtx, 'chapters'>): string {
+  const ch = ctx.chapters.find((x) => !c.progress.completed.includes(x.id) && x.campAfter?.unlocks?.includes(f));
   return ch ? `Opens after ${ch.name}` : 'Opens later in the story';
 }
 
@@ -52,7 +52,13 @@ export function talkList(c: CampaignSave, ctx: Pick<CampCtx, 'chapters'>): TalkE
 }
 
 /** A campfire scene has been read: its flag is set, with the flags its choices set. */
-export function readTalk(c: CampaignSave, scene: string, set: Record<string, boolean | number | string>, ctx: Pick<CampCtx, 'chapters'>, now: number): CampaignSave {
+export function readTalk(
+  c: CampaignSave,
+  scene: string,
+  set: Record<string, boolean | number | string>,
+  ctx: Pick<CampCtx, 'chapters'>,
+  now: number,
+): CampaignSave {
   const entry = talkList(c, ctx).find((t) => t.scene === scene);
   return { ...c, updatedAt: now, flags: { ...c.flags, ...set, ...(entry ? { [entry.flag]: true } : {}) } };
 }
