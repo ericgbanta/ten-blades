@@ -1,7 +1,7 @@
 {
   "id": "ch3_intro",
   "draft": true,
-  "backdrop": "city",
+  "backdrop": "town",
   "lines": [
     { "speaker": "narrator", "text": "The market of the river city is crowded, and the {empire}'s banners hang over every gate." },
     { "speaker": "needles", "side": "right", "text": "That sword of yours sings louder than mine. Half the street can hear it." },

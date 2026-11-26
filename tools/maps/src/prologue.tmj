@@ -26,6 +26,11 @@
    "name": "objective",
    "type": "string",
    "value": "rout"
+  },
+  {
+   "name": "backdrop",
+   "type": "string",
+   "value": "village"
   }
  ],
  "tilesets": [

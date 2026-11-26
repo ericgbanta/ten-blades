@@ -1,5 +1,49 @@
 {
   "images": {
+    "backdrop.camp": {
+      "bbox": [
+        0,
+        0,
+        1152,
+        768
+      ],
+      "height": 768,
+      "path": "backdrops/camp.webp",
+      "width": 1152
+    },
+    "backdrop.forest": {
+      "bbox": [
+        0,
+        0,
+        1152,
+        768
+      ],
+      "height": 768,
+      "path": "backdrops/forest.webp",
+      "width": 1152
+    },
+    "backdrop.ruin": {
+      "bbox": [
+        0,
+        0,
+        1152,
+        768
+      ],
+      "height": 768,
+      "path": "backdrops/ruin.webp",
+      "width": 1152
+    },
+    "backdrop.town": {
+      "bbox": [
+        0,
+        0,
+        1152,
+        768
+      ],
+      "height": 768,
+      "path": "backdrops/town.webp",
+      "width": 1152
+    },
     "backdrop.village": {
       "bbox": [
         0,

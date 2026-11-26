@@ -212,6 +212,8 @@ export interface MapData {
   reinforcements: ReinforcementWave[];
   /** Decorative props drawn over the tiles (see src/data/props.json). The rules ignore them. */
   props?: MapProp[];
+  /** Backdrop of the side-view battle scenes (art id `backdrop.<id>`). The rules ignore it. */
+  backdrop?: string;
   /**
    * Scripted events (src/core/events.ts). Kept in a sidecar file, src/data/maps/<id>.events.json, which
    * src/data/index.ts merges in, so importing a map from Tiled never touches them (docs/MAPS.md).

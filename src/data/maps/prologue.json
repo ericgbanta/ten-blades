@@ -29,6 +29,7 @@
     {"kind": "unit", "id": "legionary_3", "name": "Legion Sergeant", "classId": "legionary", "team": "enemy", "level": 2, "pos": {"x": 4, "y": 0}, "ai": {"behavior": "guard", "radius": 2}}
   ],
   "objective": {"type": "rout"},
+  "backdrop": "village",
   "reinforcements": [
     {
       "turn": 3,

@@ -48,7 +48,7 @@ TILE_ORDER = ['plain', 'road', 'forest', 'hill', 'fort', 'village', 'water', 'wa
 TILE_SETS = ['village']           # tiles-<set>.png; the first set found supplies tile.<terrainId>
 TILE_SIZE = 96                    # square tile canvas (the map draws it at about 46 CSS px, so 2x on a 2x screen)
 TILE_INSET = 4                    # source px dropped from every edge of a tile rectangle (removes edge fringe)
-BACKDROPS = ['village']           # backdrop-<name>.png
+BACKDROPS = ['village', 'forest', 'ruin', 'town', 'camp']  # backdrop-<name>.png
 BACKDROP_SIZE = (1152, 768)
 WEBP_QUALITY = 90
 

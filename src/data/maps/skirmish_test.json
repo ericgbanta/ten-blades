@@ -41,6 +41,7 @@
     {"kind": "unit", "id": "deserter", "name": "Deserter", "classId": "hunter", "team": "enemy", "level": 1, "pos": {"x": 8, "y": 13}, "ai": {"behavior": "guard"}, "tags": ["recruitable"]}
   ],
   "objective": {"type": "rout"},
+  "backdrop": "forest",
   "reinforcements": [],
   "props": [
     {"id": "well", "x": 3, "y": 12},

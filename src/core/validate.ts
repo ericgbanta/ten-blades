@@ -167,6 +167,9 @@ function validateMap(m: MapData, data: GameData, story: StoryRefs | undefined): 
     if (propTiles.has(k)) errs.push(`${where}: two props on ${k}`);
     propTiles.add(k);
   }
+  if (m.backdrop !== undefined && (typeof m.backdrop !== 'string' || !/^[a-z_]+$/.test(m.backdrop))) {
+    errs.push(`${where}: bad backdrop id ${String(m.backdrop)}`);
+  }
   if ((obj.type === 'survive' || obj.type === 'protect') && (!isInt(obj.turns) || obj.turns < 1)) {
     errs.push(`${where}: bad turns`);
   }

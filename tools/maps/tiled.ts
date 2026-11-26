@@ -182,6 +182,7 @@ export function mapToTmj(map: MapData, terrainIds: readonly string[], tilesetSou
   if (o.type === 'survive' || o.type === 'protect') properties.push(prop('objectiveTurns', o.turns));
   if (o.type === 'protect') properties.push(prop('objectiveUnit', o.unitId));
   if (o.type === 'escape') properties.push(prop('objectiveTiles', o.tiles.map((t) => `${t.x},${t.y}`).join(';')));
+  if (map.backdrop !== undefined) properties.push(prop('backdrop', map.backdrop));
   return {
     type: 'map',
     version: '1.10',
@@ -338,6 +339,8 @@ export function tmjToMap(tmj: TiledMap, terrains: Map<number, string>, fallbackI
     objective: objectiveOf(mp, where),
     reinforcements,
   };
+  const backdrop = str(mp.get('backdrop'));
+  if (backdrop) map.backdrop = backdrop;
   if (props.length > 0) map.props = props;
   return map;
 }
@@ -389,6 +392,7 @@ export function formatMap(map: MapData): string {
   fields.push(`  "legend": ${line(map.legend)}`);
   fields.push(`  "placements": [\n${map.placements.map((p) => `    ${line(p)}`).join(',\n')}\n  ]`);
   fields.push(`  "objective": ${line(map.objective)}`);
+  if (map.backdrop !== undefined) fields.push(`  "backdrop": ${JSON.stringify(map.backdrop)}`);
   const waves = map.reinforcements.map(
     (w) => `    {\n      "turn": ${w.turn},\n      "difficulties": ${line(w.difficulties)},\n      "units": [\n${w.units.map((u) => `        ${line(u)}`).join(',\n')}\n      ]\n    }`,
   );
