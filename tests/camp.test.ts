@@ -15,6 +15,8 @@ import v5 from './fixtures/save-v5.json';
 
 const ctx: CampCtx = { data: gameData, chapters, camp: campContent };
 const camp = (): CampaignSave => structuredClone(v5) as unknown as CampaignSave;
+/** The fixture moved on to the camp after Chapter 2, where the forge is open and Chapter 3 is reached. */
+const ch3Camp = (): CampaignSave => ({ ...camp(), progress: { current: 'chapter3', completed: ['prologue', 'chapter1', 'chapter2'], stage: 'camp', scenes: null } });
 const ok = <T>(r: { ok: true; value: T } | { ok: false; error: string }): T => {
   if (!r.ok) throw new Error(r.error);
   return r.value;
@@ -163,14 +165,14 @@ describe('the merchant', () => {
 
 describe('the forge: awakening', () => {
   it('shows each blade: tier, powers, what the next tier costs and needs', () => {
-    const [view] = bladeViews(camp(), ctx);
+    const [view] = bladeViews(ch3Camp(), ctx);
     expect(view).toMatchObject({ bladeId: 'widows_hush', tier: 1, tierName: 'Dormant', bearer: { id: 'mc' } });
     expect(view!.powers.map((p) => p.id)).toEqual(['echo']);
-    expect(view!.next).toMatchObject({ shards: 3, requirement: 'Reach Chapter 1', met: true, block: null, def: { tier: 2, power: 'hush' } });
+    expect(view!.next).toMatchObject({ shards: 3, requirement: 'Reach Chapter 3', met: true, block: null, def: { tier: 2, power: 'hush' } });
   });
 
   it('awakens to tier 2: spends shards, raises the tier, boosts the bearer once, adds Hush', () => {
-    const before = camp();
+    const before = ch3Camp();
     const c = ok(awaken(before, 'widows_hush', ctx));
     expect(c.shards).toBe(0);
     expect(c.blades.widows_hush).toEqual({ tier: 2 });
@@ -183,20 +185,21 @@ describe('the forge: awakening', () => {
   });
 
   it('needs the shards and the story condition; tier 3 waits for Act 3', () => {
-    expect(awakenBlock({ ...camp(), shards: 2 }, 'widows_hush', ctx)).toBe('Needs 3 Blade Shards (you have 2)');
-    const t2 = ok(awaken(camp(), 'widows_hush', ctx));
+    expect(awakenBlock({ ...ch3Camp(), shards: 2 }, 'widows_hush', ctx)).toBe('Needs 3 Blade Shards (you have 2)');
+    const t2 = ok(awaken(ch3Camp(), 'widows_hush', ctx));
     expect(awakenBlock({ ...t2, shards: 99 }, 'widows_hush', ctx)).toBe('Reach Act 3');
     expect(bladeViews(t2, ctx)[0]!.next).toMatchObject({ requirement: 'Reach Act 3', met: false });
-    const early = { ...camp(), progress: { ...camp().progress, current: 'prologue', completed: [] } };
-    expect(awakenBlock(early, 'widows_hush', ctx)).toBe('Reach Chapter 1');
-    expect(awakenBlock(camp(), 'gravemaw', ctx)).toBe('The party does not hold that blade');
+    const early = { ...ch3Camp(), progress: { ...ch3Camp().progress, current: 'chapter2', completed: ['prologue', 'chapter1'] } };
+    expect(awakenBlock(early, 'widows_hush', ctx)).toBe('Reach Chapter 3');
+    expect(awakenBlock(camp(), 'widows_hush', ctx)).toBe('Reach Chapter 3');
+    expect(awakenBlock(ch3Camp(), 'gravemaw', ctx)).toBe('The party does not hold that blade');
   });
 
   it('reaching the last tier counts an Unbound blade in the story flags (the endings hook)', () => {
     const data = structuredClone(gameData);
     delete data.blades.widows_hush!.tiers[2]!.requires!.act;
     const easy: CampCtx = { ...ctx, data };
-    const t3 = ok(awaken({ ...ok(awaken(camp(), 'widows_hush', easy)), shards: 8 }, 'widows_hush', easy));
+    const t3 = ok(awaken({ ...ok(awaken(ch3Camp(), 'widows_hush', easy)), shards: 8 }, 'widows_hush', easy));
     expect(t3.blades.widows_hush!.tier).toBe(3);
     expect(t3.flags[UNBOUND_FLAG]).toBe(1);
     expect(unboundCount(t3, easy)).toBe(1);
@@ -368,7 +371,13 @@ describe('wounded bearers and the fallen', () => {
 
 describe('the camp hub', () => {
   it('opens the facilities a finished chapter unlocked, and says when the others open', () => {
-    expect(facilityOpen(camp(), 'forge', ctx)).toBe(true);
+    // The prologue's camp opens the barracks and the war map; the merchant and the forge open after Chapter 2.
+    expect(facilityOpen(camp(), 'barracks', ctx)).toBe(true);
+    expect(facilityOpen(camp(), 'warmap', ctx)).toBe(true);
+    expect(facilityOpen(camp(), 'forge', ctx)).toBe(false);
+    expect(facilityOpen(camp(), 'merchant', ctx)).toBe(false);
+    expect(facilityOpen(ch3Camp(), 'forge', ctx)).toBe(true);
+    expect(facilityOpen(ch3Camp(), 'merchant', ctx)).toBe(true);
     const none = chapters.map((ch) => ({ ...ch, campAfter: ch.id === 'prologue' ? { unlocks: ['barracks' as const] } : ch.campAfter }));
     expect(facilityOpen(camp(), 'forge', { chapters: none })).toBe(false);
     expect(facilityOpensText(camp(), 'forge', { chapters: none })).toBe('Opens after Chapter 2');

@@ -76,7 +76,14 @@ async function backToCamp(page: Page): Promise<void> {
 test('camp: every facility opens; buy, equip, deploy; awaken; the second power in a skirmish; the win pays and is saved', async ({ page }) => {
   test.setTimeout(180_000);
   const errors = trackErrors(page);
-  await enterCamp(page, campSave());
+  // The camp after Chapter 2: every facility is open and Chapter 3 is reached, so Widow's Hush can awaken.
+  await enterCamp(
+    page,
+    campSave((s) => {
+      s.progress = { current: 'chapter3', completed: ['prologue', 'chapter1', 'chapter2'], stage: 'camp', scenes: null } as never;
+      s.skirmishWins = { chapter3: 1 } as never;
+    }),
+  );
   // Big tap targets on the hub.
   for (const b of await page.getByRole('navigation', { name: 'Facilities' }).getByRole('button').all()) {
     const box = (await b.boundingBox())!;
@@ -135,7 +142,7 @@ test('camp: every facility opens; buy, equip, deploy; awaken; the second power i
   // Forge: Widow's Hush, ready to awaken with the 3 shards; a locked future tier.
   await facility(page, 'Forge');
   await expect(page.getByRole('heading', { name: 'Forge' })).toBeVisible();
-  await expect(page.getByText('Reach Chapter 1')).toBeVisible();
+  await expect(page.getByText('Reach Chapter 3')).toBeVisible();
   await expect(page.getByText(/Unbound · Reach Act 3 · locked/)).toBeVisible();
   await shot(page, '08-forge-before');
   await page.getByRole('button', { name: 'Awaken', exact: true }).tap();
@@ -150,9 +157,9 @@ test('camp: every facility opens; buy, equip, deploy; awaken; the second power i
   await shot(page, '10-forge-weapons');
   await backToCamp(page);
 
-  // War map: chapter 1 is coming soon; the skirmish shows 2 of 3 left.
+  // War map: chapter 3 is ready to march on; the skirmish shows 2 of 3 left.
   await facility(page, 'War map');
-  await expect(page.getByText(/Coming soon/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'March' })).toBeVisible();
   await expect(page.getByText(/2 of 3 left this chapter/)).toBeVisible();
   await shot(page, '11-war-map');
   await page.getByRole('button', { name: 'Fight' }).tap();
@@ -207,7 +214,7 @@ test('camp: every facility opens; buy, equip, deploy; awaken; the second power i
   await page.getByRole('button', { name: 'Back to camp' }).tap();
   await expect(page.getByRole('heading', { name: 'Camp' })).toBeVisible();
   c = await campaign(page);
-  expect(c.skirmishWins).toEqual({ chapter1: 2 });
+  expect(c.skirmishWins).toEqual({ chapter3: 2 });
   expect(c.gold).toBeGreaterThanOrEqual(450 + 300);
   expect(c.shards).toBe(1);
   await facility(page, 'War map');
@@ -251,11 +258,11 @@ test("camp: locked facilities say when they open; a full company deploys up to t
     (s as Record<string, unknown>).fallen = [unit('fen', 'Fen', 'soldier', 2, 'iron_lance')];
   });
   await enterCamp(page, save);
-  await page.evaluate(() => window.__camp!.lock(['forge', 'merchant']));
+  // The camp after the prologue: the merchant and the forge open after Chapter 2.
   await expect(page.getByRole('button', { name: /Forge, locked/ })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /Merchant, locked/ })).toBeDisabled();
   await expect(page.getByText('Opens after Chapter 2').first()).toBeVisible();
   await shot(page, '03-camp-locked');
-  await page.evaluate(() => window.__camp!.lock([]));
   await facility(page, 'Barracks');
   await expect(page.getByRole('region', { name: 'The fallen' })).toContainText('Fen');
   await shot(page, '06b-barracks-roster-full');

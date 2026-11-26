@@ -7,7 +7,7 @@
         { "tier": 1, "name": "Dormant", "note": "Echo." },
         {
           "tier": 2, "name": "Awakened", "note": "Hush, a second power, and a keener edge.",
-          "power": "hush", "shards": 3, "requires": { "chapter": "chapter1", "text": "Reach Chapter 1" },
+          "power": "hush", "shards": 3, "requires": { "chapter": "chapter3", "text": "Reach Chapter 3" },
           "statBoost": { "skl": 2, "spd": 1, "lck": 1 }, "bloodPrice": 2
         },
         {
