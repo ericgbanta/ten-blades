@@ -120,8 +120,8 @@ export function UnitCard({ unit, data, look }: { unit: Unit; data: GameData; loo
             </span>
             <HpBar hp={unit.hp} max={unit.stats.hp} />
           </div>
-          <BladeRow unit={unit} data={data} />
         </div>
+        <BladeRow unit={unit} data={data} />
       </div>
       <dl class="stats">
         {SHOWN.map((k) => (

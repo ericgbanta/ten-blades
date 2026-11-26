@@ -1512,3 +1512,12 @@
 .fight-layer:not(.landscape) .fh-skip {
   margin-top: auto;
 }
+
+/* A bearer's orders: the power gets a full-width row under Attack, Wait and Cancel. */
+.action-menu .btn-row {
+  flex-wrap: wrap;
+}
+
+.action-menu .btn-row .btn.power-btn {
+  order: 1;
+}
