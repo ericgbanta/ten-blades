@@ -1,1 +1,961 @@
-{ "images": {} }
+{
+  "images": {
+    "battle.adept.hit": {
+      "anchorX": 192,
+      "bbox": [
+        109,
+        130,
+        224,
+        230
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/adept-hit.webp",
+      "scale": 0.4878,
+      "width": 512
+    },
+    "battle.adept.idle": {
+      "anchorX": 192,
+      "bbox": [
+        134,
+        120,
+        101,
+        240
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/adept-idle.webp",
+      "scale": 0.4878,
+      "width": 512
+    },
+    "battle.adept.strike": {
+      "anchorX": 192,
+      "bbox": [
+        62,
+        137,
+        304,
+        223
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/adept-strike.webp",
+      "scale": 0.4878,
+      "width": 512
+    },
+    "battle.adept.windup": {
+      "anchorX": 192,
+      "bbox": [
+        77,
+        139,
+        213,
+        221
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/adept-windup.webp",
+      "scale": 0.4878,
+      "width": 512
+    },
+    "battle.archer.hit": {
+      "anchorX": 192,
+      "bbox": [
+        51,
+        127,
+        215,
+        234
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/archer-hit.webp",
+      "scale": 0.5479,
+      "width": 512
+    },
+    "battle.archer.idle": {
+      "anchorX": 192,
+      "bbox": [
+        118,
+        120,
+        137,
+        240
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/archer-idle.webp",
+      "scale": 0.5479,
+      "width": 512
+    },
+    "battle.archer.strike": {
+      "anchorX": 192,
+      "bbox": [
+        82,
+        122,
+        300,
+        238
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/archer-strike.webp",
+      "scale": 0.5479,
+      "width": 512
+    },
+    "battle.archer.windup": {
+      "anchorX": 192,
+      "bbox": [
+        90,
+        117,
+        220,
+        243
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/archer-windup.webp",
+      "scale": 0.5479,
+      "width": 512
+    },
+    "battle.captain.hit": {
+      "anchorX": 192,
+      "bbox": [
+        62,
+        125,
+        217,
+        236
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/captain-hit.webp",
+      "scale": 0.501,
+      "width": 512
+    },
+    "battle.captain.idle": {
+      "anchorX": 192,
+      "bbox": [
+        120,
+        119,
+        131,
+        241
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/captain-idle.webp",
+      "scale": 0.501,
+      "width": 512
+    },
+    "battle.captain.strike": {
+      "anchorX": 192,
+      "bbox": [
+        67,
+        147,
+        376,
+        214
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/captain-strike.webp",
+      "scale": 0.501,
+      "width": 512
+    },
+    "battle.captain.windup": {
+      "anchorX": 192,
+      "bbox": [
+        11,
+        129,
+        271,
+        231
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/captain-windup.webp",
+      "scale": 0.501,
+      "width": 512
+    },
+    "battle.gravemaw.hit": {
+      "anchorX": 192,
+      "bbox": [
+        77,
+        112,
+        244,
+        248
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/gravemaw-hit.webp",
+      "scale": 0.5085,
+      "width": 512
+    },
+    "battle.gravemaw.idle": {
+      "anchorX": 192,
+      "bbox": [
+        110,
+        120,
+        130,
+        240
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/gravemaw-idle.webp",
+      "scale": 0.5085,
+      "width": 512
+    },
+    "battle.gravemaw.strike": {
+      "anchorX": 192,
+      "bbox": [
+        74,
+        158,
+        371,
+        202
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/gravemaw-strike.webp",
+      "scale": 0.5085,
+      "width": 512
+    },
+    "battle.gravemaw.windup": {
+      "anchorX": 192,
+      "bbox": [
+        47,
+        117,
+        235,
+        243
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/gravemaw-windup.webp",
+      "scale": 0.5085,
+      "width": 512
+    },
+    "battle.hunter.hit": {
+      "anchorX": 192,
+      "bbox": [
+        55,
+        132,
+        239,
+        228
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/hunter-hit.webp",
+      "scale": 0.5021,
+      "width": 512
+    },
+    "battle.hunter.idle": {
+      "anchorX": 192,
+      "bbox": [
+        114,
+        120,
+        129,
+        240
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/hunter-idle.webp",
+      "scale": 0.5021,
+      "width": 512
+    },
+    "battle.hunter.strike": {
+      "anchorX": 192,
+      "bbox": [
+        68,
+        145,
+        336,
+        215
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/hunter-strike.webp",
+      "scale": 0.5021,
+      "width": 512
+    },
+    "battle.hunter.windup": {
+      "anchorX": 192,
+      "bbox": [
+        45,
+        125,
+        255,
+        236
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/hunter-windup.webp",
+      "scale": 0.5021,
+      "width": 512
+    },
+    "battle.inquisitor.hit": {
+      "anchorX": 192,
+      "bbox": [
+        140,
+        128,
+        211,
+        232
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/inquisitor-hit.webp",
+      "scale": 0.5031,
+      "width": 512
+    },
+    "battle.inquisitor.idle": {
+      "anchorX": 192,
+      "bbox": [
+        134,
+        120,
+        127,
+        240
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/inquisitor-idle.webp",
+      "scale": 0.5031,
+      "width": 512
+    },
+    "battle.inquisitor.strike": {
+      "anchorX": 192,
+      "bbox": [
+        68,
+        127,
+        347,
+        233
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/inquisitor-strike.webp",
+      "scale": 0.5031,
+      "width": 512
+    },
+    "battle.inquisitor.windup": {
+      "anchorX": 192,
+      "bbox": [
+        57,
+        131,
+        235,
+        229
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/inquisitor-windup.webp",
+      "scale": 0.5031,
+      "width": 512
+    },
+    "battle.legionary.hit": {
+      "anchorX": 192,
+      "bbox": [
+        83,
+        125,
+        176,
+        235
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/legionary-hit.webp",
+      "scale": 0.499,
+      "width": 512
+    },
+    "battle.legionary.idle": {
+      "anchorX": 192,
+      "bbox": [
+        130,
+        120,
+        108,
+        241
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/legionary-idle.webp",
+      "scale": 0.499,
+      "width": 512
+    },
+    "battle.legionary.strike": {
+      "anchorX": 192,
+      "bbox": [
+        64,
+        134,
+        329,
+        227
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/legionary-strike.webp",
+      "scale": 0.499,
+      "width": 512
+    },
+    "battle.legionary.windup": {
+      "anchorX": 192,
+      "bbox": [
+        100,
+        122,
+        185,
+        239
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/legionary-windup.webp",
+      "scale": 0.499,
+      "width": 512
+    },
+    "battle.medic.hit": {
+      "anchorX": 192,
+      "bbox": [
+        117,
+        127,
+        164,
+        233
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/medic-hit.webp",
+      "scale": 0.4969,
+      "width": 512
+    },
+    "battle.medic.idle": {
+      "anchorX": 192,
+      "bbox": [
+        136,
+        120,
+        109,
+        240
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/medic-idle.webp",
+      "scale": 0.4969,
+      "width": 512
+    },
+    "battle.medic.strike": {
+      "anchorX": 192,
+      "bbox": [
+        85,
+        117,
+        278,
+        243
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/medic-strike.webp",
+      "scale": 0.4969,
+      "width": 512
+    },
+    "battle.medic.windup": {
+      "anchorX": 192,
+      "bbox": [
+        89,
+        126,
+        203,
+        234
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/medic-windup.webp",
+      "scale": 0.4969,
+      "width": 512
+    },
+    "battle.ranger.hit": {
+      "anchorX": 192,
+      "bbox": [
+        71,
+        114,
+        209,
+        246
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/ranger-hit.webp",
+      "scale": 0.499,
+      "width": 512
+    },
+    "battle.ranger.idle": {
+      "anchorX": 192,
+      "bbox": [
+        123,
+        120,
+        124,
+        240
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/ranger-idle.webp",
+      "scale": 0.499,
+      "width": 512
+    },
+    "battle.ranger.strike": {
+      "anchorX": 192,
+      "bbox": [
+        77,
+        115,
+        328,
+        245
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/ranger-strike.webp",
+      "scale": 0.499,
+      "width": 512
+    },
+    "battle.ranger.windup": {
+      "anchorX": 192,
+      "bbox": [
+        98,
+        114,
+        217,
+        246
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/ranger-windup.webp",
+      "scale": 0.499,
+      "width": 512
+    },
+    "battle.soldier.hit": {
+      "anchorX": 192,
+      "bbox": [
+        85,
+        144,
+        214,
+        217
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/soldier-hit.webp",
+      "scale": 0.4829,
+      "width": 512
+    },
+    "battle.soldier.idle": {
+      "anchorX": 192,
+      "bbox": [
+        135,
+        120,
+        111,
+        241
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/soldier-idle.webp",
+      "scale": 0.4829,
+      "width": 512
+    },
+    "battle.soldier.strike": {
+      "anchorX": 192,
+      "bbox": [
+        92,
+        164,
+        327,
+        197
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/soldier-strike.webp",
+      "scale": 0.4829,
+      "width": 512
+    },
+    "battle.soldier.windup": {
+      "anchorX": 192,
+      "bbox": [
+        109,
+        142,
+        221,
+        219
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/soldier-windup.webp",
+      "scale": 0.4829,
+      "width": 512
+    },
+    "battle.stranger.hit": {
+      "anchorX": 192,
+      "bbox": [
+        131,
+        120,
+        237,
+        240
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/stranger-hit.webp",
+      "scale": 0.4948,
+      "width": 512
+    },
+    "battle.stranger.idle": {
+      "anchorX": 192,
+      "bbox": [
+        100,
+        120,
+        174,
+        241
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/stranger-idle.webp",
+      "scale": 0.4948,
+      "width": 512
+    },
+    "battle.stranger.strike": {
+      "anchorX": 192,
+      "bbox": [
+        52,
+        142,
+        367,
+        219
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/stranger-strike.webp",
+      "scale": 0.4948,
+      "width": 512
+    },
+    "battle.stranger.windup": {
+      "anchorX": 192,
+      "bbox": [
+        70,
+        122,
+        214,
+        238
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/stranger-windup.webp",
+      "scale": 0.4948,
+      "width": 512
+    },
+    "portrait.adept.neutral": {
+      "bbox": [
+        25,
+        8,
+        333,
+        368
+      ],
+      "height": 384,
+      "path": "portraits/adept-neutral.webp",
+      "width": 384
+    },
+    "portrait.archer.neutral": {
+      "bbox": [
+        38,
+        9,
+        308,
+        367
+      ],
+      "height": 384,
+      "path": "portraits/archer-neutral.webp",
+      "width": 384
+    },
+    "portrait.captain.angry": {
+      "bbox": [
+        14,
+        8,
+        355,
+        368
+      ],
+      "height": 384,
+      "path": "portraits/captain-angry.webp",
+      "width": 384
+    },
+    "portrait.captain.hurt": {
+      "bbox": [
+        15,
+        9,
+        354,
+        367
+      ],
+      "height": 384,
+      "path": "portraits/captain-hurt.webp",
+      "width": 384
+    },
+    "portrait.captain.neutral": {
+      "bbox": [
+        15,
+        8,
+        353,
+        368
+      ],
+      "height": 384,
+      "path": "portraits/captain-neutral.webp",
+      "width": 384
+    },
+    "portrait.captain.smile": {
+      "bbox": [
+        16,
+        9,
+        351,
+        367
+      ],
+      "height": 384,
+      "path": "portraits/captain-smile.webp",
+      "width": 384
+    },
+    "portrait.gravemaw.angry": {
+      "bbox": [
+        8,
+        74,
+        368,
+        301
+      ],
+      "height": 384,
+      "path": "portraits/gravemaw-angry.webp",
+      "width": 384
+    },
+    "portrait.gravemaw.hurt": {
+      "bbox": [
+        8,
+        74,
+        368,
+        302
+      ],
+      "height": 384,
+      "path": "portraits/gravemaw-hurt.webp",
+      "width": 384
+    },
+    "portrait.gravemaw.neutral": {
+      "bbox": [
+        8,
+        74,
+        368,
+        301
+      ],
+      "height": 384,
+      "path": "portraits/gravemaw-neutral.webp",
+      "width": 384
+    },
+    "portrait.gravemaw.smile": {
+      "bbox": [
+        8,
+        74,
+        368,
+        302
+      ],
+      "height": 384,
+      "path": "portraits/gravemaw-smile.webp",
+      "width": 384
+    },
+    "portrait.hunter.neutral": {
+      "bbox": [
+        41,
+        19,
+        302,
+        357
+      ],
+      "height": 384,
+      "path": "portraits/hunter-neutral.webp",
+      "width": 384
+    },
+    "portrait.inquisitor.neutral": {
+      "bbox": [
+        39,
+        8,
+        305,
+        368
+      ],
+      "height": 384,
+      "path": "portraits/inquisitor-neutral.webp",
+      "width": 384
+    },
+    "portrait.legionary.neutral": {
+      "bbox": [
+        41,
+        17,
+        302,
+        359
+      ],
+      "height": 384,
+      "path": "portraits/legionary-neutral.webp",
+      "width": 384
+    },
+    "portrait.medic.neutral": {
+      "bbox": [
+        29,
+        8,
+        325,
+        368
+      ],
+      "height": 384,
+      "path": "portraits/medic-neutral.webp",
+      "width": 384
+    },
+    "portrait.ranger.neutral": {
+      "bbox": [
+        25,
+        21,
+        333,
+        354
+      ],
+      "height": 384,
+      "path": "portraits/ranger-neutral.webp",
+      "width": 384
+    },
+    "portrait.soldier.neutral": {
+      "bbox": [
+        33,
+        19,
+        317,
+        356
+      ],
+      "height": 384,
+      "path": "portraits/soldier-neutral.webp",
+      "width": 384
+    },
+    "portrait.stranger.angry": {
+      "bbox": [
+        26,
+        8,
+        331,
+        368
+      ],
+      "height": 384,
+      "path": "portraits/stranger-angry.webp",
+      "width": 384
+    },
+    "portrait.stranger.hurt": {
+      "bbox": [
+        26,
+        8,
+        331,
+        368
+      ],
+      "height": 384,
+      "path": "portraits/stranger-hurt.webp",
+      "width": 384
+    },
+    "portrait.stranger.neutral": {
+      "bbox": [
+        26,
+        8,
+        331,
+        368
+      ],
+      "height": 384,
+      "path": "portraits/stranger-neutral.webp",
+      "width": 384
+    },
+    "portrait.stranger.smile": {
+      "bbox": [
+        26,
+        8,
+        331,
+        368
+      ],
+      "height": 384,
+      "path": "portraits/stranger-smile.webp",
+      "width": 384
+    },
+    "token.adept": {
+      "bbox": [
+        56,
+        8,
+        80,
+        176
+      ],
+      "height": 192,
+      "path": "tokens/adept.webp",
+      "width": 192
+    },
+    "token.archer": {
+      "bbox": [
+        41,
+        8,
+        110,
+        176
+      ],
+      "height": 192,
+      "path": "tokens/archer.webp",
+      "width": 192
+    },
+    "token.gravemaw_bearer": {
+      "bbox": [
+        43,
+        8,
+        105,
+        176
+      ],
+      "height": 192,
+      "path": "tokens/gravemaw_bearer.webp",
+      "width": 192
+    },
+    "token.hunter": {
+      "bbox": [
+        46,
+        8,
+        100,
+        176
+      ],
+      "height": 192,
+      "path": "tokens/hunter.webp",
+      "width": 192
+    },
+    "token.hunter_captain": {
+      "bbox": [
+        50,
+        8,
+        91,
+        176
+      ],
+      "height": 192,
+      "path": "tokens/hunter_captain.webp",
+      "width": 192
+    },
+    "token.inquisitor": {
+      "bbox": [
+        40,
+        8,
+        111,
+        176
+      ],
+      "height": 192,
+      "path": "tokens/inquisitor.webp",
+      "width": 192
+    },
+    "token.legionary": {
+      "bbox": [
+        35,
+        8,
+        121,
+        176
+      ],
+      "height": 192,
+      "path": "tokens/legionary.webp",
+      "width": 192
+    },
+    "token.medic": {
+      "bbox": [
+        53,
+        8,
+        86,
+        176
+      ],
+      "height": 192,
+      "path": "tokens/medic.webp",
+      "width": 192
+    },
+    "token.ranger": {
+      "bbox": [
+        55,
+        8,
+        82,
+        176
+      ],
+      "height": 192,
+      "path": "tokens/ranger.webp",
+      "width": 192
+    },
+    "token.soldier": {
+      "bbox": [
+        56,
+        8,
+        80,
+        176
+      ],
+      "height": 192,
+      "path": "tokens/soldier.webp",
+      "width": 192
+    },
+    "token.wanderer": {
+      "bbox": [
+        53,
+        8,
+        85,
+        176
+      ],
+      "height": 192,
+      "path": "tokens/wanderer.webp",
+      "width": 192
+    }
+  }
+}
