@@ -141,6 +141,32 @@ function placeholder(ctx: CanvasRenderingContext2D, kind: Kind, look: McLook): v
   ctx.restore();
 }
 
+/**
+ * Source-over of one recolored layer (straight alpha) onto the picture's pixels. Done on plain arrays on purpose:
+ * mobile Safari can hand drawImage a stale copy of a canvas that was just filled with putImageData, which drew
+ * layers with the previous layer's pixels (a doubled face in the creator).
+ */
+function blendLayer(dst: Uint8ClampedArray, dw: number, dh: number, src: Uint8ClampedArray, l: RawLayer): void {
+  for (let y = 0; y < l.h; y++) {
+    const dy = l.y + y;
+    if (dy < 0 || dy >= dh) continue;
+    for (let x = 0; x < l.w; x++) {
+      const dx = l.x + x;
+      if (dx < 0 || dx >= dw) continue;
+      const s = (y * l.w + x) << 2;
+      const sa = src[s + 3]! / 255;
+      if (sa === 0) continue;
+      const d = (dy * dw + dx) << 2;
+      const da = (dst[d + 3]! / 255) * (1 - sa);
+      const oa = sa + da;
+      dst[d] = (src[s]! * sa + dst[d]! * da) / oa;
+      dst[d + 1] = (src[s + 1]! * sa + dst[d + 1]! * da) / oa;
+      dst[d + 2] = (src[s + 2]! * sa + dst[d + 2]! * da) / oa;
+      dst[d + 3] = oa * 255;
+    }
+  }
+}
+
 async function composeLayers(kind: Kind, ids: string[], look: McLook): Promise<HTMLCanvasElement> {
   const loaded = await Promise.all(ids.map(loadLayer));
   const { w, h } = MC_CANVAS[kind];
@@ -148,15 +174,14 @@ async function composeLayers(kind: Kind, ids: string[], look: McLook): Promise<H
   const ctx = out.getContext('2d')!;
   if (!loaded[0]) placeholder(ctx, kind, look);
   const lut = lutFor(look);
-  const scratch = canvas(w, h);
-  const sctx = scratch.getContext('2d')!;
+  const picture = ctx.getImageData(0, 0, w, h);
   for (const l of loaded) {
     if (!l) continue;
-    const img = sctx.createImageData(l.w, l.h);
-    recolorPixels(l.art, l.data, lut, img.data);
-    sctx.putImageData(img, 0, 0);
-    ctx.drawImage(scratch, 0, 0, l.w, l.h, l.x, l.y, l.w, l.h);
+    const recolored = new Uint8ClampedArray(l.w * l.h * 4);
+    recolorPixels(l.art, l.data, lut, recolored);
+    blendLayer(picture.data, w, h, recolored, l);
   }
+  ctx.putImageData(picture, 0, 0);
   return out;
 }
 
