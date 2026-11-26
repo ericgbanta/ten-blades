@@ -40,14 +40,16 @@ export function Creator({ draft, set }: Props) {
       <div class="creator-preview">
         <button
           type="button"
-          class="creator-portrait"
+          class="creator-portrait framed"
           onClick={() => setExpr(nextExpression)}
           aria-label={`Portrait, ${EXPRESSION_TEXT[expr]}. Tap to change the expression.`}
         >
           <McPortrait look={look} expr={expr} size={152} label={`Your hero, ${EXPRESSION_TEXT[expr]}`} />
         </button>
         <div class="creator-side">
-          <McToken look={look} style={draft.mc.style} size={88} label={`Map token, ${STYLE_TEXT[draft.mc.style].name}`} class="creator-token" />
+          <span class="creator-token framed">
+            <McToken look={look} style={draft.mc.style} size={88} label={`Map token, ${STYLE_TEXT[draft.mc.style].name}`} />
+          </span>
           <button type="button" class="btn quiet creator-random" onClick={() => set((d) => randomized(d, Date.now()))}>
             Randomize
           </button>

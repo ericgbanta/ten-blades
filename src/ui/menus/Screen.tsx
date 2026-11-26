@@ -20,7 +20,9 @@ export function Screen(props: { title: string; back?: () => void; backLabel?: st
         ) : (
           <span class="menu-back-spacer" />
         )}
-        <h1 class="menu-title">{props.title}</h1>
+        <h1 class="menu-title">
+          <span class="ribbon">{props.title}</span>
+        </h1>
         <span class="menu-back-spacer" />
       </header>
       <main class="menu-body">{props.children}</main>
@@ -88,7 +90,7 @@ export function SlotCard(props: { info: SlotInfo; suspended: boolean; onTap?: ()
   return (
     <button
       type="button"
-      class={`slot-card${save ? '' : ' empty'}`}
+      class={`slot-card framed${save ? '' : ' empty'}`}
       onClick={props.onTap}
       disabled={props.disabled}
       aria-label={`Slot ${info.slot}: ${save ? save.mc.name : info.error ? 'damaged' : 'empty'}${props.action ? `. ${props.action}` : ''}`}
@@ -112,7 +114,7 @@ export interface ConfirmProps {
 export function Confirm(props: ConfirmProps) {
   return (
     <div class="menu-scrim" role="dialog" aria-modal="true" aria-label={props.text}>
-      <div class="menu-dialog">
+      <div class="menu-dialog framed">
         <p class="menu-dialog-text">{props.text}</p>
         {props.detail && <p class="menu-dialog-detail">{props.detail}</p>}
         <div class="menu-row">

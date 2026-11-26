@@ -1,15 +1,20 @@
 import { startRun } from './saves';
 import { useSaves } from './menus/Screen';
 import { chapterName } from './menus/copy';
+import { Divider } from './kit';
 import './menus/menus.css';
 
 export function Title() {
   const { saves } = useSaves();
   const suspend = saves?.suspend ?? null;
   return (
-    <main class="title">
-      <h1>Ten Blades</h1>
-      <p class="tagline">Ten blades. One empire to break.</p>
+    <main class="title home">
+      <div class="title-logo">
+        <div class="title-emblem" aria-hidden="true" />
+        <h1>Ten Blades</h1>
+        <Divider class="title-divider" />
+        <p class="tagline">Ten blades. One empire to break.</p>
+      </div>
       {/* Shown once the saves are read, so Continue does not push the menu down. */}
       <nav class="title-menu" aria-label="Main menu" style={saves ? undefined : { visibility: 'hidden' }}>
         {suspend && (
