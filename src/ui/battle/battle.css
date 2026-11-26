@@ -1494,3 +1494,21 @@
 .fh-crowd.right li {
   text-align: right;
 }
+
+/* Portrait: the HUD runs to the bottom of the screen; the ten-blade star sits faintly in the space under it. */
+.fight-layer:not(.landscape) .fight-hud::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: calc(40px + var(--safe-b));
+  width: 128px;
+  height: 128px;
+  transform: translateX(-50%);
+  background: var(--kit-emblem) center / contain no-repeat;
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.fight-layer:not(.landscape) .fh-skip {
+  margin-top: auto;
+}

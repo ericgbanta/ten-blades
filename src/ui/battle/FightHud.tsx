@@ -137,7 +137,7 @@ export function FightHud(props: { view: FightView; state: BattleState; data: Gam
         props.onSkip();
       }}
     >
-      <div class="fight-hud" style={L.landscape ? { top: `${L.hud.y}px`, height: `${L.hud.h}px` } : { top: `${L.hud.y}px`, minHeight: '128px' }}>
+      <div class="fight-hud" style={L.landscape ? { top: `${L.hud.y}px`, height: `${L.hud.h}px` } : { top: `${L.hud.y}px`, bottom: 0 }}>
         {powerName && <p class={`fh-power school-${power?.powerId}`}>{powerName}</p>}
         <div class="fh-row">
           {crowd === 'left' ? (
