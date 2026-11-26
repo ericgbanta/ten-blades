@@ -1,0 +1,10 @@
+{
+  "plain": { "name": "Plain", "moveCost": { "foot": 1 }, "avoid": 0, "def": 0, "res": 0, "healPercent": 0 },
+  "road": { "name": "Road", "moveCost": { "foot": 1 }, "avoid": 0, "def": 0, "res": 0, "healPercent": 0 },
+  "forest": { "name": "Forest", "moveCost": { "foot": 2 }, "avoid": 20, "def": 1, "res": 0, "healPercent": 0 },
+  "hill": { "name": "Hill", "moveCost": { "foot": 3 }, "avoid": 30, "def": 2, "res": 0, "healPercent": 0 },
+  "fort": { "name": "Fort", "moveCost": { "foot": 2 }, "avoid": 20, "def": 2, "res": 2, "healPercent": 20 },
+  "village": { "name": "Village", "moveCost": { "foot": 1 }, "avoid": 10, "def": 0, "res": 0, "healPercent": 0 },
+  "water": { "name": "Water", "moveCost": { "foot": null }, "avoid": 0, "def": 0, "res": 0, "healPercent": 0 },
+  "wall": { "name": "Wall", "moveCost": { "foot": null }, "avoid": 0, "def": 0, "res": 0, "healPercent": 0 }
+}

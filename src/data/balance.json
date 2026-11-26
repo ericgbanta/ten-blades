@@ -1,0 +1,76 @@
+{
+  "hitRollMode": "1rn",
+  "combat": {
+    "hitSklMult": 2,
+    "hitLckDiv": 2,
+    "avoidSpdMult": 2,
+    "avoidLckMult": 1,
+    "critSklDiv": 2,
+    "critMultiplier": 3,
+    "doubleSpeedLead": 4
+  },
+  "triangle": {
+    "beats": {
+      "heavy": "swift",
+      "swift": "arcane",
+      "arcane": "heavy"
+    },
+    "hitBonus": 15,
+    "damageBonus": 1
+  },
+  "xp": {
+    "perLevel": 100,
+    "levelCap": 20,
+    "hitBase": 31,
+    "hitDiv": 3,
+    "hitMin": 1,
+    "missXp": 1,
+    "killBase": 20,
+    "killLevelMult": 3,
+    "killMin": 7,
+    "bossBonus": 40,
+    "healXp": 11,
+    "maxPerAction": 100
+  },
+  "statCaps": {
+    "hp": 60,
+    "str": 30,
+    "mag": 30,
+    "skl": 30,
+    "spd": 30,
+    "lck": 30,
+    "def": 30,
+    "res": 30,
+    "mov": 15
+  },
+  "difficulty": {
+    "normal": {
+      "statMultiplier": 1,
+      "statBonus": {},
+      "levelBonus": 0,
+      "aggressive": false
+    },
+    "hard": {
+      "statMultiplier": 1,
+      "statBonus": {
+        "hp": 2,
+        "str": 2,
+        "skl": 1,
+        "spd": 1
+      },
+      "levelBonus": 1,
+      "aggressive": false
+    },
+    "lunatic": {
+      "statMultiplier": 1,
+      "statBonus": {
+        "hp": 3,
+        "str": 2,
+        "skl": 2,
+        "spd": 2
+      },
+      "levelBonus": 2,
+      "aggressive": true
+    }
+  }
+}

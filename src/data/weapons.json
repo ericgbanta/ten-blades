@@ -1,0 +1,21 @@
+{
+  "iron_greatsword": {"name": "Iron Greatsword", "kind": "greatsword", "school": "heavy", "might": 8, "hit": 70, "crit": 0, "range": [1, 1], "magic": false, "heal": 0, "legendary": false},
+  "iron_axe": {"name": "Iron Axe", "kind": "axe", "school": "heavy", "might": 7, "hit": 70, "crit": 0, "range": [1, 1], "magic": false, "heal": 0, "legendary": false},
+  "woodcutter_axe": {"name": "Woodcutter's Axe", "kind": "axe", "school": "heavy", "might": 6, "hit": 75, "crit": 0, "range": [1, 1], "magic": false, "heal": 0, "legendary": false},
+  "iron_lance": {"name": "Iron Lance", "kind": "lance", "school": "heavy", "might": 6, "hit": 80, "crit": 0, "range": [1, 1], "magic": false, "heal": 0, "legendary": false},
+  "javelin": {"name": "Javelin", "kind": "lance", "school": "heavy", "might": 5, "hit": 65, "crit": 0, "range": [1, 2], "magic": false, "heal": 0, "legendary": false},
+  "iron_katana": {"name": "Iron Katana", "kind": "katana", "school": "swift", "might": 5, "hit": 90, "crit": 5, "range": [1, 1], "magic": false, "heal": 0, "legendary": false},
+  "iron_dagger": {"name": "Iron Dagger", "kind": "dagger", "school": "swift", "might": 3, "hit": 80, "crit": 10, "range": [1, 1], "magic": false, "heal": 0, "legendary": false},
+  "hunting_knife": {"name": "Hunting Knife", "kind": "dagger", "school": "swift", "might": 4, "hit": 90, "crit": 5, "range": [1, 1], "magic": false, "heal": 0, "legendary": false},
+  "short_bow": {"name": "Short Bow", "kind": "bow", "school": "swift", "might": 5, "hit": 85, "crit": 0, "range": [2, 2], "magic": false, "heal": 0, "legendary": false},
+  "ember_tome": {"name": "Ember Tome", "kind": "tome", "school": "arcane", "might": 4, "hit": 85, "crit": 0, "range": [1, 2], "magic": true, "heal": 0, "legendary": false},
+  "warding_talisman": {"name": "Warding Talisman", "kind": "talisman", "school": "arcane", "might": 3, "hit": 90, "crit": 5, "range": [1, 2], "magic": true, "heal": 0, "legendary": false},
+  "spirit_staff": {"name": "Spirit Staff", "kind": "spiritstaff", "school": "arcane", "might": 4, "hit": 85, "crit": 0, "range": [1, 2], "magic": true, "heal": 0, "legendary": false},
+  "mending_rod": {"name": "Mending Rod", "kind": "staff", "school": "none", "might": 0, "hit": 0, "crit": 0, "range": [1, 1], "magic": true, "heal": 10, "legendary": false},
+  "widows_hush_vanguard": {"name": "Widow's Hush", "kind": "legendary", "school": "heavy", "might": 10, "hit": 80, "crit": 5, "range": [1, 1], "magic": false, "heal": 0, "legendary": true},
+  "widows_hush_duelist": {"name": "Widow's Hush", "kind": "legendary", "school": "swift", "might": 7, "hit": 95, "crit": 15, "range": [1, 1], "magic": false, "heal": 0, "legendary": true},
+  "widows_hush_spiritblade": {"name": "Widow's Hush", "kind": "legendary", "school": "arcane", "might": 8, "hit": 90, "crit": 5, "range": [1, 2], "magic": true, "heal": 0, "legendary": true},
+  "widows_hush_stranger": {"name": "Widow's Hush", "kind": "legendary", "school": "swift", "might": 9, "hit": 95, "crit": 10, "range": [1, 1], "magic": false, "heal": 0, "legendary": true},
+  "gravemaw": {"name": "Gravemaw", "kind": "legendary", "school": "heavy", "might": 13, "hit": 75, "crit": 5, "range": [1, 1], "magic": false, "heal": 0, "legendary": true},
+  "thousand_needles": {"name": "Thousand Needles", "kind": "legendary", "school": "swift", "might": 8, "hit": 95, "crit": 20, "range": [1, 2], "magic": false, "heal": 0, "legendary": true}
+}
