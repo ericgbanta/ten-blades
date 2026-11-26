@@ -10,7 +10,7 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
   },
   {
-    // Core logic and the pure save modules stay pure: no DOM, no storage, no
+    // Core logic, the pure save modules and the pure main character modules stay pure: no DOM, no storage, no
     // clock, no unseeded randomness. Time and seeds come in from the UI.
     files: [
       'src/core/**/*.ts',
@@ -21,6 +21,9 @@ export default tseslint.config(
       'src/save/load.ts',
       'src/save/campaign.ts',
       'src/save/queue.ts',
+      'src/art/mc/look.ts',
+      'src/art/mc/recolor.ts',
+      'src/ui/menus/newGameDraft.ts',
     ],
     languageOptions: { globals: {} },
     rules: {
