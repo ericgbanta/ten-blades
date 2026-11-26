@@ -1,9 +1,10 @@
 // Loads every JSON file under src/data into one typed GameData object.
 // The core never imports JSON itself; callers pass `gameData` (or a test fixture) in.
 
-import type { Balance, ClassDef, GameData, MapData, MapEvent, TerrainDef, WeaponDef } from '../core/types';
+import type { Balance, BladeDef, ClassDef, GameData, MapData, MapEvent, PowerDef, TerrainDef, WeaponDef } from '../core/types';
 import type { ChapterDef } from '../story/types';
 import balance from './balance.json';
+import blades from './blades.json';
 import classes from './classes.json';
 import terrain from './terrain.json';
 import weapons from './weapons.json';
@@ -30,6 +31,8 @@ export const gameData: GameData = {
   weapons: weapons as unknown as Record<string, WeaponDef>,
   // skirmish_test is a large map for checking rendering and the camera; only the quick battle URL reaches it.
   maps: { prologue: withEvents(prologue, prologueEvents), skirmish_test: withEvents(skirmishTest, skirmishTestEvents) },
+  blades: blades.blades as unknown as Record<string, BladeDef>,
+  powers: blades.powers as unknown as Record<string, PowerDef>,
 };
 
 /** The campaign script, in story order (src/data/chapters.json). Each chapter names the next. */

@@ -2,7 +2,7 @@
 // Pure functions, so tests/maps-tiled.test.ts can run them; tools/maps/import.ts and export.ts do the file work.
 // The format is described in docs/MAPS.md.
 
-import type { MapData, MapProp, Placement, ReinforcementWave, UnitPlacement, Objective, Difficulty } from '../../src/core/types';
+import type { MapData, MapProp, McSlot, Placement, ReinforcementWave, UnitPlacement, Objective, Difficulty } from '../../src/core/types';
 
 /** The tile character each terrain id gets in a map's `tiles` rows. A new terrain needs a character here. */
 export const TERRAIN_CHARS: Record<string, string> = {
@@ -110,6 +110,10 @@ export function tilesetTerrains(ts: TiledTileset): Map<number, string> {
 
 function unitObject(p: Placement, id: number): TiledObject {
   const base = { id, x: (p.pos.x + 0.5) * TILED_TILE, y: (p.pos.y + 0.5) * TILED_TILE, width: 0, height: 0, rotation: 0, visible: true, point: true };
+  if (p.kind === 'mc' && p.weapons) {
+    const props = Object.entries(p.weapons).map(([style, w]) => prop(`weapon.${style}`, w));
+    return { ...base, name: p.kind, type: p.kind, properties: props };
+  }
   if (p.kind !== 'unit') return { ...base, name: p.kind, type: p.kind };
   const props: TiledProperty[] = [prop('id', p.id), prop('classId', p.classId), prop('team', p.team), prop('level', p.level)];
   if (p.weaponId !== undefined) props.push(prop('weaponId', p.weaponId));
@@ -226,7 +230,16 @@ function objectTile(o: TiledObject, tw: number, th: number): { x: number; y: num
 function placementOf(o: TiledObject, tw: number, th: number, where: string): Placement {
   const pos = objectTile(o, tw, th);
   const kind = o.type || o.class || 'unit';
-  if (kind === 'mc' || kind === 'party') return { kind, pos };
+  if (kind === 'mc') {
+    // weapon.<style> properties: the weapon a new main character of that style holds on this map.
+    const weapons: Record<string, string> = {};
+    for (const [k, v] of propsOf(o.properties)) {
+      const m = /^weapon\.(\w+)$/.exec(k);
+      if (m && typeof v === 'string') weapons[m[1]!] = v;
+    }
+    return Object.keys(weapons).length > 0 ? { kind, pos, weapons: weapons as McSlot['weapons'] } : { kind, pos };
+  }
+  if (kind === 'party') return { kind, pos };
   if (kind !== 'unit') throw new Error(`${where}: object ${o.id} has type "${kind}"; use unit, mc or party`);
   const p = propsOf(o.properties);
   const id = str(p.get('id'));

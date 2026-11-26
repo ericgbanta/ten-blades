@@ -61,3 +61,21 @@ export {
 export { planAiAction, planUnitAction, runAiPhase } from './ai';
 export { validateGameData } from './validate';
 export { healAmount, healRange } from './healQueries';
+export {
+  DIRECTIONS,
+  powerPlan,
+  powerBlock,
+  powerTargets,
+  powerDirections,
+  powerForecast,
+  canUsePower,
+  echoSource,
+  lineTiles,
+  type PowerAim,
+  type PowerPlan,
+  type PowerForecast,
+  type PowerTargetForecast,
+} from './powers';
+export { bladeOf, bladeIdOf, isBearer, bearerPower, implementedPower, powerCost, devourBonus } from './resolve';
+export { forecastWith, strikeSide } from './combat';
+export { powerScore } from './ai';

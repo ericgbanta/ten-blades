@@ -1,6 +1,7 @@
 // Battle creation and the action reducer.
 
-import { forecast, resolveCombat } from './combat';
+import { forecast } from './combat';
+import { clash } from './clash';
 import { ActionError } from './errors';
 import {
   areHostile,
@@ -15,13 +16,15 @@ import {
   terrainAt,
   unitAt,
 } from './grid';
-import { combatXp, grantXp } from './leveling';
+import { grantXp } from './leveling';
+import { DIRECTIONS, powerBlock, powerDirections, powerPlan, powerTargets, resolvePower, type PowerAim } from './powers';
+import { startingResolve } from './resolve';
 import { canTalk, runEvents } from './events';
 import { checkOutcome, endBattle, turnLimitReached } from './objectives';
 import { canMoveTo, pathTo } from './pathfinding';
 import { createRng } from './rng';
 import { newMc, unitFromParty, unitFromPlacement } from './units';
-import type { Action, ActionResult, BattleEvent, BattleSetup, BattleState, GameData, MapData, PartyUnit, Pos, Team, Unit } from './types';
+import type { Action, ActionResult, Direction, McSlot, BattleEvent, BattleSetup, BattleState, GameData, MapData, PartyUnit, Pos, Team, Unit } from './types';
 
 export { ActionError, newMc, unitFromPlacement };
 
@@ -40,12 +43,18 @@ export { ActionError, newMc, unitFromPlacement };
  */
 export function createBattle(map: MapData, setup: BattleSetup, seed: number, data: GameData): BattleState {
   const party = setup.party ?? [];
-  const lord = (): PartyUnit => party.find((m) => m.isLord) ?? newMc(setup, data);
+  const lord = (slot: McSlot): PartyUnit => {
+    const carried = party.find((m) => m.isLord);
+    if (carried) return carried;
+    const mc = newMc(setup, data);
+    const w = slot.weapons?.[setup.mc.style];
+    return w ? { ...mc, weaponId: w } : mc;
+  };
   const others = party.filter((m) => !m.isLord);
   const units: Unit[] = [];
   let next = 0;
   for (const p of map.placements) {
-    if (p.kind === 'mc') units.push(unitFromParty(lord(), p.pos));
+    if (p.kind === 'mc') units.push(unitFromParty(lord(p), p.pos));
     else if (p.kind === 'party') {
       const m = others[next++];
       if (m) units.push(unitFromParty(m, p.pos));
@@ -61,6 +70,7 @@ export function createBattle(map: MapData, setup: BattleSetup, seed: number, dat
   if (obj.type === 'protect' && !units.some((u) => u.id === obj.unitId && u.team !== 'enemy')) {
     throw new Error(`Map ${map.id}: protect target ${obj.unitId} is not a player or ally unit at the start`);
   }
+  for (const u of units) u.resolve = startingResolve(u, data);
   const terrain: string[] = [];
   for (const row of map.tiles) {
     for (const ch of row) {
@@ -70,7 +80,7 @@ export function createBattle(map: MapData, setup: BattleSetup, seed: number, dat
     }
   }
   return {
-    version: 2,
+    version: 3,
     mapId: map.id,
     map: { width: map.width, height: map.height, terrain },
     units,
@@ -85,6 +95,7 @@ export function createBattle(map: MapData, setup: BattleSetup, seed: number, dat
     flags: { ...(setup.flags ?? {}) },
     firedEvents: [],
     recruited: [],
+    powerLog: [],
   };
 }
 
@@ -110,7 +121,7 @@ export function startBattle(state: BattleState, data: GameData): ActionResult {
 // Validation
 // ---------------------------------------------------------------------------
 
-const ACTION_TYPES = ['wait', 'attack', 'heal', 'talk', 'endPhase'];
+const ACTION_TYPES = ['wait', 'attack', 'heal', 'talk', 'power', 'endPhase'];
 
 function isPos(v: unknown): v is Pos {
   if (typeof v !== 'object' || v === null) return false;
@@ -126,6 +137,12 @@ function shapeError(action: unknown): string | null {
   if (a.type === 'endPhase') return null;
   if (typeof a.unitId !== 'string') return `${a.type} needs a unitId`;
   if (!isPos(a.to)) return `${a.type} needs a target tile`;
+  if (a.type === 'power') {
+    if (a.targetId !== undefined && typeof a.targetId !== 'string') return 'power needs a targetId or a direction';
+    if (a.dir !== undefined && !DIRECTIONS.includes(a.dir as never)) return `Unknown direction ${String(a.dir)}`;
+    if ((a.targetId === undefined) === (a.dir === undefined)) return 'power needs a targetId or a direction';
+    return null;
+  }
   if (a.type !== 'wait' && typeof a.targetId !== 'string') return `${a.type} needs a targetId`;
   return null;
 }
@@ -144,6 +161,7 @@ export function validateAction(state: BattleState, action: Action, data: GameDat
     return `${unit.id} cannot move to ${action.to.x},${action.to.y}`;
   }
   if (action.type === 'wait') return null;
+  if (action.type === 'power') return powerError(state, action.unitId, action.to, action, data);
   const target = findUnit(state, action.targetId);
   if (!target || !target.alive) return `No living target ${action.targetId}`;
   const d = distance(action.to, target.pos);
@@ -166,6 +184,28 @@ export function validateAction(state: BattleState, action: Action, data: GameDat
   if (target.hp >= target.stats.hp) return `${target.id} is not wounded`;
   if (d < staff.range[0] || d > staff.range[1]) return `${target.id} is out of range`;
   return null;
+}
+
+/** Why a power action is illegal (the unit can act and reach `to`), or null. */
+function powerError(state: BattleState, unitId: string, to: Pos, aim: { targetId?: string; dir?: string }, data: GameData): string | null {
+  const block = powerBlock(state, unitId, data);
+  if (block !== null) return block;
+  const plan = powerPlan(state, unitId, data)!;
+  if (plan.aim === 'line') {
+    if (aim.dir === undefined) return `${plan.name} needs a direction`;
+    if (!powerDirections(state, unitId, to, data).includes(aim.dir as never)) return `No enemy in the line ${aim.dir}`;
+    return null;
+  }
+  if (aim.targetId === undefined) return `${plan.name} needs a target`;
+  const target = findUnit(state, aim.targetId);
+  if (!target || !target.alive) return `No living target ${aim.targetId}`;
+  if (!powerTargets(state, unitId, to, data).includes(target.id)) return `${target.id} is not a target of ${plan.name}`;
+  return null;
+}
+
+/** The aim of a valid power action. */
+function aimOf(a: { targetId?: string; dir?: string }): PowerAim {
+  return a.dir !== undefined ? { dir: a.dir as Direction } : { targetId: a.targetId! };
 }
 
 // ---------------------------------------------------------------------------
@@ -198,6 +238,13 @@ export function applyAction(state: BattleState, action: Action, data: GameData):
       const u = getUnit(s, action.unitId);
       moveUnit(s, u, action.to, data, events);
       fight(s, u, getUnit(s, action.targetId), data, events);
+      if (u.alive) finishUnit(u, events);
+      break;
+    }
+    case 'power': {
+      const u = getUnit(s, action.unitId);
+      moveUnit(s, u, action.to, data, events);
+      resolvePower(s, u, aimOf(action), data, events);
       if (u.alive) finishUnit(u, events);
       break;
     }
@@ -240,36 +287,8 @@ function finishUnit(u: Unit, events: BattleEvent[]): void {
   events.push({ type: 'unitActed', unitId: u.id });
 }
 
-function activateHold(u: Unit): void {
-  if (u.ai && u.ai.behavior === 'hold') u.ai.active = true;
-}
-
 function fight(s: BattleState, a: Unit, d: Unit, data: GameData, events: BattleEvent[]): void {
-  const fc = forecast(s, a.id, d.id, a.pos, data);
-  events.push({ type: 'combatStarted', attackerId: a.id, defenderId: d.id, forecast: fc });
-  const r = resolveCombat(fc, s.rng, data.balance);
-  s.rng = r.rng;
-  for (const st of r.strikes) events.push({ type: 'strike', ...st });
-  a.hp = r.attackerHp;
-  d.hp = r.defenderHp;
-  activateHold(a);
-  activateHold(d);
-  events.push({ type: 'combatEnded', attackerId: a.id, defenderId: d.id });
-  if (r.defeatedId !== null) {
-    const dead = r.defeatedId === a.id ? a : d;
-    dead.alive = false;
-    dead.acted = true;
-    events.push({ type: 'unitDefeated', unitId: dead.id, byId: dead === a ? d.id : a.id });
-  }
-  for (const [u, foe] of [
-    [a, d],
-    [d, a],
-  ] as const) {
-    if (u.team !== 'player' || !u.alive) continue;
-    const dealt = r.strikes.some((st) => st.attackerId === u.id && st.damage > 0);
-    const amount = combatXp(u.level, foe.level, dealt, !foe.alive, foe.isBoss, data.balance);
-    s.rng = grantXp(u, amount, s.rng, data, events);
-  }
+  clash(s, a, d, forecast(s, a.id, d.id, a.pos, data), data, events);
 }
 
 function heal(s: BattleState, u: Unit, t: Unit, data: GameData, events: BattleEvent[]): void {

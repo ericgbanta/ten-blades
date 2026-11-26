@@ -72,5 +72,14 @@
       "levelBonus": 2,
       "aggressive": true
     }
+  },
+  "resolve": {
+    "max": 100,
+    "start": 20,
+    "dealHit": 15,
+    "takeHit": 10,
+    "crit": 10,
+    "kill": 25,
+    "aiMargin": 2
   }
 }

@@ -13,7 +13,8 @@ import { applyAction } from './battle';
 import { canHurt, forecast } from './combat';
 import { areHostile, attackWeaponOf, distance, getUnit, livingUnits, staffOf, tileIndex } from './grid';
 import { actionTiles, attackTargets, distanceField, healTargets, moveTiles, reachableTiles } from './pathfinding';
-import type { Action, ActionResult, AiState, BattleEvent, BattleState, GameData, Pos, Unit } from './types';
+import { canUsePower, powerDirections, powerForecast, powerTargets, type PowerAim, type PowerForecast } from './powers';
+import type { Action, ActionResult, AiState, BattleEvent, BattleState, Forecast, GameData, Pos, Unit } from './types';
 
 interface Candidate {
   action: Action;
@@ -22,8 +23,11 @@ interface Candidate {
 
 /** Score of attacking `targetId` from `from`: expected damage, a lethal bonus, minus expected counter damage. */
 export function attackScore(state: BattleState, unit: Unit, targetId: string, from: Pos, data: GameData): number {
-  const target = getUnit(state, targetId);
-  const fc = forecast(state, unit.id, targetId, from, data);
+  return fightScore(state, unit, forecast(state, unit.id, targetId, from, data));
+}
+
+function fightScore(state: BattleState, unit: Unit, fc: Forecast): number {
+  const target = getUnit(state, fc.defenderId);
   const a = fc.attacker;
   const dealt = (Math.min(target.hp, a.damage * a.strikes) * a.hit) / 100;
   const lethal = a.damage * a.strikes >= target.hp ? (40 * a.hit) / 100 : 0;
@@ -47,6 +51,59 @@ function bestAttack(state: BattleState, unit: Unit, tiles: Pos[], data: GameData
     }
   }
   return best;
+}
+
+/**
+ * Score of firing a power: a fight is scored like an attack (plus Devour's expected heal and Echo's repeat
+ * strike); Scatter adds up the expected damage and lethal bonus over every target, with no counters.
+ */
+export function powerScore(state: BattleState, unit: Unit, fc: PowerForecast): number {
+  if (fc.combat) {
+    const a = fc.combat.attacker;
+    const target = getUnit(state, fc.combat.defenderId);
+    const dealt = (Math.min(target.hp, a.damage * a.strikes) * a.hit) / 100;
+    const echo = fc.echoStrike ? (Math.min(target.hp, fc.echoStrike.damage) * fc.echoStrike.hit) / 100 : 0;
+    return fightScore(state, unit, fc.combat) + echo * 2 + Math.min(fc.healMax, dealt);
+  }
+  let score = 0;
+  for (const t of fc.targets) {
+    const target = getUnit(state, t.unitId);
+    score += ((Math.min(target.hp, t.side.damage) * t.side.hit) / 100) * 2;
+    if (t.side.damage >= target.hp) score += (40 * t.side.hit) / 100;
+    if (target.isLord) score += 5;
+  }
+  return score;
+}
+
+/** The best power use from any of `tiles`, or null when the power is not ready or hits nothing. */
+function bestPower(state: BattleState, unit: Unit, tiles: Pos[], data: GameData): Candidate | null {
+  let best: Candidate | null = null;
+  for (const to of tiles) {
+    if (!canUsePower(state, unit.id, to, data)) continue;
+    const aims: PowerAim[] = [
+      ...powerTargets(state, unit.id, to, data).map((targetId) => ({ targetId })),
+      ...powerDirections(state, unit.id, to, data).map((dir) => ({ dir })),
+    ];
+    for (const aim of aims) {
+      const fc = powerForecast(state, unit.id, to, aim, data);
+      if (fc.targets.every((t) => t.side.hit <= 0 || t.side.damage <= 0)) continue;
+      const score = powerScore(state, unit, fc);
+      if (!best || score > best.score) best = { action: { type: 'power', unitId: unit.id, to, ...aim }, score };
+    }
+  }
+  return best;
+}
+
+/**
+ * The best strike from `tiles`: an attack, or the unit's power when it is ready and beats the best attack by
+ * balance.resolve.aiMargin. Player units (the simulator's side) never fire powers here.
+ */
+function bestStrike(state: BattleState, unit: Unit, tiles: Pos[], data: GameData): Candidate | null {
+  const attack = bestAttack(state, unit, tiles, data);
+  if (unit.team === 'player') return attack;
+  const power = bestPower(state, unit, tiles, data);
+  if (power && (!attack || power.score >= attack.score + data.balance.resolve.aiMargin)) return power;
+  return attack;
 }
 
 function bestHeal(state: BattleState, unit: Unit, tiles: Pos[], data: GameData): Action | null {
@@ -82,7 +139,7 @@ function moveToward(state: BattleState, unit: Unit, sources: Pos[], data: GameDa
  * hostile when there is no lord), and never attacks.
  */
 function charge(state: BattleState, unit: Unit, data: GameData): Action {
-  const attack = bestAttack(state, unit, moveTiles(state, unit.id, data), data);
+  const attack = bestStrike(state, unit, moveTiles(state, unit.id, data), data);
   if (attack) return attack.action;
   const foes = livingUnits(state).filter((u) => areHostile(unit.team, u.team));
   const hurtable = foes.filter((u) => canHurt(state, unit.id, u.id, data));
@@ -115,11 +172,11 @@ export function planUnitAction(state: BattleState, unitId: string, data: GameDat
       return charge(viewState, view, data);
     case 'hold': {
       if (brain.active) return charge(viewState, view, data);
-      const attack = bestAttack(viewState, view, moveTiles(viewState, unitId, data), data);
+      const attack = bestStrike(viewState, view, moveTiles(viewState, unitId, data), data);
       return attack ? attack.action : stay;
     }
     case 'guard': {
-      const attack = bestAttack(viewState, view, actionTiles(viewState, unitId, data), data);
+      const attack = bestStrike(viewState, view, actionTiles(viewState, unitId, data), data);
       if (attack) return attack.action;
       const g = brain.guardTile ?? unit.pos;
       if (distance(unit.pos, g) <= brain.guardRadius) return stay;

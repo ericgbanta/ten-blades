@@ -86,6 +86,74 @@ export interface WeaponDef {
   /** HP restored by a staff. A weapon with heal > 0 is a staff: it heals and never attacks. */
   heal: number;
   legendary: boolean;
+  /** The legendary blade this weapon is (an id in blades.json). Its bearer runs a Resolve gauge and has its power. */
+  blade?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Blades and powers (src/data/blades.json)
+// ---------------------------------------------------------------------------
+
+/** A blade's school: one of the triangle's, or `style` for Widow's Hush, which takes the MC's combat style. */
+export type BladeSchool = 'heavy' | 'swift' | 'arcane' | 'style';
+
+export interface BladeTierDef {
+  tier: number;
+  name: string;
+  /** What the tier adds. Tier 1 (Dormant) is the base power. */
+  note: string;
+}
+
+export interface BladeDef {
+  name: string;
+  /** Its number in the design doc's roster, 1 to 10. */
+  number: number;
+  school: BladeSchool;
+  /** Who carries it (an archetype until the bearers are written). */
+  wielder: string;
+  power: string;
+  tiers: BladeTierDef[];
+}
+
+/**
+ * What a power does. Every number is tunable here.
+ * - echo: re-casts the last other power used within `range` tiles of the bearer (it witnessed it), from the
+ *   bearer with the bearer's stats. With nothing to echo, the fallback: an attack on an enemy at a distance in
+ *   `fallback.range`, then the bearer's strike repeats once at `fallback.damagePercent` damage, uncounterable.
+ * - devour: an empowered attack in weapon range (counters as usual): `bonusMight` on every strike, the bearer
+ *   heals `healPercent` of the damage it dealt (at most `healCap`), and each kill by the bearer for the rest of
+ *   the map adds `attackPerKill` attack, up to `maxStacks` kills.
+ * - scatter: pick a direction; every hostile unit within `length` tiles in a straight line from the bearer takes
+ *   one strike at `damagePercent` of normal damage. No counters.
+ */
+export type PowerEffect =
+  | { type: 'echo'; range: number; fallback: { range: [number, number]; damagePercent: number } }
+  | { type: 'devour'; bonusMight: number; healPercent: number; healCap: number; attackPerKill: number; maxStacks: number }
+  | { type: 'scatter'; length: number; damagePercent: number };
+
+export interface PowerDef {
+  name: string;
+  description: string;
+  /** False for powers not built yet: they show in data but cannot be used. */
+  implemented: boolean;
+  /** Resolve spent to fire it. Null spends the full gauge (balance.resolve.max). */
+  cost: number | null;
+  /** Null while not implemented. */
+  effect: PowerEffect | null;
+}
+
+/** Resolve gauge numbers (balance.json). Only units holding a blade with a power have a gauge. */
+export interface ResolveBalance {
+  max: number;
+  /** Gauge at the start of a battle. */
+  start: number;
+  /** Gains per strike: landing a hit, being hit, a crit landed (on top of the hit), and a kill. */
+  dealHit: number;
+  takeHit: number;
+  crit: number;
+  kill: number;
+  /** The AI fires a ready power when it scores at least this much above its best attack. */
+  aiMargin: number;
 }
 
 export interface DifficultyDef {
@@ -136,6 +204,7 @@ export interface Balance {
   };
   statCaps: Stats;
   difficulty: Record<Difficulty, DifficultyDef>;
+  resolve: ResolveBalance;
 }
 
 /** AI behavior names used in map data. */
@@ -173,6 +242,11 @@ export interface UnitPlacement {
 export interface McSlot {
   kind: 'mc';
   pos: Pos;
+  /**
+   * Weapon per combat style for a main character the battle creates (no lord in the party), such as a test map
+   * that hands the MC Widow's Hush. A lord carried in the party keeps its own weapon.
+   */
+  weapons?: Partial<Record<McStyle, string>>;
 }
 
 /** A deploy slot filled from the setup's party (non-lord members, in order). */
@@ -321,6 +395,9 @@ export interface GameData {
   classes: Record<string, ClassDef>;
   weapons: Record<string, WeaponDef>;
   maps: Record<string, MapData>;
+  /** The ten legendary blades and their powers (src/data/blades.json). */
+  blades: Record<string, BladeDef>;
+  powers: Record<string, PowerDef>;
 }
 
 // ---------------------------------------------------------------------------
@@ -389,6 +466,22 @@ export interface Unit {
   tags: string[];
   /** True once an event took the unit off the map. A unit that left also has `alive` false, but it did not fall. */
   left: boolean;
+  /** Resolve gauge, 0 to balance.resolve.max. Only bearers (a weapon with a blade) gain it; 0 for everyone else. */
+  resolve: number;
+  /** Kills that count for Devour's attack bonus this map (see PowerEffect devour). */
+  devourStacks: number;
+}
+
+/** One use of a power, kept for Echo. */
+export interface PowerUse {
+  /** The power that took effect (an echo is logged as the power it re-cast). */
+  powerId: string;
+  bearerId: string;
+  /** Where the bearer stood. */
+  at: Pos;
+  turn: number;
+  /** Echo bearers within their echo range of `at`, living, when it was used: they can echo it later. */
+  witnesses: string[];
 }
 
 export type BattleResult = 'ongoing' | 'victory' | 'defeat';
@@ -401,7 +494,7 @@ export interface BattleMap {
 }
 
 export interface BattleState {
-  version: 2;
+  version: 3;
   mapId: string;
   map: BattleMap;
   /** All units, including fallen ones (alive false). Order is stable. */
@@ -422,6 +515,8 @@ export interface BattleState {
   firedEvents: string[];
   /** Ids of units that joined the player team during this battle, in order. */
   recruited: string[];
+  /** Every power used this battle, in order (version 3). */
+  powerLog: PowerUse[];
 }
 
 // ---------------------------------------------------------------------------
@@ -464,8 +559,22 @@ export interface TalkAction {
   targetId: string;
 }
 
-// Later phases add item and power actions here.
-export type Action = WaitAction | AttackAction | HealAction | TalkAction | EndPhaseAction;
+export type Direction = 'up' | 'right' | 'down' | 'left';
+
+/**
+ * Move to `to` and fire the unit's blade power. Powers aimed at one unit take `targetId`; line powers (Scatter)
+ * take `dir`. Uses the unit's action, like an attack.
+ */
+export interface PowerAction {
+  type: 'power';
+  unitId: string;
+  to: Pos;
+  targetId?: string;
+  dir?: Direction;
+}
+
+// Later phases add item actions here.
+export type Action = WaitAction | AttackAction | HealAction | TalkAction | PowerAction | EndPhaseAction;
 
 // ---------------------------------------------------------------------------
 // Events (flat, in order, for the UI to animate)
@@ -484,6 +593,8 @@ export type BattleEvent =
       crit: boolean;
       damage: number;
       hpAfter: number;
+      /** Set on the repeat strike of Echo's fallback. */
+      echo?: boolean;
     }
   | { type: 'combatEnded'; attackerId: string; defenderId: string }
   | { type: 'unitDefeated'; unitId: string; byId: string | null }
@@ -493,7 +604,7 @@ export type BattleEvent =
       type: 'unitHealed';
       unitId: string;
       sourceId: string | null;
-      cause: 'staff' | 'terrain' | 'event';
+      cause: 'staff' | 'terrain' | 'event' | 'power';
       amount: number;
       hpAfter: number;
     }
@@ -514,7 +625,42 @@ export type BattleEvent =
   | { type: 'objectiveChanged'; objective: Objective }
   | { type: 'weaponChanged'; unitId: string; weaponId: string }
   | { type: 'unitDamaged'; unitId: string; amount: number; hpAfter: number }
-  | { type: 'unitLocked'; unitId: string; locked: boolean };
+  | { type: 'unitLocked'; unitId: string; locked: boolean }
+  // Powers (src/core/powers.ts)
+  /** A power fires. Its strikes, falls, heals and gauge changes follow, then `powerEnded`. */
+  | { type: 'powerUsed'; summary: PowerSummary }
+  | { type: 'powerEnded'; powerId: string; bearerId: string }
+  /** A gauge changed: `amount` gained (or spent, negative). */
+  | { type: 'resolveChanged'; unitId: string; amount: number; resolveAfter: number }
+  /** Devour's kill bonus grew. */
+  | { type: 'devourStack'; unitId: string; stacks: number; attackBonus: number };
+
+/** What a power did, announced up front so the UI can stage it. */
+export interface PowerSummary {
+  /** The power that took effect (an Echo re-casting Devour says devour). */
+  powerId: string;
+  /** The bearer's own power (echo when echoing). */
+  bladePowerId: string;
+  /** For an echo: the unit whose power was re-cast, or null for the fallback or no echo. */
+  echoOf: string | null;
+  /** True for Echo's fallback (repeat strike). */
+  fallback: boolean;
+  bearerId: string;
+  from: Pos;
+  dir: Direction | null;
+  /** Tiles the power covers (the line for Scatter, the target's tile otherwise). */
+  tiles: Pos[];
+  /** Units struck, in strike order. */
+  targetIds: string[];
+  /** The bearer's numbers against each target, as forecast (what was rolled). */
+  odds: { unitId: string; damage: number; hit: number; crit: number }[];
+  /** Each target's final HP and whether it fell. */
+  results: { unitId: string; damage: number; hit: boolean; crit: boolean; hpAfter: number; defeated: boolean }[];
+  /** HP the bearer healed, 0 if none. */
+  heal: number;
+  /** Devour stacks after the power, or null when the power gives none. */
+  stacksAfter: number | null;
+}
 
 export interface ActionResult {
   state: BattleState;

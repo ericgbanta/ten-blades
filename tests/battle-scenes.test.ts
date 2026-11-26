@@ -113,7 +113,7 @@ describe('talking by taps', () => {
     await c.start();
     c.tapTile({ x: 5, y: 16 });
     c.tapTile({ x: 7, y: 13 });
-    expect(c.view.menu).toEqual(['attack', 'talk', 'wait', 'cancel']);
+    expect(c.view.menu).toEqual(['attack', 'power', 'talk', 'wait', 'cancel']);
     c.command('talk');
     expect(c.view.selection).toMatchObject({ kind: 'target', mode: 'talk' });
     c.tapTile({ x: 8, y: 13 });

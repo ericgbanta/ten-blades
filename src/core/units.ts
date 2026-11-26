@@ -2,6 +2,7 @@
 // the new main character. Also the AI state for a placement or an event's AI spec.
 
 import { averageStats } from './leveling';
+import { startingResolve } from './resolve';
 import {
   STAT_KEYS,
   type AiSpec,
@@ -60,7 +61,7 @@ export function unitFromPlacement(p: UnitPlacement, difficulty: Difficulty, data
   const level = Math.min(p.level + (isEnemy ? data.balance.difficulty[difficulty].levelBonus : 0), data.balance.xp.levelCap);
   let stats = averageStats(p.classId, level, data);
   if (isEnemy) stats = applyDifficulty(stats, difficulty, data);
-  return {
+  const unit: Unit = {
     id: p.id,
     name: p.name,
     classId: p.classId,
@@ -78,7 +79,11 @@ export function unitFromPlacement(p: UnitPlacement, difficulty: Difficulty, data
     isLord: p.isLord ?? false,
     tags: [...(p.tags ?? [])],
     left: false,
+    resolve: 0,
+    devourStacks: 0,
   };
+  unit.resolve = startingResolve(unit, data);
+  return unit;
 }
 
 export function unitFromParty(m: PartyUnit, pos: Pos): Unit {
@@ -100,6 +105,8 @@ export function unitFromParty(m: PartyUnit, pos: Pos): Unit {
     isLord: m.isLord,
     tags: [],
     left: false,
+    resolve: 0,
+    devourStacks: 0,
   };
 }
 

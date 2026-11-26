@@ -25,7 +25,9 @@
   ],
   "legend": {".": "plain", "=": "road", "F": "forest", "H": "hill", "~": "water", "#": "wall", "V": "village", "T": "fort", "B": "bridge", "f": "ford"},
   "placements": [
-    {"kind": "mc", "pos": {"x": 5, "y": 16}},
+    {"kind": "mc", "pos": {"x": 5, "y": 16}, "weapons": {"vanguard": "widows_hush_vanguard", "duelist": "widows_hush_duelist", "spiritblade": "widows_hush_spiritblade"}},
+    {"kind": "unit", "id": "gravemaw", "name": "Gravemaw Bearer", "classId": "gravemaw_bearer", "team": "player", "level": 3, "pos": {"x": 4, "y": 16}},
+    {"kind": "unit", "id": "needles", "name": "Needles Thief", "classId": "needles_bearer", "team": "player", "level": 3, "pos": {"x": 7, "y": 16}},
     {"kind": "unit", "id": "stranger", "name": "The Stranger", "classId": "wanderer", "team": "player", "level": 1, "pos": {"x": 6, "y": 16}},
     {"kind": "unit", "id": "militia_soldier", "name": "Militia Soldier", "classId": "soldier", "team": "player", "level": 2, "pos": {"x": 4, "y": 15}},
     {"kind": "unit", "id": "militia_ranger", "name": "Militia Ranger", "classId": "ranger", "team": "player", "level": 2, "pos": {"x": 6, "y": 15}},

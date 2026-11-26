@@ -5,6 +5,8 @@ import { createBattle } from '../src/core';
 import type {
   AiSpec,
   Balance,
+  BladeDef,
+  PowerDef,
   BattleSetup,
   BattleState,
   ClassDef,
@@ -56,6 +58,7 @@ const balance: Balance = {
     hard: { statMultiplier: 1.5, statBonus: { str: 1 }, levelBonus: 1, aggressive: false },
     lunatic: { statMultiplier: 2, statBonus: { hp: 5 }, levelBonus: 2, aggressive: true },
   },
+  resolve: { max: 100, start: 20, dealHit: 15, takeHit: 10, crit: 10, kill: 25, aiMargin: 2 },
 };
 
 const cls = (school: ClassDef['school'], weaponKinds: string[], startingWeapon: string, base: Stats, growths: Stats): ClassDef => ({
@@ -101,6 +104,31 @@ const weapons: Record<string, WeaponDef> = {
   sure_axe: weapon('heavy', 'axe', 5, 300, 0, [1, 1]),
   crit_axe: weapon('heavy', 'axe', 5, 300, 300, [1, 1]),
   miss_axe: weapon('heavy', 'axe', 5, -300, 0, [1, 1]),
+  hush: { ...weapon('heavy', 'axe', 6, 80, 0, [1, 1]), legendary: true, blade: 'hush' },
+  maw: { ...weapon('heavy', 'axe', 8, 80, 0, [1, 1]), legendary: true, blade: 'maw' },
+  needles: { ...weapon('swift', 'dagger', 4, 90, 10, [1, 2]), legendary: true, blade: 'needles' },
+  storm: { ...weapon('arcane', 'tome', 4, 85, 0, [1, 2], true), legendary: true, blade: 'storm' },
+};
+
+const tier = (n: number) => ({ tier: n, name: `T${n}`, note: '' });
+const blades: Record<string, BladeDef> = {
+  hush: { name: 'Hush', number: 1, school: 'style', wielder: 'mc', power: 'echo', tiers: [tier(1), tier(2), tier(3)] },
+  maw: { name: 'Maw', number: 2, school: 'heavy', wielder: 'brute', power: 'devour', tiers: [tier(1), tier(2), tier(3)] },
+  needles: { name: 'Needles', number: 3, school: 'swift', wielder: 'thief', power: 'scatter', tiers: [tier(1), tier(2), tier(3)] },
+  storm: { name: 'Storm', number: 4, school: 'arcane', wielder: 'priestess', power: 'chain', tiers: [tier(1), tier(2), tier(3)] },
+};
+
+const powers: Record<string, PowerDef> = {
+  echo: { name: 'Echo', description: '', implemented: true, cost: null, effect: { type: 'echo', range: 3, fallback: { range: [1, 1], damagePercent: 50 } } },
+  devour: {
+    name: 'Devour',
+    description: '',
+    implemented: true,
+    cost: null,
+    effect: { type: 'devour', bonusMight: 4, healPercent: 100, healCap: 15, attackPerKill: 1, maxStacks: 5 },
+  },
+  scatter: { name: 'Scatter', description: '', implemented: true, cost: 80, effect: { type: 'scatter', length: 4, damagePercent: 70 } },
+  chain: { name: 'Chain', description: '', implemented: false, cost: null, effect: null },
 };
 
 /** Fixture game data. Terrain: . plain, F forest (cost 2, +20 avoid, +1 def), T fort, # wall, ~ water. */
@@ -117,6 +145,8 @@ export function fixtureData(): GameData {
       water: { name: 'Water', moveCost: { foot: null }, avoid: 0, def: 0, res: 0, healPercent: 0 },
     },
     maps: {},
+    blades,
+    powers,
   });
 }
 

@@ -52,6 +52,8 @@ export function validateGameData(data: GameData, story?: StoryRefs): string[] {
     if (w.heal > 0 && w.school !== 'none') errs.push(`weapon ${id}: staves sit outside the triangle`);
   }
 
+  errs.push(...validateBlades(data));
+
   for (const [id, t] of Object.entries(data.terrain)) {
     for (const m of moveTypes) {
       if (!(m in t.moveCost)) errs.push(`terrain ${id}: no moveCost for ${m}`);
@@ -74,6 +76,48 @@ export function validateGameData(data: GameData, story?: StoryRefs): string[] {
   for (const [id, m] of Object.entries(data.maps)) {
     if (m.id !== id) errs.push(`map ${id}: id field is ${m.id}`);
     errs.push(...validateMap(m, data, story));
+  }
+  return errs;
+}
+
+const BLADE_SCHOOLS = ['heavy', 'swift', 'arcane', 'style'];
+
+/** Blades, powers, the weapons that are blades, and the Resolve numbers. */
+function validateBlades(data: GameData): string[] {
+  const errs: string[] = [];
+  const r = data.balance.resolve;
+  if (!r) errs.push('balance: resolve missing');
+  else {
+    for (const k of ['max', 'start', 'dealHit', 'takeHit', 'crit', 'kill', 'aiMargin'] as const) {
+      if (!isInt(r[k]) || r[k] < 0) errs.push(`balance: resolve.${k} must be a whole number of 0 or more`);
+    }
+    if (isInt(r.max) && r.max <= 0) errs.push('balance: resolve.max must be above 0');
+  }
+  for (const [id, b] of Object.entries(data.blades)) {
+    if (!BLADE_SCHOOLS.includes(b.school)) errs.push(`blade ${id}: bad school ${b.school}`);
+    if (!data.powers[b.power]) errs.push(`blade ${id}: unknown power ${b.power}`);
+    if (!Array.isArray(b.tiers) || b.tiers.length === 0 || b.tiers.some((t, i) => t.tier !== i + 1)) errs.push(`blade ${id}: tiers must count up from 1`);
+  }
+  for (const [id, p] of Object.entries(data.powers)) {
+    if (p.cost !== null && (!isInt(p.cost) || p.cost <= 0 || (r && p.cost > r.max))) errs.push(`power ${id}: cost must be 1 to resolve.max, or null`);
+    if (p.implemented && !p.effect) errs.push(`power ${id}: implemented without an effect`);
+    const e = p.effect;
+    if (!e) continue;
+    const nums: [string, number][] =
+      e.type === 'echo'
+        ? [['range', e.range], ['fallback.damagePercent', e.fallback.damagePercent], ['fallback.range[0]', e.fallback.range[0]], ['fallback.range[1]', e.fallback.range[1]]]
+        : e.type === 'devour'
+          ? [['bonusMight', e.bonusMight], ['healPercent', e.healPercent], ['healCap', e.healCap], ['attackPerKill', e.attackPerKill], ['maxStacks', e.maxStacks]]
+          : [['length', e.length], ['damagePercent', e.damagePercent]];
+    if (!['echo', 'devour', 'scatter'].includes(e.type)) errs.push(`power ${id}: unknown effect ${String(e.type)}`);
+    for (const [k, v] of nums) if (!isInt(v) || v < 0) errs.push(`power ${id}: ${k} must be a whole number of 0 or more`);
+    if (e.type === 'scatter' && e.length < 1) errs.push(`power ${id}: length must be at least 1`);
+  }
+  for (const [id, w] of Object.entries(data.weapons)) {
+    if (w.blade === undefined) continue;
+    if (!data.blades[w.blade]) errs.push(`weapon ${id}: unknown blade ${w.blade}`);
+    if (!w.legendary) errs.push(`weapon ${id}: a blade must be legendary`);
+    if (w.heal > 0) errs.push(`weapon ${id}: a blade cannot be a staff`);
   }
   return errs;
 }
@@ -130,6 +174,13 @@ function validateMap(m: MapData, data: GameData, story: StoryRefs | undefined): 
     if (p.kind === 'mc') {
       mcSlots++;
       checkPos(p.pos, 'mc slot', null);
+      for (const [style, wid] of Object.entries(p.weapons ?? {})) {
+        const w = data.weapons[wid];
+        const c = data.classes[style];
+        if (!w) errs.push(`${where}: mc slot unknown weapon ${wid}`);
+        else if (!c) errs.push(`${where}: mc slot unknown style ${style}`);
+        else if (!c.weaponKinds.includes(w.kind)) errs.push(`${where}: mc slot ${style} cannot use ${wid}`);
+      }
     } else if (p.kind === 'party') checkPos(p.pos, 'party slot', null);
     else checkUnit(p, p.id);
   }

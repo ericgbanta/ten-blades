@@ -1,0 +1,118 @@
+{
+  "blades": {
+    "widows_hush": {
+      "name": "Widow's Hush", "number": 1, "school": "style",
+      "wielder": "The MC, inherited from the Stranger", "power": "echo",
+      "tiers": [
+        { "tier": 1, "name": "Dormant", "note": "Echo." },
+        { "tier": 2, "name": "Awakened", "note": "A second power and a stat boost (phase 6)." },
+        { "tier": 3, "name": "Unbound", "note": "An ultimate power, at a cost (later)." }
+      ]
+    },
+    "gravemaw": {
+      "name": "Gravemaw", "number": 2, "school": "heavy",
+      "wielder": "Hulking army deserter", "power": "devour",
+      "tiers": [
+        { "tier": 1, "name": "Dormant", "note": "Devour." },
+        { "tier": 2, "name": "Awakened", "note": "A second power and a stat boost (phase 6)." },
+        { "tier": 3, "name": "Unbound", "note": "An ultimate power, at a cost (later)." }
+      ]
+    },
+    "thousand_needles": {
+      "name": "Thousand Needles", "number": 3, "school": "swift",
+      "wielder": "Young street thief", "power": "scatter",
+      "tiers": [
+        { "tier": 1, "name": "Dormant", "note": "Scatter." },
+        { "tier": 2, "name": "Awakened", "note": "A second power and a stat boost (phase 6)." },
+        { "tier": 3, "name": "Unbound", "note": "An ultimate power, at a cost (later)." }
+      ]
+    },
+    "stormcall": {
+      "name": "Stormcall", "number": 4, "school": "arcane",
+      "wielder": "Exiled temple priestess", "power": "chain",
+      "tiers": [
+        { "tier": 1, "name": "Dormant", "note": "Chain." },
+        { "tier": 2, "name": "Awakened", "note": "Not designed yet." },
+        { "tier": 3, "name": "Unbound", "note": "Not designed yet." }
+      ]
+    },
+    "ironroot": {
+      "name": "Ironroot", "number": 5, "school": "heavy",
+      "wielder": "Village guardian who never leaves home", "power": "bulwark",
+      "tiers": [
+        { "tier": 1, "name": "Dormant", "note": "Bulwark." },
+        { "tier": 2, "name": "Awakened", "note": "Not designed yet." },
+        { "tier": 3, "name": "Unbound", "note": "Not designed yet." }
+      ]
+    },
+    "veilpiercer": {
+      "name": "Veilpiercer", "number": 6, "school": "swift",
+      "wielder": "Imperial assassin hunting the MC", "power": "blink",
+      "tiers": [
+        { "tier": 1, "name": "Dormant", "note": "Blink." },
+        { "tier": 2, "name": "Awakened", "note": "Not designed yet." },
+        { "tier": 3, "name": "Unbound", "note": "Not designed yet." }
+      ]
+    },
+    "frostbind": {
+      "name": "Frostbind", "number": 7, "school": "arcane",
+      "wielder": "Mountain hermit, oldest living bearer", "power": "still",
+      "tiers": [
+        { "tier": 1, "name": "Dormant", "note": "Still." },
+        { "tier": 2, "name": "Awakened", "note": "Not designed yet." },
+        { "tier": 3, "name": "Unbound", "note": "Not designed yet." }
+      ]
+    },
+    "ashen_vow": {
+      "name": "Ashen Vow", "number": 8, "school": "heavy",
+      "wielder": "Imperial general who can defect", "power": "pyre",
+      "tiers": [
+        { "tier": 1, "name": "Dormant", "note": "Pyre." },
+        { "tier": 2, "name": "Awakened", "note": "Not designed yet." },
+        { "tier": 3, "name": "Unbound", "note": "Not designed yet." }
+      ]
+    },
+    "bloodsong": {
+      "name": "Bloodsong", "number": 9, "school": "swift",
+      "wielder": "Wandering bard and duelist", "power": "tempo",
+      "tiers": [
+        { "tier": 1, "name": "Dormant", "note": "Tempo." },
+        { "tier": 2, "name": "Awakened", "note": "Not designed yet." },
+        { "tier": 3, "name": "Unbound", "note": "Not designed yet." }
+      ]
+    },
+    "crownless": {
+      "name": "Crownless", "number": 10, "school": "arcane",
+      "wielder": "The emperor's own child and champion", "power": "dominion",
+      "tiers": [
+        { "tier": 1, "name": "Dormant", "note": "Dominion." },
+        { "tier": 2, "name": "Awakened", "note": "Not designed yet." },
+        { "tier": 3, "name": "Unbound", "note": "Not designed yet." }
+      ]
+    }
+  },
+  "powers": {
+    "echo": {
+      "name": "Echo", "description": "Replays the last legendary power used within 3 tiles.",
+      "implemented": true, "cost": null,
+      "effect": { "type": "echo", "range": 3, "fallback": { "range": [1, 1], "damagePercent": 50 } }
+    },
+    "devour": {
+      "name": "Devour", "description": "Heals for damage dealt, gains attack per kill this map.",
+      "implemented": true, "cost": null,
+      "effect": { "type": "devour", "bonusMight": 4, "healPercent": 100, "healCap": 15, "attackPerKill": 1, "maxStacks": 5 }
+    },
+    "scatter": {
+      "name": "Scatter", "description": "The blade splits and hits every enemy in a line.",
+      "implemented": true, "cost": null,
+      "effect": { "type": "scatter", "length": 4, "damagePercent": 70 }
+    },
+    "chain": { "name": "Chain", "description": "Lightning jumps between adjacent enemies.", "implemented": false, "cost": null, "effect": null },
+    "bulwark": { "name": "Bulwark", "description": "Roots in place; adjacent allies take half damage.", "implemented": false, "cost": null, "effect": null },
+    "blink": { "name": "Blink", "description": "Teleports behind an enemy within 4 tiles and strikes.", "implemented": false, "cost": null, "effect": null },
+    "still": { "name": "Still", "description": "Freezes one enemy so it skips its next turn.", "implemented": false, "cost": null, "effect": null },
+    "pyre": { "name": "Pyre", "description": "Leaves burning tiles; costs the wielder HP.", "implemented": false, "cost": null, "effect": null },
+    "tempo": { "name": "Tempo", "description": "Each hit raises nearby allies' speed; drains the wielder.", "implemented": false, "cost": null, "effect": null },
+    "dominion": { "name": "Dominion", "description": "Takes control of an enemy for one turn.", "implemented": false, "cost": null, "effect": null }
+  }
+}

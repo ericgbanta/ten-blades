@@ -3,6 +3,7 @@
 
 import { ActionError } from './errors';
 import { attackWeaponOf, distance, findUnit, getUnit, inBounds, terrainAt } from './grid';
+import { devourBonus } from './resolve';
 import { nextInt, rollPercent, type RngState } from './rng';
 import type {
   Balance,
@@ -43,13 +44,14 @@ function sideNumbers(
   foeW: WeaponDef | null,
   state: BattleState,
   data: GameData,
+  bonus = 0,
 ): CombatSide {
   const b = data.balance;
   const c = b.combat;
   const edge = triangleEdge(w.school, foeW ? foeW.school : 'none', b);
   const sign = edgeSign(edge);
   const foeTerrain = terrainAt(state, foePos, data);
-  const attack = (w.magic ? unit.stats.mag : unit.stats.str) + w.might + sign * b.triangle.damageBonus;
+  const attack = (w.magic ? unit.stats.mag : unit.stats.str) + w.might + sign * b.triangle.damageBonus + devourBonus(unit, data) + bonus;
   const defense = w.magic ? foe.stats.res + foeTerrain.res : foe.stats.def + foeTerrain.def;
   const damage = Math.max(0, attack - defense);
   const hitRate = w.hit + unit.stats.skl * c.hitSklMult + Math.floor(unit.stats.lck / c.hitLckDiv) + sign * b.triangle.hitBonus;
@@ -93,6 +95,18 @@ export function forecast(
   from: Pos,
   data: GameData,
 ): Forecast {
+  return forecastWith(state, attackerId, defenderId, from, 0, data);
+}
+
+/** `forecast` with `bonus` added to the attacker's attack (an empowered strike such as Devour). Same errors. */
+export function forecastWith(
+  state: BattleState,
+  attackerId: string,
+  defenderId: string,
+  from: Pos,
+  bonus: number,
+  data: GameData,
+): Forecast {
   const a = findUnit(state, attackerId);
   const d = findUnit(state, defenderId);
   if (!a) throw new ActionError(`No unit ${attackerId}`);
@@ -103,7 +117,7 @@ export function forecast(
   const dist = distance(from, d.pos);
   if (dist < aw.range[0] || dist > aw.range[1]) throw new ActionError(`${d.id} is out of ${a.id}'s range`);
   const dw = attackWeaponOf(d, data);
-  const attacker = sideNumbers(a, aw, d, d.pos, dw, state, data);
+  const attacker = sideNumbers(a, aw, d, d.pos, dw, state, data, bonus);
   const canCounter = dw !== null && dist >= dw.range[0] && dist <= dw.range[1];
   const counter = canCounter ? sideNumbers(d, dw, a, from, aw, state, data) : null;
   return {
@@ -114,6 +128,19 @@ export function forecast(
     defenderTriangle: triangleEdge(dw ? dw.school : 'none', aw.school, data.balance),
     distance: dist,
   };
+}
+
+/**
+ * Numbers for one strike by `unitId` on `targetId` where it stands, at any distance (powers that reach past
+ * weapon range). Throws ActionError if a unit is unknown or the striker has no attack weapon.
+ */
+export function strikeSide(state: BattleState, unitId: string, targetId: string, data: GameData): CombatSide {
+  const a = findUnit(state, unitId);
+  const d = findUnit(state, targetId);
+  if (!a || !d) throw new ActionError(`No unit ${a ? targetId : unitId}`);
+  const aw = attackWeaponOf(a, data);
+  if (!aw) throw new ActionError(`${a.id} has no attack weapon`);
+  return sideNumbers(a, aw, d, d.pos, attackWeaponOf(d, data), state, data);
 }
 
 /** Roll one hit with the balance's hit mode. */
