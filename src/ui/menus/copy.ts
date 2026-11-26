@@ -2,7 +2,7 @@
 
 import type { Difficulty, McStyle, Permadeath } from '../../core';
 import { chapters, gameData } from '../../data';
-import type { CampaignSave, Pronouns } from '../../save/format';
+import type { CampaignSave, ChapterStage, Pronouns } from '../../save/format';
 import { SCHOOL_LABEL } from '../battle/text';
 
 export const PERMADEATH_TEXT: Record<Permadeath, { name: string; line: string }> = {
@@ -38,6 +38,9 @@ export function chapterName(id: string | null): string {
   if (id === null) return 'To be continued';
   return chapters.find((c) => c.id === id)?.name ?? id;
 }
+
+/** Where in a chapter a campaign stands, for Continue. */
+export const STAGE_TEXT: Record<ChapterStage, string> = { intro: 'Story', battle: 'Battle', outro: 'Story' };
 
 export function formatTime(ms: number): string {
   return new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });

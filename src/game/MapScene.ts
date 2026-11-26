@@ -397,6 +397,7 @@ export class MapScene extends Phaser.Scene implements Stage {
       t.setPosition(c.x, c.y).setScale(1).setAlpha(1).setVisible(u.alive);
       t.setDepth(10 + u.pos.y * 0.01);
       t.setActed(u.acted);
+      t.setTeam(u.team);
       t.setMaxHp(u.stats.hp);
       void t.tweenHp(u.hp, 0);
     }
@@ -570,6 +571,29 @@ export class MapScene extends Phaser.Scene implements Stage {
       case 'battleEnded':
         await this.sleep(t.ms(400));
         return;
+      case 'unitLeft': {
+        const tok = this.tokens.get(ev.unitId);
+        if (!tok) return;
+        await this.tween(tok, { alpha: 0 }, t.ms(450));
+        tok.setVisible(false);
+        return;
+      }
+      case 'unitTeamChanged': {
+        const tok = this.tokens.get(ev.unitId);
+        if (!tok) return;
+        tok.setTeam(ev.to);
+        tok.setActed(state.units.find((u) => u.id === ev.unitId)?.acted ?? false);
+        tok.hitFlash(t.ms(300));
+        await this.sleep(t.ms(300));
+        return;
+      }
+      case 'unitDamaged': {
+        const tok = this.tokens.get(ev.unitId);
+        if (!tok) return;
+        this.floatText(tok, `${ev.amount}`, TEXT.damage, 30, t.ms(800));
+        await tok.tweenHp(ev.hpAfter, t.ms(350));
+        return;
+      }
       default:
         return;
     }

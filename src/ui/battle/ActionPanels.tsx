@@ -3,7 +3,7 @@
 import { Fragment } from 'preact';
 import type { BattleState, CombatSide, Forecast, GameData, TriangleEdge, Unit } from '../../core';
 import type { McLook } from '../../art/mc/look';
-import type { Command, MenuOption } from '../../battle/selection';
+import type { Command, MenuOption, TargetMode } from '../../battle/selection';
 import { Icon, Medallion, schoolIcon, weaponIcon, type IconName } from '../kit';
 import { HpBar } from './UnitCard';
 import { SCHOOL_LABEL, triangleMark } from './text';
@@ -11,6 +11,7 @@ import { SCHOOL_LABEL, triangleMark } from './text';
 const OPTION_LABEL: Record<MenuOption, string> = {
   attack: 'Attack',
   heal: 'Heal',
+  talk: 'Talk',
   wait: 'Wait',
   cancel: 'Cancel',
 };
@@ -34,7 +35,7 @@ export function ActionMenu({ unit, options, run, data }: { unit: Unit; options: 
       <div class="btn-row">
         {options.map((o) => {
           const icon = optionIcon(o, unit, data);
-          const kind = o === 'attack' || o === 'heal' ? ' primary' : o === 'cancel' ? ' quiet' : '';
+          const kind = o === 'attack' || o === 'heal' || o === 'talk' ? ' primary' : o === 'cancel' ? ' quiet' : '';
           return (
             <button key={o} type="button" class={`btn${kind}`} onClick={() => run(o)}>
               {icon && <Icon name={icon} size={20} />}
@@ -47,11 +48,17 @@ export function ActionMenu({ unit, options, run, data }: { unit: Unit; options: 
   );
 }
 
-export function TargetHint({ mode, run }: { mode: 'attack' | 'heal'; run: Run }) {
+const TARGET_HINT: Record<TargetMode, string> = {
+  attack: 'Tap a red target to see the forecast.',
+  heal: 'Tap a wounded ally to heal.',
+  talk: 'Tap someone to talk to.',
+};
+
+export function TargetHint({ mode, run }: { mode: TargetMode; run: Run }) {
   return (
     <section class="panel target-hint">
-      <Icon name={mode === 'attack' ? 'sabre' : 'staff'} size={22} />
-      <p>{mode === 'attack' ? 'Tap a red target to see the forecast.' : 'Tap a wounded ally to heal.'}</p>
+      <Icon name={mode === 'attack' ? 'sabre' : mode === 'heal' ? 'staff' : 'lck'} size={22} />
+      <p>{TARGET_HINT[mode]}</p>
       <button type="button" class="btn quiet" onClick={() => run('back')}>
         Back
       </button>

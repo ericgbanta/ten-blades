@@ -1,7 +1,8 @@
 // Shown after a won chapter. The campaign is already saved by then.
 
 import { useEffect } from 'preact/hooks';
-import { gameData } from '../../data';
+import { chapters, gameData } from '../../data';
+import { canPlay } from '../../story/flow';
 import { finishedRun } from '../saves';
 import { chapterName } from './copy';
 import './menus.css';
@@ -25,6 +26,7 @@ export function ChapterComplete() {
             <span>{u.name}</span>
             <span class="muted">
               {gameData.classes[u.classId]?.name ?? u.classId} · Lv {u.level}
+              {u.weaponId && gameData.weapons[u.weaponId] ? ` · ${gameData.weapons[u.weaponId]!.name}` : ''}
             </span>
           </li>
         ))}
@@ -32,7 +34,7 @@ export function ChapterComplete() {
       {campaign.fallen.length > 0 && (
         <p class="roster-fallen">Lost for good: {campaign.fallen.map((u) => u.name).join(', ')}</p>
       )}
-      <p class="chapter-next">{next === null ? 'To be continued' : `Next: ${chapterName(next)}`}</p>
+      <p class="chapter-next">{canPlay(campaign, chapters, gameData) ? `Next: ${chapterName(next)}` : 'To be continued'}</p>
       <a class="btn primary" href="#/">
         Title
       </a>

@@ -1,12 +1,20 @@
+import { chapters, gameData } from '../data';
+import { canPlay } from '../story/flow';
 import { startRun } from './saves';
 import { useSaves } from './menus/Screen';
-import { chapterName } from './menus/copy';
+import { chapterName, STAGE_TEXT } from './menus/copy';
 import { Divider } from './kit';
 import './menus/menus.css';
 
 export function Title() {
   const { saves } = useSaves();
   const suspend = saves?.suspend ?? null;
+  // Without a suspended battle, Continue picks up the campaign played last, if it has a scene or battle to play.
+  const latest = suspend
+    ? null
+    : (saves?.slots
+        .filter((s) => s.save && canPlay(s.save, chapters, gameData))
+        .sort((a, b) => b.save!.updatedAt - a.save!.updatedAt)[0] ?? null);
   return (
     <main class="title home">
       <div class="title-logo">
@@ -17,6 +25,14 @@ export function Title() {
       </div>
       {/* Shown once the saves are read, so Continue does not push the menu down. */}
       <nav class="title-menu" aria-label="Main menu" style={saves ? undefined : { visibility: 'hidden' }}>
+        {latest?.save && (
+          <button type="button" class="btn primary" onClick={() => startRun({ slot: latest.slot, campaign: latest.save!, resume: null })}>
+            Continue
+            <span class="btn-sub">
+              {latest.save.mc.name} · {chapterName(latest.save.progress.current)} · {STAGE_TEXT[latest.save.progress.stage]}
+            </span>
+          </button>
+        )}
         {suspend && (
           <button
             type="button"
@@ -29,7 +45,7 @@ export function Title() {
             </span>
           </button>
         )}
-        <a class={`btn${suspend ? '' : ' primary'}`} href="#/new">
+        <a class={`btn${suspend || latest ? '' : ' primary'}`} href="#/new">
           New game
         </a>
         <a class="btn" href="#/load">

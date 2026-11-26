@@ -24,6 +24,8 @@ export interface TestHook {
   saved(): Promise<boolean>;
   /** The texture key a unit's map token shows (`token.mc` for the composed main character), or null. */
   tokenTexture(unitId: string): string | null;
+  /** The id of the mid-battle scene on screen, or null. */
+  scene(): string | null;
 }
 
 declare global {
@@ -55,6 +57,7 @@ export function installTestHook(
     suggest: (unitId) => planUnitAction(c.view.state, unitId, data, CHARGE),
     saved: () => flush().then(() => true),
     tokenTexture: (unitId) => game()?.tokenTexture(unitId) ?? null,
+    scene: () => c.view.scene,
   };
   return () => {
     delete window.__tb;

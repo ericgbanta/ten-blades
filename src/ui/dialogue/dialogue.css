@@ -1,0 +1,494 @@
+/* The dialogue player (Dialogue.tsx). Phone portrait first: portraits stand on the text box, the tools sit top
+   right. Landscape puts the portraits at the sides of a narrower box. */
+
+.dlg {
+  --c-whisper: #b8c8ee;
+  --dlg-box-h: 128px;
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dialog);
+  overflow: hidden;
+  color: var(--c-bone);
+  font-family: var(--font-body);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  background: var(--c-void);
+}
+
+.dlg.over-map {
+  /* The map stays visible behind a dark veil, darker under the tools so the battle bar does not show through. */
+  background: linear-gradient(180deg, rgba(6, 4, 8, 0.94) 0, rgba(6, 4, 8, 0.6) 130px, rgba(6, 4, 8, 0.55) 60%, rgba(6, 4, 8, 0.8) 100%);
+}
+
+.dlg-backdrop {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center 30%;
+}
+
+.dlg-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(9, 7, 10, 0.55) 0%, rgba(9, 7, 10, 0.2) 35%, rgba(9, 7, 10, 0.75) 72%, var(--c-void) 100%);
+}
+
+.dlg-backdrop.plain {
+  background: radial-gradient(ellipse at 50% 30%, #2a2028 0%, var(--c-bg) 55%, var(--c-void) 100%);
+}
+
+/* ---- Portraits ---------------------------------------------------------------------------------------- */
+
+.dlg-stage {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--dlg-box-h) + var(--safe-b) + 6px);
+  height: min(62vw, 46vh, 330px);
+  pointer-events: none;
+}
+
+.dlg-portrait {
+  position: absolute;
+  bottom: 0;
+  width: min(62vw, 46vh, 330px);
+  aspect-ratio: 1;
+  transition:
+    filter 220ms ease,
+    transform 220ms ease,
+    opacity 220ms ease;
+  animation: dlg-in 260ms ease-out;
+}
+
+.dlg-portrait.left {
+  left: max(-4vw, calc(var(--safe-l) - 16px));
+}
+
+.dlg-portrait.right {
+  right: max(-4vw, calc(var(--safe-r) - 16px));
+}
+
+/* The art faces the viewer's right, so the right-hand speaker is mirrored to face the middle. */
+.dlg-portrait.right .dlg-img {
+  transform: scaleX(-1);
+}
+
+.dlg-portrait.dim {
+  filter: brightness(0.42) saturate(0.6);
+  transform: scale(0.94);
+  transform-origin: bottom center;
+  z-index: 0;
+}
+
+.dlg-portrait.speaking {
+  z-index: 1;
+}
+
+.dlg-img {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
+  object-position: bottom;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.6));
+}
+
+.dlg-silhouette {
+  fill: #1c171c;
+  stroke: #4a4046;
+  stroke-width: 3;
+}
+
+@keyframes dlg-in {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+}
+
+/* ---- Tools -------------------------------------------------------------------------------------------- */
+
+.dlg-top {
+  position: absolute;
+  z-index: 3;
+  top: calc(var(--safe-t) + var(--sp-2));
+  right: calc(var(--safe-r) + var(--sp-2));
+  display: flex;
+  gap: var(--sp-1);
+}
+
+.dlg-tool {
+  padding: 0 var(--sp-3);
+  font-size: 0.8rem;
+}
+
+/* ---- Text box ----------------------------------------------------------------------------------------- */
+
+.dlg-box {
+  position: absolute;
+  z-index: 3;
+  left: calc(var(--safe-l) + var(--sp-2));
+  right: calc(var(--safe-r) + var(--sp-2));
+  bottom: calc(var(--safe-b) + var(--sp-2));
+  min-height: var(--dlg-box-h);
+  padding: 22px 18px 14px;
+  box-shadow: var(--shadow-panel);
+}
+
+.dlg-name {
+  position: absolute;
+  top: -15px;
+  left: 14px;
+  max-width: calc(100% - 28px);
+  padding: 4px 14px 5px;
+  border: 2px solid var(--c-gold-dim);
+  border-radius: var(--r-1);
+  background: var(--c-crimson-deep);
+  color: var(--c-gold);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.86rem;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: var(--shadow-text);
+}
+
+.kit .dlg-name {
+  border-color: transparent;
+  border-image-source: var(--kit-plate-primary);
+  border-image-slice: var(--kit-plate-primary-slice) fill;
+  border-image-width: 8px 11px;
+  border-image-repeat: stretch;
+  background: transparent;
+}
+
+.dlg-name.right {
+  left: auto;
+  right: 14px;
+}
+
+.dlg-text {
+  margin: 0;
+  padding-right: 22px;
+  font-size: 1.06rem;
+  line-height: 1.42;
+  color: var(--c-bone);
+  overflow-wrap: anywhere;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
+}
+
+.dlg-rest {
+  visibility: hidden;
+}
+
+.dlg-box.voice-narration .dlg-text {
+  color: var(--c-bone-dim);
+  font-style: italic;
+}
+
+/* The blade's voice: no plate, no portrait, cold italic text. */
+.dlg-box.voice-whisper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 12, 22, 0.88);
+  border-image: none;
+  border: 1px solid rgba(184, 200, 238, 0.35);
+  border-radius: var(--r-2);
+  box-shadow:
+    0 0 24px rgba(120, 150, 230, 0.25),
+    var(--shadow-panel);
+}
+
+.dlg-box.voice-whisper .dlg-text {
+  color: var(--c-whisper);
+  font-style: italic;
+  letter-spacing: 0.08em;
+  text-align: center;
+  padding: 0 22px;
+  text-shadow: 0 0 10px rgba(140, 170, 255, 0.55);
+}
+
+.dlg-next {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: var(--tap);
+  height: var(--tap);
+  border: 0;
+  background: transparent;
+  color: var(--c-gold);
+  font-size: 0.8rem;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.dlg-next.ready {
+  opacity: 1;
+}
+
+/* The arrow bobs, not the button, so the button stays still under a finger. */
+.dlg-next.ready span {
+  display: inline-block;
+  animation: dlg-bob 1.1s ease-in-out infinite;
+}
+
+@keyframes dlg-bob {
+  50% {
+    translate: 0 3px;
+  }
+}
+
+/* ---- Choices ------------------------------------------------------------------------------------------ */
+
+.dlg-choices {
+  position: absolute;
+  z-index: 3;
+  left: calc(var(--safe-l) + var(--sp-4));
+  right: calc(var(--safe-r) + var(--sp-4));
+  bottom: calc(var(--safe-b) + var(--sp-4));
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  align-items: stretch;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.dlg-choice {
+  min-height: 52px;
+  padding: var(--sp-2) var(--sp-4);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0;
+  line-height: 1.25;
+  white-space: normal;
+  text-align: center;
+}
+
+/* ---- Effects ------------------------------------------------------------------------------------------ */
+
+.dlg-fade {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 600ms ease;
+}
+
+.dlg-fade.dark {
+  opacity: 0.92;
+}
+
+.dlg-flash {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  background: #fff;
+  pointer-events: none;
+  animation: dlg-flash 520ms ease-out forwards;
+}
+
+@keyframes dlg-flash {
+  from {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.dlg.shake-a .dlg-stage,
+.dlg.shake-a .dlg-backdrop {
+  animation: dlg-shake-a 380ms ease-out;
+}
+
+.dlg.shake-b .dlg-stage,
+.dlg.shake-b .dlg-backdrop {
+  animation: dlg-shake-b 380ms ease-out;
+}
+
+@keyframes dlg-shake-a {
+  20% {
+    translate: -7px 2px;
+  }
+  45% {
+    translate: 6px -2px;
+  }
+  70% {
+    translate: -3px 1px;
+  }
+}
+
+@keyframes dlg-shake-b {
+  20% {
+    translate: 7px -2px;
+  }
+  45% {
+    translate: -6px 2px;
+  }
+  70% {
+    translate: 3px -1px;
+  }
+}
+
+/* ---- Log and skip confirm ----------------------------------------------------------------------------- */
+
+.dlg-log,
+.dlg-ask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--safe-t) + var(--sp-4)) calc(var(--safe-r) + var(--sp-3)) calc(var(--safe-b) + var(--sp-4)) calc(var(--safe-l) + var(--sp-3));
+  background: rgba(6, 4, 8, 0.72);
+  z-index: 5;
+}
+
+.dlg-log-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  width: 100%;
+  max-width: 520px;
+  max-height: 100%;
+  padding: var(--sp-4);
+}
+
+.dlg-log-title {
+  margin: 0;
+  color: var(--c-gold);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.dlg-log-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0 var(--sp-1);
+  list-style: none;
+  overflow-y: auto;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.dlg-log-list li {
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--c-line);
+  line-height: 1.35;
+}
+
+.dlg-log-who {
+  display: block;
+  color: var(--c-gold);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+}
+
+.dlg-log-list li.voice-narration .dlg-log-text {
+  color: var(--c-bone-dim);
+  font-style: italic;
+}
+
+.dlg-log-list li.voice-whisper .dlg-log-text {
+  color: var(--c-whisper);
+  font-style: italic;
+  letter-spacing: 0.06em;
+}
+
+.dlg-log-list li.choice .dlg-log-who {
+  color: var(--c-muted);
+}
+
+.dlg-ask-box {
+  width: 100%;
+  max-width: 340px;
+  padding: var(--sp-4);
+  text-align: center;
+}
+
+.dlg-ask-box p {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-lg);
+}
+
+.dlg-ask-box .dlg-ask-detail {
+  color: var(--c-bone-dim);
+  font-size: var(--fs-sm);
+  margin-bottom: var(--sp-4);
+}
+
+.dlg-row {
+  display: flex;
+  gap: var(--sp-2);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ---- Small and wide screens --------------------------------------------------------------------------- */
+
+@media (max-width: 340px) {
+  .dlg-box {
+    padding: 20px 14px 12px;
+  }
+  .dlg-text {
+    font-size: 1rem;
+  }
+  .dlg-tool {
+    padding: 0 var(--sp-2);
+  }
+}
+
+/* Landscape on a phone: a shorter box between the portraits. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .dlg {
+    --dlg-box-h: 104px;
+  }
+  .dlg-stage {
+    bottom: 0;
+    height: 100%;
+  }
+  .dlg-portrait {
+    width: min(62vh, 38vw);
+  }
+  .dlg-box {
+    left: max(calc(var(--safe-l) + var(--sp-2)), 18vw);
+    right: max(calc(var(--safe-r) + var(--sp-2)), 18vw);
+    z-index: 2;
+  }
+  .dlg-text {
+    font-size: 1rem;
+    line-height: 1.36;
+  }
+  .dlg-choices {
+    left: 22vw;
+    right: 22vw;
+    z-index: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dlg-portrait {
+    animation: none;
+    transition: none;
+  }
+  .dlg-next.ready span {
+    animation: none;
+  }
+  .dlg-fade {
+    transition: none;
+  }
+}

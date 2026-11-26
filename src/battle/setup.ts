@@ -12,7 +12,6 @@ export const QUICK_BATTLE: BattleSetup = {
   mc: { name: 'Wanderer', style: 'vanguard' },
 };
 
-export const FIRST_MAP_ID = 'prologue';
 
 export interface LaunchOptions {
   setup: BattleSetup;
@@ -22,8 +21,10 @@ export interface LaunchOptions {
   test: boolean;
   /** True for a quick battle (`quick=1`): no slot, nothing saved. */
   quick: boolean;
-  /** Map id for a quick battle (`map=<id>`), or null for the first map. Unknown ids fall back to the first map. */
+  /** Map id for a quick battle (`map=<id>`), or null for the first chapter's map. Unknown ids fall back to it too. */
   mapId: string | null;
+  /** Quick battles skip mid-battle scenes unless the URL has `scenes=1`. */
+  scenes: boolean;
 }
 
 const STYLES: readonly McStyle[] = ['vanguard', 'duelist', 'spiritblade'];
@@ -54,6 +55,7 @@ export function parseLaunch(search: string, hash: string): LaunchOptions {
     test: params.get('test') === '1',
     quick: params.get('quick') === '1',
     mapId: /^[a-z0-9_]+$/.test(params.get('map') ?? '') ? params.get('map') : null,
+    scenes: params.get('scenes') === '1',
   };
 }
 

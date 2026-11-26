@@ -264,6 +264,13 @@ export class UnitToken extends Phaser.GameObjects.Container {
     this.drawBody();
   }
 
+  /** A unit that changed sides (recruited by talking, say) stands on its new team's base. */
+  setTeam(team: Team): void {
+    if (team === this.look.team) return;
+    this.look.team = team;
+    this.drawBody();
+  }
+
   setMaxHp(maxHp: number): void {
     if (maxHp === this.maxHp) return;
     this.maxHp = maxHp;

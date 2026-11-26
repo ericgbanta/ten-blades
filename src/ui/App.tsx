@@ -3,6 +3,7 @@ import './styles.css';
 import { useEffect, useState } from 'preact/hooks';
 import { Title } from './Title';
 import { Battle } from './Battle';
+import { Story } from './Story';
 import { NewGame } from './menus/NewGame';
 import { LoadGame } from './menus/LoadGame';
 import { Settings } from './menus/Settings';
@@ -27,6 +28,8 @@ export function App() {
   switch (route) {
     case '/battle':
       return <Battle />;
+    case '/story':
+      return <Story />;
     case '/new':
       return <NewGame />;
     case '/load':

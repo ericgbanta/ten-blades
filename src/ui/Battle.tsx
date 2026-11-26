@@ -3,13 +3,17 @@ import { createBattle, type BattleSetup, type BattleState, type BattleSummary } 
 import { composeMcToken } from '../art/mc/compose';
 import { DEFAULT_LOOK, type McLook } from '../art/mc/look';
 import { chapters, gameData } from '../data';
+import { scenes as sceneData, speakers, worldNames } from '../data/story';
+import type { TextContext } from '../story/text';
+import { Dialogue } from './dialogue/Dialogue';
 import { BattleController, type BattleView, type CheckpointExtra, type Speed } from '../battle/controller';
 import { BattleSaver } from '../save/battleSaver';
-import { battleSetup, currentChapter } from '../save/campaign';
+import { battleSetup } from '../save/campaign';
 import { loadPrefs, savePrefs } from '../save/prefs';
 import type { SaveStorage } from '../save/storage';
-import { finishRun, takeRun, now, storage, writes, type CampaignRun } from './saves';
-import { FIRST_MAP_ID, battleSeed, parseLaunch, type LaunchOptions } from '../battle/setup';
+import { startRun, takeRun, now, storage, writes, type CampaignRun } from './saves';
+import { battleSeed, parseLaunch, type LaunchOptions } from '../battle/setup';
+import { flowStep } from '../story/flow';
 import type { Insets } from '../game/camera';
 import type { GameHandle } from '../game/start';
 import { ActionMenu, ForecastPanel, HealPanel, TargetHint } from './battle/ActionPanels';
@@ -38,6 +42,9 @@ export function Battle() {
   return null;
 }
 
+/** The quick battle's default map: the first chapter that has one (src/data/chapters.json). */
+const FIRST_MAP = chapters.find((c) => c.mapId !== null && gameData.maps[c.mapId])?.mapId ?? Object.keys(gameData.maps)[0]!;
+
 function newBattle(setup: BattleSetup, mapId: string, launch: LaunchOptions): BattleState {
   const map = gameData.maps[mapId];
   if (!map) throw new Error(`Missing map ${mapId}`);
@@ -46,7 +53,7 @@ function newBattle(setup: BattleSetup, mapId: string, launch: LaunchOptions): Ba
 
 function QuickBattle({ launch }: { launch: LaunchOptions }) {
   const [attempt, setAttempt] = useState(0);
-  const mapId = launch.mapId && gameData.maps[launch.mapId] ? launch.mapId : FIRST_MAP_ID;
+  const mapId = launch.mapId && gameData.maps[launch.mapId] ? launch.mapId : FIRST_MAP;
   const initial = useMemo(() => newBattle(launch.setup, mapId, launch), [launch, mapId, attempt]);
   return (
     <BattleRun
@@ -54,6 +61,8 @@ function QuickBattle({ launch }: { launch: LaunchOptions }) {
       initial={initial}
       launch={launch}
       look={DEFAULT_LOOK}
+      text={{ mcName: launch.setup.mc.name, pronouns: 'they', names: worldNames }}
+      scenes={launch.scenes}
       quitText="Leave this battle? Quick battles are not saved."
       endButtons={() => [
         { label: 'Play again', primary: true, onTap: () => setAttempt((a) => a + 1) },
@@ -78,8 +87,9 @@ function CampaignBattle({ run, launch }: { run: CampaignRun; launch: LaunchOptio
 /** One campaign map. Retry starts a fresh attempt from the campaign save with a new seed. */
 function CampaignAttempts({ run, launch, store }: { run: CampaignRun; launch: LaunchOptions; store: SaveStorage }) {
   const [attempt, setAttempt] = useState(0);
-  const chapter = currentChapter(run.campaign, chapters);
-  const mapId = run.resume?.mapId ?? chapter?.mapId ?? FIRST_MAP_ID;
+  // The map comes from the chapter data through the chapter flow (or from the suspended battle on a resume).
+  const step = flowStep(run.campaign, chapters, gameData);
+  const mapId = run.resume?.mapId ?? (step.kind === 'battle' ? step.mapId : FIRST_MAP);
   const { initial, saver } = useMemo(() => {
     const resume = attempt === 0 ? run.resume : null;
     const state = resume ? resume.battle : newBattle(battleSetup(run.campaign), mapId, launch);
@@ -95,6 +105,9 @@ function CampaignAttempts({ run, launch, store }: { run: CampaignRun; launch: La
       initial={initial}
       launch={launch}
       look={run.campaign.mc.look}
+      text={{ mcName: run.campaign.mc.name, pronouns: run.campaign.mc.pronouns, names: worldNames }}
+      scenes
+      pendingScenes={attempt === 0 ? (run.resume?.controller.scenes ?? []) : []}
       showDanger={attempt === 0 ? (run.resume?.controller.showDanger ?? false) : false}
       onCheckpoint={(state, extra) => saver.checkpoint(state, extra)}
       quitText="Leave this battle? It stays suspended: pick it up with Continue on the title screen."
@@ -109,10 +122,8 @@ function CampaignAttempts({ run, launch, store }: { run: CampaignRun; launch: La
               {
                 label: 'Continue',
                 primary: true,
-                onTap: () => {
-                  finishRun(run.slot, saver.completed ?? run.campaign, chapter?.name ?? 'Chapter');
-                  window.location.hash = '#/complete';
-                },
+                // On to the outro (src/story/flow.ts); the won campaign is already being saved.
+                onTap: () => startRun({ slot: run.slot, campaign: saver.completed ?? run.campaign, resume: null }),
               },
             ]
           : [
@@ -139,6 +150,12 @@ interface BattleRunProps {
   launch: LaunchOptions;
   /** The main character's look, for their map token and unit card. */
   look: McLook;
+  /** Names and pronouns for mid-battle scenes. */
+  text: TextContext;
+  /** Show mid-battle scenes. */
+  scenes: boolean;
+  /** Scenes a resumed battle still owes. */
+  pendingScenes?: string[];
   showDanger?: boolean;
   onCheckpoint?: (state: BattleState, extra: CheckpointExtra) => void;
   quitText: string;
@@ -146,14 +163,17 @@ interface BattleRunProps {
   endButtons: (summary: BattleSummary) => EndButton[];
 }
 
-function BattleRun({ initial, launch, look, showDanger, onCheckpoint, quitText, endNote, endButtons }: BattleRunProps) {
+function BattleRun({ initial, launch, look, text, scenes, pendingScenes, showDanger, onCheckpoint, quitText, endNote, endButtons }: BattleRunProps) {
+  const reduced = useMemo(prefersReducedMotion, []);
   const controller = useMemo(
     () =>
       new BattleController(initial, gameData, {
-        reducedMotion: prefersReducedMotion(),
+        reducedMotion: reduced,
         speed: loadPrefs().speed,
         showDanger,
         onCheckpoint,
+        scenes,
+        pendingScenes,
       }),
     // A run is one controller for its whole life; the other props are read once.
     [initial],
@@ -252,7 +272,33 @@ function BattleRun({ initial, launch, look, showDanger, onCheckpoint, quitText, 
         />
       )}
       {ended && <EndScreen summary={ended} state={state} note={endNote?.(ended, state)} buttons={endButtons(ended)} />}
+      {view.scene && <BattleScene key={view.scene} sceneId={view.scene} controller={controller} state={state} look={look} text={text} reduced={reduced} />}
     </div>
+  );
+}
+
+/** A mid-battle scene over the dimmed map. A scene id with no data is passed over. */
+function BattleScene(props: { sceneId: string; controller: BattleController; state: BattleState; look: McLook; text: TextContext; reduced: boolean }) {
+  const scene = sceneData[props.sceneId];
+  useEffect(() => {
+    if (!scene) {
+      console.warn(`Missing scene ${props.sceneId}`);
+      props.controller.sceneDone();
+    }
+  }, [scene]);
+  if (!scene) return null;
+  const { state } = props;
+  return (
+    <Dialogue
+      scene={scene}
+      overlay
+      text={props.text}
+      story={{ flags: state.flags, permadeath: state.options.permadeath, difficulty: state.options.difficulty }}
+      speakers={speakers}
+      look={props.look}
+      reducedMotion={props.reduced}
+      onDone={() => props.controller.sceneDone()}
+    />
   );
 }
 

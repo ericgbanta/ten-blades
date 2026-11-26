@@ -76,3 +76,19 @@ export function portraitId(unit: Pick<Unit, 'id' | 'classId'>): string | null {
   const id = `portrait.${sheet}.neutral`;
   return imageMeta(id) ? id : null;
 }
+
+/**
+ * The portrait for a dialogue speaker's sheet and expression: `portrait.<sheet>.<expr>`, else the sheet's
+ * neutral one (generic units only have neutral), else null (draw a silhouette).
+ */
+export function speakerPortraitId(sheet: string, expr: string): string | null {
+  for (const id of [`portrait.${sheet}.${expr}`, `portrait.${sheet}.neutral`]) if (imageMeta(id)) return id;
+  return null;
+}
+
+/** The backdrop image for a scene's backdrop id, or null when there is no such art (a plain dark backdrop). */
+export function backdropArtId(id: string | null): string | null {
+  if (!id) return null;
+  const art = `backdrop.${id}`;
+  return imageMeta(art) ? art : null;
+}

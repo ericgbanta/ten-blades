@@ -11,6 +11,7 @@ import {
   pathTo,
   planAiAction,
   samePos,
+  startBattle,
   threatTiles,
   type Action,
   type BattleEvent,
@@ -30,7 +31,7 @@ import {
   previewOf,
   readyUnitIds,
   runCommand,
-  tapTile,
+  tapTileAction,
   type Command,
   type MenuOption,
   type Selection,
@@ -72,6 +73,8 @@ export interface BattleView {
   speed: Speed;
   /** Set once the battle is over and its last event has played. */
   ended: BattleSummary | null;
+  /** The mid-battle dialogue scene to show over the map, or null. Call `sceneDone` when it has played. */
+  scene: string | null;
 }
 
 export interface ControllerOptions {
@@ -89,11 +92,17 @@ export interface ControllerOptions {
    * be in an AI phase; `start()` on that state plays the AI on to the next rest.
    */
   onCheckpoint?: (state: BattleState, extra: CheckpointExtra) => void;
+  /** Show mid-battle scenes (`sceneRequested` events). Off: they are passed over. */
+  scenes?: boolean;
+  /** Scenes a resumed battle still owes from its last player action, played first. */
+  pendingScenes?: string[];
 }
 
 /** Controller state that a resume keeps. */
 export interface CheckpointExtra {
   showDanger: boolean;
+  /** Scenes from the last player action (or the battle start) that have not finished playing. */
+  scenes: string[];
 }
 
 const defaultSleep = (ms: number, onCancel: (cancel: () => void) => void): Promise<void> =>
@@ -127,6 +136,12 @@ export class BattleController {
   private readonly reduced: boolean;
   private readonly onCheckpoint: ControllerOptions['onCheckpoint'];
   private lastCheckpoint: BattleState | null = null;
+  private lastPending = '';
+  private readonly scenesOn: boolean;
+  /** Scenes of the last checkpointed action still to play. */
+  private pending: string[];
+  private scene: string | null = null;
+  private sceneResolve: (() => void) | null = null;
 
   constructor(
     initial: BattleState,
@@ -139,6 +154,8 @@ export class BattleController {
     this.speed = options.speed ?? 'normal';
     this.showDanger = options.showDanger ?? false;
     this.onCheckpoint = options.onCheckpoint;
+    this.scenesOn = options.scenes ?? false;
+    this.pending = this.scenesOn ? [...(options.pendingScenes ?? [])] : [];
   }
 
   // -------------------------------------------------------------------------
@@ -166,6 +183,7 @@ export class BattleController {
       showDanger: this.showDanger,
       speed: this.speed,
       ended: this.ended,
+      scene: this.scene,
     };
     return this.cached;
   }
@@ -199,9 +217,29 @@ export class BattleController {
    */
   start(): Promise<void> {
     return this.runBusy(async () => {
+      if (!this.state.started) {
+        // The battle start events (an opening scene, say) play before the first banner.
+        const r = startBattle(this.state, this.data);
+        this.state = r.state;
+        this.pending = this.scenesIn(r.events);
+        this.checkpoint();
+        if (r.events.length > 0) {
+          await this.playEvents(r.events);
+          this.stage?.sync(this.state);
+        }
+        this.changed();
+      } else if (this.pending.length > 0) {
+        // A resume owes the scenes its last action had not finished.
+        for (const id of [...this.pending]) await this.playScene(id);
+      }
       if (this.state.result === 'ongoing') await this.showBanner(this.state.phase, this.state.turn);
       await this.runAutomatic();
     });
+  }
+
+  /** The mid-battle scene on screen has played to its end (or was skipped). */
+  sceneDone(): void {
+    this.sceneResolve?.();
   }
 
   // -------------------------------------------------------------------------
@@ -221,7 +259,9 @@ export class BattleController {
       return;
     }
     this.tile = pos;
-    this.select(tapTile(this.state, this.selection, pos, this.data));
+    const t = tapTileAction(this.state, this.selection, pos, this.data);
+    if (t.action) this.perform(t.action);
+    else this.select(t.selection);
   }
 
   command(cmd: Command): void {
@@ -356,7 +396,10 @@ export class BattleController {
     const r = applyAction(this.state, action, this.data);
     this.state = r.state;
     // The outcome is decided now: save it before the animations play.
-    if (checkpoint) this.checkpoint();
+    if (checkpoint) {
+      this.pending = this.scenesIn(r.events);
+      this.checkpoint();
+    }
     await this.playEvents(r.events);
     this.stage?.sync(this.state);
     this.changed();
@@ -374,9 +417,33 @@ export class BattleController {
   }
 
   private checkpoint(): void {
-    if (this.state === this.lastCheckpoint) return;
+    const pending = this.pending.join('|');
+    if (this.state === this.lastCheckpoint && pending === this.lastPending) return;
     this.lastCheckpoint = this.state;
-    this.onCheckpoint?.(this.state, { showDanger: this.showDanger });
+    this.lastPending = pending;
+    this.onCheckpoint?.(this.state, { showDanger: this.showDanger, scenes: [...this.pending] });
+  }
+
+  private scenesIn(events: BattleEvent[]): string[] {
+    if (!this.scenesOn) return [];
+    return events.flatMap((e) => (e.type === 'sceneRequested' ? [e.sceneId] : []));
+  }
+
+  /** Show a scene and wait for the UI to finish it. A scene the last checkpoint owed is then crossed off. */
+  private async playScene(sceneId: string): Promise<void> {
+    if (!this.scenesOn) return;
+    this.scene = sceneId;
+    this.changed();
+    await new Promise<void>((resolve) => {
+      this.sceneResolve = resolve;
+    });
+    this.sceneResolve = null;
+    this.scene = null;
+    this.changed();
+    if (this.pending[0] === sceneId) {
+      this.pending = this.pending.slice(1);
+      this.checkpoint();
+    }
   }
 
   /** AI moves during enemy and ally phases; End turn once every player unit has acted. */
@@ -391,6 +458,10 @@ export class BattleController {
     for (const ev of events) {
       if (ev.type === 'phaseChanged') {
         await this.showBanner(ev.phase, ev.turn);
+      } else if (ev.type === 'sceneRequested') {
+        // The map shows the state after the action, so the scene plays over the field as it now stands.
+        this.stage?.sync(this.state);
+        await this.playScene(ev.sceneId);
       } else if (ev.type === 'levelUp') {
         await this.showLevelUp(ev.unitId, ev.level, ev.gains);
       } else {

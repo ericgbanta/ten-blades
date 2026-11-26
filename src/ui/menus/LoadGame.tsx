@@ -2,8 +2,10 @@
 // start of its map. A suspended battle is resumed with Continue on the title.
 
 import { useState } from 'preact/hooks';
+import { chapters, gameData } from '../../data';
 import type { CampaignSave, SlotId } from '../../save/format';
-import { startRun, writes } from '../saves';
+import { canPlay, settle } from '../../story/flow';
+import { now, startRun, writes } from '../saves';
 import { Confirm, Screen, SlotCard, goTo, useSaves } from './Screen';
 import { chapterName } from './copy';
 
@@ -21,7 +23,7 @@ export function LoadGame() {
   };
 
   const tap = (slot: SlotId, save: CampaignSave) => {
-    if (save.progress.current === null) setAsking({ kind: 'done', save });
+    if (!canPlay(settle(save, chapters, gameData, now()), chapters, gameData)) setAsking({ kind: 'done', save });
     else if (saves?.suspend) setAsking({ kind: 'suspend', slot, save });
     else void start(slot, save);
   };
