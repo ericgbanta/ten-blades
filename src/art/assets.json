@@ -8135,6 +8135,160 @@
       "path": "mc/lean/token-vanguard.webp",
       "width": 192
     },
+    "piece.bridge.deck": {
+      "bbox": [
+        0,
+        26,
+        96,
+        46
+      ],
+      "height": 96,
+      "path": "tiles/piece-bridge-deck.webp",
+      "width": 96
+    },
+    "piece.ford.deck": {
+      "bbox": [
+        0,
+        39,
+        96,
+        18
+      ],
+      "height": 96,
+      "path": "tiles/piece-ford-deck.webp",
+      "width": 96
+    },
+    "piece.road.arm": {
+      "bbox": [
+        48,
+        15,
+        48,
+        54
+      ],
+      "height": 96,
+      "path": "tiles/piece-road-arm.webp",
+      "width": 96
+    },
+    "piece.road.hub": {
+      "bbox": [
+        33,
+        33,
+        30,
+        30
+      ],
+      "height": 96,
+      "path": "tiles/piece-road-hub.webp",
+      "width": 96
+    },
+    "piece.road.lip": {
+      "bbox": [
+        27,
+        16,
+        42,
+        21
+      ],
+      "height": 96,
+      "path": "tiles/piece-road-lip.webp",
+      "width": 96
+    },
+    "piece.road.straight": {
+      "bbox": [
+        0,
+        15,
+        96,
+        54
+      ],
+      "height": 96,
+      "path": "tiles/piece-road-straight.webp",
+      "width": 96
+    },
+    "piece.shore.bank": {
+      "bbox": [
+        0,
+        0,
+        96,
+        26
+      ],
+      "height": 96,
+      "path": "tiles/piece-shore-bank.webp",
+      "width": 96
+    },
+    "piece.shore.inner": {
+      "bbox": [
+        0,
+        0,
+        35,
+        32
+      ],
+      "height": 96,
+      "path": "tiles/piece-shore-inner.webp",
+      "width": 96
+    },
+    "piece.shore.land": {
+      "bbox": [
+        0,
+        0,
+        96,
+        20
+      ],
+      "height": 96,
+      "path": "tiles/piece-shore-land.webp",
+      "width": 96
+    },
+    "piece.wall.east": {
+      "bbox": [
+        46,
+        37,
+        50,
+        25
+      ],
+      "height": 96,
+      "path": "tiles/piece-wall-east.webp",
+      "width": 96
+    },
+    "piece.wall.north": {
+      "bbox": [
+        38,
+        0,
+        22,
+        50
+      ],
+      "height": 96,
+      "path": "tiles/piece-wall-north.webp",
+      "width": 96
+    },
+    "piece.wall.post": {
+      "bbox": [
+        35,
+        36,
+        28,
+        27
+      ],
+      "height": 96,
+      "path": "tiles/piece-wall-post.webp",
+      "width": 96
+    },
+    "piece.wall.south": {
+      "bbox": [
+        38,
+        46,
+        22,
+        50
+      ],
+      "height": 96,
+      "path": "tiles/piece-wall-south.webp",
+      "width": 96
+    },
+    "piece.wall.west": {
+      "bbox": [
+        0,
+        37,
+        50,
+        25
+      ],
+      "height": 96,
+      "path": "tiles/piece-wall-west.webp",
+      "width": 96
+    },
     "portrait.adept.neutral": {
       "bbox": [
         61,
@@ -8399,6 +8553,184 @@
       "path": "portraits/stranger-smile.webp",
       "width": 384
     },
+    "prop.banner": {
+      "anchorX": 48,
+      "bbox": [
+        12,
+        4,
+        72,
+        88
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/banner.webp",
+      "width": 96
+    },
+    "prop.barrels": {
+      "anchorX": 48,
+      "bbox": [
+        13,
+        35,
+        70,
+        57
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/barrels.webp",
+      "width": 96
+    },
+    "prop.campfire": {
+      "anchorX": 48,
+      "bbox": [
+        9,
+        18,
+        78,
+        74
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/campfire.webp",
+      "width": 96
+    },
+    "prop.cart": {
+      "anchorX": 48,
+      "bbox": [
+        7,
+        35,
+        81,
+        57
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/cart.webp",
+      "width": 96
+    },
+    "prop.dead_tree": {
+      "anchorX": 64,
+      "bbox": [
+        17,
+        30,
+        94,
+        94
+      ],
+      "groundY": 124,
+      "height": 128,
+      "path": "props/dead_tree.webp",
+      "width": 128
+    },
+    "prop.fence": {
+      "anchorX": 48,
+      "bbox": [
+        7,
+        38,
+        82,
+        54
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/fence.webp",
+      "width": 96
+    },
+    "prop.graves": {
+      "anchorX": 48,
+      "bbox": [
+        9,
+        43,
+        77,
+        49
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/graves.webp",
+      "width": 96
+    },
+    "prop.haystack": {
+      "anchorX": 48,
+      "bbox": [
+        10,
+        27,
+        76,
+        65
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/haystack.webp",
+      "width": 96
+    },
+    "prop.rubble": {
+      "anchorX": 48,
+      "bbox": [
+        5,
+        43,
+        86,
+        49
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/rubble.webp",
+      "width": 96
+    },
+    "prop.signpost": {
+      "anchorX": 48,
+      "bbox": [
+        20,
+        18,
+        55,
+        74
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/signpost.webp",
+      "width": 96
+    },
+    "prop.well": {
+      "anchorX": 48,
+      "bbox": [
+        12,
+        16,
+        71,
+        76
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/well.webp",
+      "width": 96
+    },
+    "prop.wheel": {
+      "anchorX": 64,
+      "bbox": [
+        17,
+        58,
+        93,
+        66
+      ],
+      "groundY": 124,
+      "height": 128,
+      "path": "props/wheel.webp",
+      "width": 128
+    },
+    "tile.bridge": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/bridge.webp",
+      "width": 96
+    },
+    "tile.ford": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/ford.webp",
+      "width": 96
+    },
     "tile.forest": {
       "bbox": [
         0,
@@ -8408,6 +8740,28 @@
       ],
       "height": 96,
       "path": "tiles/forest.webp",
+      "width": 96
+    },
+    "tile.forest.2": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/forest-2.webp",
+      "width": 96
+    },
+    "tile.forest.3": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/forest-3.webp",
       "width": 96
     },
     "tile.fort": {
@@ -8432,6 +8786,17 @@
       "path": "tiles/hill.webp",
       "width": 96
     },
+    "tile.hill.2": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/hill-2.webp",
+      "width": 96
+    },
     "tile.plain": {
       "bbox": [
         0,
@@ -8441,6 +8806,28 @@
       ],
       "height": 96,
       "path": "tiles/plain.webp",
+      "width": 96
+    },
+    "tile.plain.2": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/plain-2.webp",
+      "width": 96
+    },
+    "tile.plain.3": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/plain-3.webp",
       "width": 96
     },
     "tile.road": {
@@ -8454,6 +8841,50 @@
       "path": "tiles/road.webp",
       "width": 96
     },
+    "tile.road.cross": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/road-cross.webp",
+      "width": 96
+    },
+    "tile.road.straight": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/road-straight.webp",
+      "width": 96
+    },
+    "tile.shore.corner": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/shore-corner.webp",
+      "width": 96
+    },
+    "tile.shore.edge": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/shore-edge.webp",
+      "width": 96
+    },
     "tile.village": {
       "bbox": [
         0,
@@ -8463,6 +8894,28 @@
       ],
       "height": 96,
       "path": "tiles/village.webp",
+      "width": 96
+    },
+    "tile.village.2": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/village-2.webp",
+      "width": 96
+    },
+    "tile.village.3": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/village-3.webp",
       "width": 96
     },
     "tile.wall": {
@@ -8476,6 +8929,28 @@
       "path": "tiles/wall.webp",
       "width": 96
     },
+    "tile.wall.cross": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/wall-cross.webp",
+      "width": 96
+    },
+    "tile.wall.straight": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/wall-straight.webp",
+      "width": 96
+    },
     "tile.water": {
       "bbox": [
         0,
@@ -8485,6 +8960,17 @@
       ],
       "height": 96,
       "path": "tiles/water.webp",
+      "width": 96
+    },
+    "tile.water.2": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/water-2.webp",
       "width": 96
     },
     "token.adept": {

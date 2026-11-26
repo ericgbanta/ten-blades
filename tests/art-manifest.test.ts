@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { artFileUrl, imageMeta, imageUrl } from '../src/art/manifest';
 import { LOOKS, MC_POSES, poseLayerIds, portraitLayerIds, tokenLayerIds, type McLook } from '../src/art/mc/look';
 import terrain from '../src/data/terrain.json';
+import props from '../src/data/props.json';
 
 const root = join(__dirname, '..', 'src', 'art');
 const images = JSON.parse(readFileSync(join(root, 'assets.json'), 'utf8')).images as Record<string, Record<string, unknown>>;
@@ -19,7 +20,7 @@ describe('art manifest', () => {
   });
 
   it.each(ids)('%s is well formed and its file exists', (id) => {
-    expect(id).toMatch(/^(token\.[a-z_]+|tile\.[a-z_]+|backdrop\.[a-z_]+|portrait\.[a-z_]+\.[a-z]+|battle\.[a-z_]+\.[a-z]+|mc\.[a-z]+\.[a-z.]+)$/);
+    expect(id).toMatch(/^(token\.[a-z_]+|tile\.[a-z_]+|tile\.[a-z_]+\.[a-z0-9]+|piece\.[a-z]+\.[a-z]+|prop\.[a-z_]+|backdrop\.[a-z_]+|portrait\.[a-z_]+\.[a-z]+|battle\.[a-z_]+\.[a-z]+|mc\.[a-z]+\.[a-z.]+)$/);
     const e = images[id] as { path: string; width: number; height: number; bbox: number[]; groundY?: number; anchorX?: number };
     expect(existsSync(join(root, e.path))).toBe(true);
     if (id.startsWith('mc.')) {
@@ -83,6 +84,12 @@ describe('art manifest', () => {
       if (!/^mc\.[a-z]+\.(hair\.[a-z]+\.)?pose\./.test(id)) continue;
       expect([e.width, e.height, e.groundY, e.anchorX]).toEqual([512, 384, 360, 192]);
     }
+  });
+
+  it.each(Object.keys(props))('has art with a ground anchor for the prop %s', (p) => {
+    const e = images[`prop.${p}`] as { width: number; height: number; anchorX?: number; groundY?: number } | undefined;
+    expect(e).toBeDefined();
+    expect(e!.anchorX! > 0 && e!.anchorX! < e!.width && e!.groundY! > 0 && e!.groundY! <= e!.height).toBe(true);
   });
 
   it('returns undefined for a missing id', () => {
