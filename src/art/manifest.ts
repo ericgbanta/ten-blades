@@ -16,6 +16,15 @@ export interface ArtEntry {
   anchorX?: number;
   /** Battle poses only: source to canvas scale (the idle body is drawn about 240 px tall). */
   scale?: number;
+  /** Main character layers only (see src/art/mc): where the files sit on the canvas and the data file. */
+  layer?: McLayerInfo;
+}
+
+/** A packed main character layer: `path` is the art, `data` the recolor data, both covering `rect` of the canvas. */
+export interface McLayerInfo {
+  encoding: 'mc1';
+  rect: Box;
+  data: string;
 }
 
 export interface Manifest {
@@ -37,7 +46,12 @@ function entryOf(id: string): ArtEntry | undefined {
 export function imageUrl(id: string): string | undefined {
   const e = entryOf(id);
   if (!e) return undefined;
-  return urls[`./${e.path.replace(/^\.?\//, '')}`];
+  return artFileUrl(e.path);
+}
+
+/** URL of any packed file by its path relative to src/art, or undefined when it is not bundled. */
+export function artFileUrl(path: string): string | undefined {
+  return urls[`./${path.replace(/^\.?\//, '')}`];
 }
 
 /** Size and placement data for an image id, or undefined when it is not in the manifest. */

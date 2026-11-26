@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
-"""Main character layer experiment: key-color segmentation, recoloring, hair layers, expressions, tokens, poses.
+"""Main character layers: key-color segmentation, recoloring, hair layers, expressions, tokens, poses.
 
-Usage:  python3 tools/art/mc_build.py [raw_dir] [out_dir]
+Usage:  python3 tools/art/mc_build.py build [raw_dir] [portraits|tokens|poses...]   the game's MC layers (see below)
+        python3 tools/art/mc_build.py sheets [raw_dir] [out_dir]                  contact sheets of the packed layers
+        python3 tools/art/mc_build.py fixture                                     the recolor test fixture
+        python3 tools/art/mc_build.py eval [raw_dir] [out_dir]                    the first layer experiment
+
+The first half of this file is that experiment (eval), kept because the production build reuses its pieces; the
+production build is in the second half. For eval:
 
 raw_dir holds the six raw test PNGs (mc-base, mc-face-bust, mc-hair-bust, mc-hair-chibi, mc-hair-side,
 mc-poses-vanguard). out_dir gets the evaluation sheets (PNG plus a JPG at most 1600 px on the long side) and a
@@ -357,7 +363,8 @@ def ink_of(rgba, seg=None):
     return np.clip((0.22 - lum) / 0.14, 0, 1) * rgba[..., 3]
 
 
-def register(moving, fixed, exclude_moving=None, exclude_fixed=None, init=None, bottom_cut=0, trunc=0.35, roi=None):
+def register(moving, fixed, exclude_moving=None, exclude_fixed=None, init=None, bottom_cut=0, trunc=0.35, roi=None,
+             scale_bounds=None):
     """Similarity transform (scale, rotation, translation) carrying `moving` onto `fixed`.
 
     Initial guess from ORB features (RANSAC, similarity) or `init`, then refined with Nelder-Mead on a truncated
@@ -399,7 +406,10 @@ def register(moving, fixed, exclude_moving=None, exclude_fixed=None, init=None, 
         we = cv2.warpAffine(exm, M, (W, H), flags=cv2.INTER_LINEAR, borderValue=0)
         w = base_w * (we < 0.05)
         d = np.minimum(np.abs(wm - fs), trunc)
-        return float((d * w)[::step, ::step].sum() / max(w[::step, ::step].sum(), 1))
+        pen = 0.0
+        if scale_bounds is not None:
+            pen = 10 * max(0.0, scale_bounds[0] - p[0], p[0] - scale_bounds[1])
+        return float((d * w)[::step, ::step].sum() / max(w[::step, ::step].sum(), 1)) + pen
 
     scales = np.array([0.01, 0.01, 2.0, 2.0])
     f = lambda q, step: cost(p0 + q * scales, step)
@@ -725,7 +735,7 @@ def sheet(rows, row_labels=None, col_labels=None, gap=8, label_w=150, label_h=26
     from PIL import ImageDraw
     ncol = max(len(r) for r in rows)
     colw = [max(r[c].shape[1] for r in rows if c < len(r)) for c in range(ncol)]
-    cap_h = 20 if captions else 0
+    cap_h = (4 + 16 * max(c.count('\n') + 1 for r in captions for c in r)) if captions else 0
     rowh = [max(t.shape[0] for t in r) + cap_h for r in rows]
     top = (label_h if col_labels else 0) + (34 if title else 0)
     left = label_w if row_labels else 0
@@ -1257,24 +1267,1052 @@ def head_box_packed(Pz, pose):
             round(ox + (wx + x1 - bb[0]) * k), round(oy + (wy + y1 - bb[1]) * k))
 
 
+
+
+# =====================================================================================================================
+# Production build: every MC layer for both bodies, packed for runtime recoloring
+# =====================================================================================================================
+#
+# Usage:  python3 tools/art/mc_build.py build [raw_dir]          writes src/art/mc/** and merges src/art/assets.json
+#         python3 tools/art/mc_build.py sheets [raw_dir] [out]   contact sheets made from the packed files
+#         python3 tools/art/mc_build.py fixture                   writes tests/fixtures/mc-recolor.json
+#         python3 tools/art/mc_build.py eval [raw_dir] [out]      the layer experiment above (its evaluation sheets)
+#
+# Runtime format ("mc1"). Every layer is one lossless WebP twice as wide as the area it covers. The left half is the
+# art: RGB is the layer's NEUTRAL part N (ink, cloth, steel; inside a key region the nearby neutral color it is mixed
+# with) and A its alpha. The right half is opaque data: R = t, the pixel's membership in its key region (0..255);
+# G = u, its tone in that region (0 at the base tone, 1 at the shadow tone, below 0 lighter, above 1 darker; stored
+# as (u - uMin) / (uMax - uMin) * 255); B = region code * 64 (0 none, 1 skin, 2 hair, 3 accent, 4 stubble film).
+# The game recolors a pixel with one lookup and one blend:
+#     out = N + t * (LUT[region][G] - N)
+# where LUT[region][g] is the palette tone at u (base + (shadow - base) * u, with the slope cut to 0.6 below 0),
+# and the film is a constant shade of the hair color. Values are stored losslessly, so the hue of a pixel never has
+# to be guessed at runtime and edges do not drift. decode() below is the reference for that math, and the fixture
+# test checks that the TypeScript version gives the same pixels.
+#
+# Layers are built as "decompositions" in premultiplied linear channels (alpha, neutral color, membership per
+# region, tone per region), so warping, resizing and stacking a hair layer onto a body are exact and only the final
+# canvas is quantized.
+
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+ART_DIR = os.path.join(REPO_ROOT, 'src', 'art')
+LOOKS_PATH = os.path.join(REPO_ROOT, 'src', 'data', 'looks.json')
+PROD_OUT = os.path.join(SCRATCH, 'mcprod')
+
+BODIES = ('lean', 'broad')
+EYES = ('almond', 'round', 'narrow')
+HAIR_STYLES = ('crop', 'shoulder', 'braid', 'topknot', 'long', 'curls', 'ponytail', 'bob')
+SCARS = ('cheek', 'brow', 'nose', 'claws', 'burn', 'tattoo')
+STYLES = ('vanguard', 'duelist', 'spiritblade')
+
+# Raw sheets per body (see tools/art/prompts/mc-*.txt for the cell orders).
+SRC = {
+    'lean': {
+        'faces': ('mc-face-bust', 'mc-a-face2', 'mc-a-face3'),          # 2x2 neutral, angry, hurt, smile; one per eye shape
+        'hair': ('mc-hair-bust', 'mc-a-hair2'),                         # 2x2 hairs 1-4, 5-8
+        'scars': 'mc-a-scars',                                          # 3x2 in SCARS order
+        'chibi': (('mc-hair-chibi', 4, None), ('mc-a-chibi-hair2', 5, 0)),   # (sheet, cells, index of the bald one)
+        'styles': 'mc-a-chibi-styles',                                  # 1x3 bald chibis in STYLES order
+        'poses': {'vanguard': 'mc-poses-vanguard', 'duelist': 'mc-a-poses-duelist', 'spiritblade': 'mc-a-poses-spirit'},
+    },
+    'broad': {
+        'faces': ('mc-b-face1', 'mc-b-face2', 'mc-b-face3'),
+        'hair': ('mc-b-hair1', 'mc-b-hair2'),
+        'scars': 'mc-b-scars',
+        'chibi': (('mc-b-chibi-hair1', 5, 0), ('mc-b-chibi-hair2', 5, 0)),
+        'styles': 'mc-b-chibi-styles',
+        'poses': {'vanguard': 'mc-b-poses-vanguard', 'duelist': 'mc-b-poses-duelist', 'spiritblade': 'mc-b-poses-spirit'},
+    },
+}
+SIDE_SHEETS = ('mc-hair-side', 'mc-hair-side2')     # side-profile hair heads 1-4 and 5-8, shared by both bodies
+
+with open(LOOKS_PATH) as _f:
+    LOOKS = json.load(_f)
+RC = LOOKS['recolor']
+U_MIN, U_MAX = RC['uMin'], RC['uMax']
+CODES = {'skin': 1, 'hair': 2, 'accent': 3, 'film': 4}
+NCH = 11            # A, P (3), T skin hair accent film (4), U skin hair accent (3)
+
+
+# ---- decompositions ----------------------------------------------------------------------------------------------
+def dec_of(p, stats):
+    """Premultiplied decomposition of a piece (see the format note above). `stats` maps a region to its source
+    (base, shadow) luminance, which fixes where u = 0 and u = 1."""
+    rgba = p['rgba']
+    rgb, a = rgba[..., :3], rgba[..., 3]
+    seg = p['seg']
+    N = seg['N']
+    S = np.zeros(a.shape + (NCH,), np.float32)
+    S[..., 0] = a
+    asafe = np.maximum(a, 1e-4)
+    tsum = np.zeros(a.shape, np.float32)
+    for i, r in enumerate(REGIONS):
+        T = np.minimum(seg['masks'][r], a)
+        st = stats.get(r)
+        if st is None or not T.any():
+            continue
+        t = T / asafe
+        bl, sl = st
+        span = max(bl - sl, 1e-3)
+        uF = (bl - seg['flats'][r] @ LUM) / span
+        tt = np.maximum(t, 1e-3)[..., None]
+        C = (rgb - (1 - tt) * N) / tt
+        uC = (bl - C @ LUM) / span
+        w = np.clip((t - 0.3) / 0.4, 0, 1)
+        u = uF + w * (uC - uF)
+        # inside a flat tone keep that tone's exact value (smaller files, no pixel noise in the shading)
+        u = np.clip(np.where((t > 0.9) & (np.abs(uC - uF) < 0.25), uF, u), U_MIN, U_MAX)
+        S[..., 4 + i] = T
+        S[..., 8 + i] = T * u
+        tsum += t
+    tsum = np.clip(tsum, 0, 1)
+    neutral = np.where(tsum[..., None] > 0, (1 - tsum)[..., None] * N, rgb)
+    film = p.get('film')
+    if film is not None and film.max() > 0:
+        f = film > 0
+        S[..., 7] = np.where(f, a, 0)
+        neutral = np.where(f[..., None], 0, neutral)
+    S[..., 1:4] = a[..., None] * neutral
+    return S
+
+
+def clip_dec(S):
+    A = np.clip(S[..., 0], 0, 1)
+    S[..., 0] = A
+    S[..., 1:4] = np.clip(S[..., 1:4], 0, A[..., None])
+    S[..., 4:8] = np.clip(S[..., 4:8], 0, A[..., None])
+    T = S[..., 4:7]
+    S[..., 8:11] = np.clip(S[..., 8:11], U_MIN * T, U_MAX * T)
+    return S
+
+
+def warp_dec(S, M, size, interp=cv2.INTER_CUBIC):
+    out = np.zeros((size[1], size[0], NCH), np.float32)
+    for c0 in range(0, NCH, 4):
+        c1 = min(NCH, c0 + 4)
+        out[..., c0:c1] = cv2.warpAffine(np.ascontiguousarray(S[..., c0:c1]), M.astype(np.float64), size, flags=interp,
+                                         borderMode=cv2.BORDER_CONSTANT, borderValue=0).reshape(size[1], size[0], c1 - c0)
+    return clip_dec(out)
+
+
+def over_dec(top, bottom):
+    return top + bottom * (1 - top[..., 0:1])
+
+
+def mask_dec(S, m):
+    """Scale a decomposition's coverage by m (0..1): every channel is premultiplied, so all scale together."""
+    return S * m[..., None]
+
+
+def resize_dec(S, size):
+    """Lanczos resize of every channel (they are premultiplied, so this is the same as pack.resize)."""
+    chans = [np.asarray(Image.fromarray(np.ascontiguousarray(S[..., k])).resize(size, Image.LANCZOS)) for k in range(NCH)]
+    return clip_dec(np.stack(chans, -1).astype(np.float32))
+
+
+def place_dec(S, window, k, canvas_wh, origin):
+    """Crop the frame to `window` (x0, y0, x1, y1), scale by k and paste with its top-left corner at `origin` on an
+    empty canvas. Every layer of one set uses the same window, so they stay registered after the resize."""
+    x0, y0, x1, y1 = window
+    crop = S[y0:y1, x0:x1]
+    size = (max(1, round((x1 - x0) * k)), max(1, round((y1 - y0) * k)))
+    canvas = np.zeros((canvas_wh[1], canvas_wh[0], NCH), np.float32)
+    paste(canvas, resize_dec(crop, size), origin[0], origin[1])
+    return canvas
+
+
+def nearest_fill(rgb, valid):
+    if valid.all() or not valid.any():
+        return rgb
+    _, (iy, ix) = ndi.distance_transform_edt(~valid, return_indices=True)
+    return rgb[iy, ix]
+
+
+def encode(S):
+    """Quantize a canvas decomposition to the mc1 art (RGBA) and data (RGB) arrays, uint8."""
+    A = S[..., 0]
+    As = np.maximum(A, 1e-4)
+    T = S[..., 4:8]
+    tmax = T.max(-1) / As
+    reg = T.argmax(-1)
+    has = (tmax > 0.02) & (A > 1 / 512)
+    tsum = np.where(has, np.clip(T.sum(-1) / As, 0, 1), 0)
+    Tr = np.take_along_axis(S[..., 4:7], np.minimum(reg, 2)[..., None], -1)[..., 0]
+    Ur = np.take_along_axis(S[..., 8:11], np.minimum(reg, 2)[..., None], -1)[..., 0]
+    u = np.where((reg < 3) & (Tr > 1e-6), Ur / np.maximum(Tr, 1e-6), 0)
+    u = np.where(has & (reg < 3), np.clip(u, U_MIN, U_MAX), 0)
+    rest = np.maximum(As * (1 - tsum), 1e-4)
+    N = np.clip(S[..., 1:4] / rest[..., None], 0, 1)
+    N = nearest_fill(N, (1 - tsum > 0.05) & (A > 0.02))
+    vis = A > 1 / 512
+    art = np.zeros(A.shape + (4,), np.uint8)
+    art[..., :3] = np.round(N * 255)
+    art[..., 3] = np.round(A * 255)
+    art[art[..., 3] == 0] = 0
+    data = np.zeros(A.shape + (3,), np.uint8)
+    data[..., 0] = np.round(tsum * 255)
+    data[..., 1] = np.where(has & (reg < 3), np.round((u - U_MIN) / (U_MAX - U_MIN) * 255), 0)
+    code = np.where(has, reg + 1, 0)
+    data[..., 2] = np.minimum(code * 64, 255)
+    data[~vis | (art[..., 3] == 0)] = 0
+    return art, data
+
+
+# ---- the runtime recolor, as reference ---------------------------------------------------------------------------
+def hex01(h):
+    return np.array([int(h[i:i + 2], 16) for i in (1, 3, 5)], np.float64) / 255
+
+
+def palette_of(look):
+    """look: {skin, hairColor, accent} ids -> {code: (base, shadow)} plus the film color."""
+    def find(group, i):
+        e = next(x for x in LOOKS[group] if x['id'] == i)
+        return hex01(e['base']), hex01(e['shadow'])
+    return {1: find('skins', look['skin']), 2: find('hairColors', look['hairColor']), 3: find('accents', look['accent'])}
+
+
+def build_luts(look):
+    """LUT[code] is a (256, 3) float array: the palette tone for each stored u. Code 0 is unused, 4 is the film."""
+    pal = palette_of(look)
+    g = np.arange(256, dtype=np.float64) / 255
+    u = U_MIN + g * (U_MAX - U_MIN)
+    k = np.where(u < 0, u * RC['highlightSlope'], u)[:, None]
+    luts = np.zeros((5, 256, 3))
+    for code, (b, s) in pal.items():
+        luts[code] = np.clip(b + (s - b) * k, 0, 1)
+    luts[4] = pal[2][1] * RC['filmShade']
+    return luts
+
+
+def decode(art, data, look):
+    """The runtime recolor (src/art/mc/recolor.ts does the same): uint8 art + data -> uint8 RGBA."""
+    luts = build_luts(look)
+    N = art[..., :3].astype(np.float64) / 255
+    t = data[..., 0].astype(np.float64) / 255
+    code = np.clip(np.round(data[..., 2] / 64).astype(int), 0, 4)
+    lut = luts[code, data[..., 1]]
+    out = np.where((code > 0)[..., None], N + t[..., None] * (lut - N), N)
+    res = np.zeros(art.shape, np.uint8)
+    res[..., :3] = np.clip(np.round(out * 255), 0, 255)
+    res[..., 3] = art[..., 3]
+    return res
+
+
+def key_view(art, data):
+    """The layer in its key colors (as drawn), for checking a packed file without a palette."""
+    return decode(art, data, {'skin': 'tan', 'hairColor': 'black', 'accent': 'crimson'})
+
+
+# ---- files and manifest entries ----------------------------------------------------------------------------------
+ART_QUALITY = 90
+
+
+def write_layer(S, rel, canvas_wh, extra=None):
+    """Encode a canvas decomposition, crop it to its visible pixels and save it as two WebP files: the art (lossy,
+    with lossless alpha) at `rel` and the data (lossless) next to it as `<name>.data.webp`. Returns the manifest
+    entry, or None for an empty layer."""
+    art, data = encode(S)
+    vis = art[..., 3] > 0
+    if not vis.any():
+        return None
+    x0, y0, x1, y1 = bbox(vis)
+    w, h = x1 - x0, y1 - y0
+    data_rel = rel[:-len('.webp')] + '.data.webp'
+    for r in (rel, data_rel):
+        os.makedirs(os.path.dirname(os.path.join(ART_DIR, r)), exist_ok=True)
+    Image.fromarray(np.ascontiguousarray(art[y0:y1, x0:x1]), 'RGBA').save(
+        os.path.join(ART_DIR, rel), 'WEBP', quality=ART_QUALITY, method=6, alpha_quality=100)
+    Image.fromarray(np.ascontiguousarray(data[y0:y1, x0:x1]), 'RGB').save(
+        os.path.join(ART_DIR, data_rel), 'WEBP', lossless=True, quality=100, method=6, exact=True)
+    entry = {'path': rel, 'width': canvas_wh[0], 'height': canvas_wh[1], 'bbox': [x0, y0, w, h],
+             'layer': {'encoding': 'mc1', 'rect': [x0, y0, w, h], 'data': data_rel}}
+    if extra:
+        entry.update(extra)
+    return entry
+
+
+def entry_bytes(e):
+    n = os.path.getsize(os.path.join(ART_DIR, e['path']))
+    if e.get('layer'):
+        n += os.path.getsize(os.path.join(ART_DIR, e['layer']['data']))
+    return n
+
+
+def read_layer(entry):
+    """(art, data, rect) of a packed layer."""
+    art = np.asarray(Image.open(os.path.join(ART_DIR, entry['path'])).convert('RGBA'))
+    data = np.asarray(Image.open(os.path.join(ART_DIR, entry['layer']['data'])).convert('RGB'))
+    return art, data, tuple(entry['layer']['rect'])
+
+
+# ---- shared helpers ----------------------------------------------------------------------------------------------
+def prod_tone_stats(seg, name):
+    """Source (base, shadow) luminance of a key region: the most common flat tone, and the darkest tone that covers
+    at least 1 percent as much (the drawn cel shadow; lighter in-between clusters are anti-aliasing)."""
+    tl = seg['tones'].get(name)
+    if not tl:
+        return None
+    base = float(tl[0][0] @ LUM)
+    cands = [float(c @ LUM) for c, n in tl[1:] if float(c @ LUM) < 0.8 * base and n >= 0.01 * tl[0][1]]
+    return base, (min(cands) if cands else 0.6 * base)
+
+
+def piece_stats(p, fallback=None):
+    out = dict(fallback or {})
+    for r in REGIONS:
+        st = prod_tone_stats(p['seg'], r)
+        if st and (p['seg']['masks'][r] > 0.5).sum() > 150:
+            out[r] = st
+    return out
+
+
+def prod_piece(rgba):
+    """piece() plus one fix: small specks of accent red inside the skin (a reddish cel shadow on a cheek, a drawn
+    scratch) are skin, not scarf. Accent components much smaller than the largest one that sit mostly in skin are
+    moved to the skin region, so they follow the skin tone."""
+    p = piece(rgba)
+    m = p['seg']['masks']
+    a = np.maximum(rgba[..., 3], 1e-4)
+    acc = m['accent'] / a > 0.3
+    lab, n = ndi.label(ndi.binary_dilation(acc, iterations=1))
+    if n:
+        area = np.bincount(lab.ravel())
+        area[0] = 0
+        big = area.max()
+        for i in np.nonzero((area > 0) & (area < max(80, 0.05 * big)))[0]:
+            comp = lab == i
+            ring = ndi.binary_dilation(comp, iterations=3) & ~comp
+            if (m['skin'][ring] / a[ring] > 0.3).mean() > 0.3:
+                region = comp & (m['accent'] > 0)
+                m['skin'] = np.where(region, m['skin'] + m['accent'], m['skin'])
+                m['accent'] = np.where(region, 0, m['accent'])
+    return p
+
+
+def layer_dec(lay, stats):
+    """Decomposition of a hair layer piece (from hair_layer: its alpha already cut to the selection, plus film)."""
+    return dec_of(lay, stats)
+
+
+def warp_film(lay, M, size):
+    return warp_mask(lay['film'], M, size) if lay.get('film') is not None else None
+
+
+def soft(mask, sigma=0.8):
+    return np.clip(cv2.GaussianBlur(mask.astype(np.float32), (0, 0), sigma), 0, 1)
+
+
+def robust_diff(a, b, r=2):
+    """Per pixel luminance difference of two aligned drawings that forgives a shift of up to r px either way (thin
+    lines that moved a little are not a difference)."""
+    la = flat_on(a, (0.5, 0.5, 0.5)) @ LUM
+    lb = flat_on(b, (0.5, 0.5, 0.5)) @ LUM
+    fp = disk(r)
+    lo_b, hi_b = ndi.grey_erosion(lb, footprint=fp), ndi.grey_dilation(lb, footprint=fp)
+    lo_a, hi_a = ndi.grey_erosion(la, footprint=fp), ndi.grey_dilation(la, footprint=fp)
+    d1 = np.maximum(lo_b - la, 0) + np.maximum(la - hi_b, 0)      # a outside b's local range
+    d2 = np.maximum(lo_a - lb, 0) + np.maximum(lb - hi_a, 0)
+    return np.maximum(d1, d2)
+
+
+# ---- portraits ---------------------------------------------------------------------------------------------------
+def translation(dx, dy):
+    return np.array([[1, 0, dx], [0, 1, dy], ], np.float64)
+
+
+def bottom_row(p, frac=0.3):
+    """Lowest row where the bust is solid across a good part of its width (the flat bottom cut)."""
+    a = p['rgba'][..., 3] > 0.5
+    w = a.any(0).sum()
+    rows = np.nonzero(a.sum(1) > frac * w)[0]
+    return int(rows.max()) if len(rows) else a.shape[0]
+
+
+def cut_below(p, y):
+    a = p['rgba'][..., 3].copy()
+    a[y:] = 0
+    out = masked_piece(p, a)
+    if p.get('film') is not None:
+        f = p['film'].copy()
+        f[y:] = 0
+        out['film'] = f
+    return out
+
+
+def with_film(p, base):
+    if base.get('film') is not None:
+        p['film'] = base['film'] * (p['rgba'][..., 3] > 0)
+    return p
+
+
+def register_cross(mv, fx, **kw):
+    """Register a drawing from another sheet: ORB start, and a start from the bottom-centered alpha boxes; the
+    better of the two refined results wins."""
+    res = [register(mv, fx, **kw)]
+    mb, fb = alpha_bbox(mv), alpha_bbox(fx)
+    s0 = (fb[2] - fb[0]) / max(1, mb[2] - mb[0])
+    init = np.array([[s0, 0, (fb[0] + fb[2]) / 2 - s0 * (mb[0] + mb[2]) / 2], [0, s0, fb[3] - s0 * mb[3]]], np.float64)
+    res.append(register(mv, fx, init=init, **kw))
+    return min(res, key=lambda r: r[1])
+
+
+def mat_report(M, cost=None):
+    r = {'scale': round(float(np.hypot(M[0, 0], M[1, 0])), 4),
+         'rotation_deg': round(float(np.degrees(np.arctan2(M[1, 0], M[0, 0]))), 3),
+         'shift_px': [round(float(M[0, 2]), 2), round(float(M[1, 2]), 2)]}
+    if cost is not None:
+        r['cost'] = round(float(cost), 4)
+    return r
+
+
+def build_portraits_prod(body):
+    rep, entries = {}, {}
+    src = SRC[body]
+    faces = [cells_of(s, 2, 2, margin=0) for s in src['faces']]
+    fx = pad(faces[0][0], PAD, PAD, 0, PAD)
+    H, W = fx.shape[:2]
+    neutral = prod_piece(fx)
+    band = outline_band(fx)
+    skin_roi = ndi.binary_dilation(neutral['seg']['masks']['skin'] > 0.5, iterations=10)
+    bases, stats = {}, {}
+    for ei, eyes in enumerate(EYES):
+        cells = faces[ei]
+        mv0 = pad(cells[0], PAD, PAD, 0, PAD)
+        if ei == 0:
+            Mn, cn = np.array([[1, 0, 0], [0, 1, 0]], np.float64), 0.0
+        else:
+            Mn, cn = register_cross(mv0, fx, bottom_cut=40)
+        for xi, expr in enumerate(EXPRS):
+            if ei == 0 and xi == 0:
+                bases[(eyes, expr)] = neutral
+                continue
+            mv = pad(cells[xi], PAD, PAD, 0, PAD)
+            if xi == 0:
+                M, cost = Mn, cn
+            else:
+                ox = CELL_ORIGIN[id(cells[xi])][0] - CELL_ORIGIN[id(cells[0])][0]
+                oy = CELL_ORIGIN[id(cells[xi])][1] - CELL_ORIGIN[id(cells[0])][1]
+                M, cost = register(mv, fx, bottom_cut=40, init=compose(Mn, translation(ox, oy)))
+            w = warp_piece(prod_piece(mv), M, (W, H))
+            ch = chamfer(w['rgba'], fx, band & (np.arange(H)[:, None] < H - 40))
+            rep[f'base.{eyes}.{expr}'] = {**mat_report(M, cost), 'outline_chamfer_px': round(ch[0], 3)}
+            bases[(eyes, expr)] = w
+        stats[eyes] = piece_stats(bases[(eyes, 'neutral')])
+    cut = min(bottom_row(b) for b in bases.values()) - 2
+    rep['bottom_cut_y'] = cut
+    bases = {k: cut_below(b, cut) for k, b in bases.items()}
+    # where the twelve faces differ from the neutral almond one: eyes, brows, mouth (and the hurt squint)
+    # (lines that moved or appeared, not the small shading drift between sheets)
+    diff = np.zeros((H, W), bool)
+    for k, b in bases.items():
+        diff |= robust_diff(b['rgba'], fx, r=2) > 0.2
+    diff = ndi.binary_opening(diff, iterations=1) & ndi.binary_erosion(fx[..., 3] > 0.5, iterations=8)
+    protect = ndi.binary_dilation(diff, iterations=6)
+    features = ndi.binary_dilation(diff, iterations=2)
+    # hair layers
+    hcells = [c for s in src['hair'] for c in cells_of(s, 2, 2, margin=40)]
+    hairs = {}
+    for name, cell in zip(HAIR_STYLES, hcells):
+        hp = prod_piece(cell)
+        hm = ndi.binary_dilation(hp['seg']['masks']['hair'] > 0.2, iterations=10)
+        M, cost = register(cell, fx, exclude_moving=hm, roi=skin_roi.astype(np.float32))
+        hw = warp_piece(hp, M, (W, H))
+        valid = (warp_mask(hm.astype(np.float32), M, (W, H)) < 0.05) & skin_roi
+        ch = chamfer(hw['rgba'], fx, valid)
+        r = {**mat_report(M, cost), 'face_chamfer_px': round(ch[0], 3), 'face_chamfer_p90_px': round(ch[1], 3)}
+        lay = hair_layer(hw, neutral, report=r, protect=protect)
+        # The faces come from the bases: drop the hair cell's own copy of eyes, brows and mouth, except the ink
+        # that outlines the hair itself (within 3 px of hair color).
+        a = np.maximum(lay['rgba'][..., 3], 1e-4)
+        hairc = lay['seg']['masks']['hair'] / a > 0.3
+        drop = features & (ndi.distance_transform_edt(~hairc) > 3) & ~hairc
+        keep = 1 - soft(drop, 0.6)
+        film = lay['film'] * keep
+        lay = masked_piece(lay, lay['rgba'][..., 3] * keep)
+        lay['film'] = film
+        lay = cut_below(lay, cut)
+        r['dropped_feature_px'] = int(drop.sum())
+        r['hair_over_features_px'] = int((hairc & diff).sum())
+        hairs[name] = (lay, piece_stats(hp, stats['almond']))
+        rep[f'hair.{name}'] = r
+    # scars and markings: the difference from the neutral bald bust, on the skin
+    scells = cells_of(src['scars'], 2, 3, margin=0)
+    skin_zone = ndi.binary_dilation(neutral['seg']['masks']['skin'] > 0.5, iterations=2) & (np.arange(H)[:, None] < cut)
+    scars = {}
+    for name, cell in zip(SCARS, scells):
+        mv = pad(cell, PAD, PAD, 0, PAD)
+        M, cost = register_cross(mv, fx, bottom_cut=40, roi=skin_roi.astype(np.float32))
+        sw = warp_piece(prod_piece(mv), M, (W, H))
+        d = robust_diff(sw['rgba'], fx)
+        sa = np.maximum(sw['rgba'][..., 3], 1e-4)
+        cand = (d > 0.06) & skin_zone & (sw['rgba'][..., 3] > 0.9) & (sw['seg']['masks']['accent'] / sa < 0.2)
+        cand = ndi.binary_opening(cand, iterations=1)
+        lab, n = ndi.label(cand, structure=np.ones((3, 3)))
+        if n:
+            area = np.bincount(lab.ravel())
+            big = area >= 20
+            big[0] = False
+            cand = big[lab]
+        cand = ndi.binary_closing(cand, structure=disk(2))
+        hit = cand & diff
+        r = {**mat_report(M, cost), 'mark_px': int(cand.sum()), 'over_features_px': int(hit.sum())}
+        cand &= ~ndi.binary_dilation(diff, iterations=1)
+        m = soft(ndi.binary_dilation(cand, iterations=1), 0.7)
+        lay = masked_piece(sw, sw['rgba'][..., 3] * m)
+        scars[name] = (lay, piece_stats(sw, stats['almond']))
+        rep[f'scar.{name}'] = r
+    # Every base is the same bust below the face, so the bust is shipped once (the almond neutral one) and each
+    # face as a layer cut to the head: the head and neck skin of all twelve faces, grown to take in their outline,
+    # with a soft edge where the drawings are the same anyway.
+    head = np.zeros((H, W), bool)
+    for b in bases.values():
+        hb = head_blob(b)
+        head |= hb
+    head = ndi.binary_dilation(head, structure=disk(10)) & (np.arange(H)[:, None] < cut)
+    head_soft = np.clip(cv2.GaussianBlur(ndi.binary_erosion(head, iterations=3).astype(np.float32), (0, 0), 2.0), 0, 1)
+    rep['face_zone_px'] = int(head.sum())
+    # one placement for every layer of this body
+    acc = np.zeros((H, W), bool)
+    for b in bases.values():
+        acc |= b['rgba'][..., 3] > 0.03
+    for lay, _ in hairs.values():
+        acc |= lay['rgba'][..., 3] > 0.03
+    box = bbox(acc)
+    inner = PORTRAIT - 2 * PORTRAIT_MARGIN
+    k = min(inner / (box[2] - box[0]), inner / (box[3] - box[1]))
+    origin = ((PORTRAIT - round((box[2] - box[0]) * k)) // 2, PORTRAIT - PORTRAIT_MARGIN - round((box[3] - box[1]) * k))
+    rep['portrait_scale'] = round(k, 4)
+    cw = (PORTRAIT, PORTRAIT)
+    # Marks a sheet drew that the reference face does not have (the broad body's narrow eyes came with a scratch on
+    # the cheek): differences from the almond face of the same expression, on the skin, away from the eyes, brows
+    # and mouth, are replaced by the almond face's pixels.
+    fzone = np.zeros((H, W), bool)
+    for x in EXPRS[1:]:
+        fzone |= robust_diff(bases[('almond', x)]['rgba'], fx, r=2) > 0.2
+    fzone = ndi.binary_dilation(ndi.binary_opening(fzone, iterations=1), iterations=14)
+    skin_face = (ndi.binary_dilation(neutral['seg']['masks']['skin'] > 0.5, iterations=2) & head
+                 & ndi.binary_erosion(fx[..., 3] > 0.5, iterations=7))
+    fixes = {}
+    for (eyes, expr), b in bases.items():
+        if eyes == 'almond':
+            continue
+        ref = bases[('almond', expr)]['rgba']
+        darker = (b['rgba'][..., :3] @ LUM) < (ref[..., :3] @ LUM) - 0.04
+        d = (robust_diff(b['rgba'], ref, r=2) > 0.06) & skin_face & darker
+        d = ndi.binary_opening(d, iterations=1)
+        lab, n = ndi.label(ndi.binary_dilation(d, iterations=2))
+        mark = np.zeros((H, W), bool)
+        for i in range(1, n + 1):
+            comp = lab == i
+            if comp.sum() >= 40 and (comp & fzone).sum() < 0.2 * comp.sum():
+                mark |= comp
+        if mark.any():
+            fixes[(eyes, expr)] = soft(ndi.binary_dilation(mark, iterations=2), 1.0)
+            rep[f'base.{eyes}.{expr}']['cleaned_mark_px'] = int(mark.sum())
+    bust = dec_of(bases[('almond', 'neutral')], stats['almond'])
+    entries[f'mc.{body}.bust'] = write_layer(place_dec(bust, box, k, cw, origin), f'mc/{body}/bust.webp', cw)
+    for (eyes, expr), b in bases.items():
+        S = dec_of(b, stats[eyes])
+        if (eyes, expr) in fixes:
+            m = fixes[(eyes, expr)][..., None]
+            S = S * (1 - m) + dec_of(bases[('almond', expr)], stats['almond']) * m
+        S = mask_dec(S, head_soft)
+        entries[f'mc.{body}.face.{eyes}.{expr}'] = write_layer(place_dec(S, box, k, cw, origin), f'mc/{body}/face-{eyes}-{expr}.webp', cw)
+    for name, (lay, st) in hairs.items():
+        S = place_dec(dec_of(lay, st), box, k, cw, origin)
+        entries[f'mc.{body}.hair.{name}.portrait'] = write_layer(S, f'mc/{body}/hair-{name}-portrait.webp', cw)
+    for name, (lay, st) in scars.items():
+        S = place_dec(dec_of(lay, st), box, k, cw, origin)
+        entries[f'mc.{body}.scar.{name}'] = write_layer(S, f'mc/{body}/scar-{name}.webp', cw)
+    return entries, rep
+
+
+# ---- tokens ------------------------------------------------------------------------------------------------------
+TOKEN_PAD = 90
+
+
+def head_roi(p):
+    return ndi.binary_dilation(head_blob(p), iterations=8).astype(np.float32)
+
+
+def build_tokens_prod(body):
+    rep, entries = {}, {}
+    src = SRC[body]
+    sty_cells = cells_of(src['styles'], 1, 3, margin=30)
+    sty = [prod_piece(pad(c, TOKEN_PAD, TOKEN_PAD, 0, TOKEN_PAD)) for c in sty_cells]
+    sty_stats = [piece_stats(p) for p in sty]
+    hair_decs = {s: {} for s in STYLES}
+    names = iter(HAIR_STYLES)
+    for sheet, n, bald_i in src['chibi']:
+        cells = cells_of(sheet, 1, n, margin=30)
+        bald_cell = cells_of('mc-a-chibi-hair2', 1, 5, margin=30)[0] if bald_i is None else cells[bald_i]
+        bfx = pad(bald_cell, TOKEN_PAD, TOKEN_PAD, 0, TOKEN_PAD)
+        bald = prod_piece(bfx)
+        bH, bW = bfx.shape[:2]
+        skin_roi = ndi.binary_dilation(bald['seg']['masks']['skin'] > 0.5, iterations=8)
+        # the bald chibi of this sheet onto each style's chibi, by the head
+        to_style = []
+        for si, sp in enumerate(sty):
+            M, cost = register_cross(bfx, sp['rgba'], roi=head_roi(sp))
+            to_style.append(M)
+            rep[f'{sheet}.bald_to_{STYLES[si]}'] = mat_report(M, cost)
+        for i, cell in enumerate(cells):
+            if i == bald_i:
+                continue
+            name = next(names)
+            hp = prod_piece(cell)
+            hm = ndi.binary_dilation(hp['seg']['masks']['hair'] > 0.2, iterations=8)
+            M, cost = register(cell, bfx, exclude_moving=hm, roi=skin_roi.astype(np.float32))
+            hw = warp_piece(hp, M, (bW, bH))
+            valid = (warp_mask(hm.astype(np.float32), M, (bW, bH)) < 0.05) & skin_roi
+            ch = chamfer(hw['rgba'], bfx, valid)
+            r = {**mat_report(M, cost), 'face_chamfer_px': round(ch[0], 3)}
+            lay = hair_layer(hw, bald, report=r)
+            S = dec_of(lay, piece_stats(hp, sty_stats[0]))
+            for si, s in enumerate(STYLES):
+                sh, sw_ = sty[si]['rgba'].shape[:2]
+                hair_decs[s][name] = warp_dec(S, to_style[si], (sw_, sh))
+            rep[f'hair.{name}'] = r
+    # one scale per body: the tallest (or widest) figure with its hair fills the token
+    inner = TOKEN - 2 * TOKEN_MARGIN
+    windows, k = {}, 1e9
+    for si, s in enumerate(STYLES):
+        base = dec_of(sty[si], sty_stats[si])
+        acc = base[..., 0] > 0.03
+        for S in hair_decs[s].values():
+            acc |= S[..., 0] > 0.03
+        x0, y0, x1, y1 = bbox(acc)
+        bb = bbox(sty[si]['rgba'][..., 3] > 0.3)
+        cx = (bb[0] + bb[2]) / 2
+        half = max(cx - x0, x1 - cx)
+        k = min(k, inner / (bb[3] - y0), (TOKEN - 8) / (2 * half))
+        windows[s] = (base, (x0, y0, x1, y1), cx, bb[3])
+    rep['token_scale'] = round(k, 4)
+    cw = (TOKEN, TOKEN)
+    for s, (base, win, cx, bottom) in windows.items():
+        origin = (round(TOKEN / 2 - (cx - win[0]) * k), round(TOKEN - TOKEN_MARGIN - (bottom - win[1]) * k))
+        entries[f'mc.{body}.token.{s}'] = write_layer(place_dec(base, win, k, cw, origin), f'mc/{body}/token-{s}.webp', cw)
+        for name, S in hair_decs[s].items():
+            entries[f'mc.{body}.hair.{name}.token.{s}'] = write_layer(place_dec(S, win, k, cw, origin),
+                                                                      f'mc/{body}/hair-{name}-token-{s}.webp', cw)
+    return entries, rep
+
+
+# ---- poses -------------------------------------------------------------------------------------------------------
+def side_pieces():
+    out = []
+    for s in SIDE_SHEETS:
+        out += [prod_piece(c) for c in cells_of(s, 1, 4, margin=30)]
+    return out
+
+
+def side_rel(sides):
+    """Each side-profile hair head registered to the reference one (the topknot, first sheet): the face and the
+    skull, with the hair of both left out and nothing below the reference chin (the second sheet is cut there)."""
+    ref = sides[HAIR_STYLES.index(SIDE_REF)]
+    H, W = ref['rgba'].shape[:2]
+    a = np.maximum(ref['rgba'][..., 3], 1e-4)
+    ref_hair = ndi.binary_dilation(ref['seg']['masks']['hair'] > 0.2, iterations=8)
+    rsh = side_shape(ref)
+    rows = np.arange(H)[:, None]
+    roi = (ndi.binary_dilation(ref['seg']['masks']['skin'] / a > 0.5, iterations=8) & ~ref_hair & (rows < rsh['chin'][1] + 4))
+    roi = roi.astype(np.float32)
+    out, rep = {}, {}
+    for name, sp in zip(HAIR_STYLES, sides):
+        if name == SIDE_REF:
+            out[name] = np.array([[1, 0, 0], [0, 1, 0]], np.float64)
+            continue
+        hm = ndi.binary_dilation(sp['seg']['masks']['hair'] > 0.2, iterations=8)
+        ssh = side_shape(sp)
+        s0 = (rsh['box'][2] - rsh['box'][0]) / max(1, ssh['box'][2] - ssh['box'][0])
+        inits = [np.array([[s0, 0, rsh['chin'][0] - s0 * ssh['chin'][0]], [0, s0, rsh['chin'][1] - s0 * ssh['chin'][1]]]),
+                 np.array([[1, 0, rsh['chin'][0] - ssh['chin'][0]], [0, 1, rsh['chin'][1] - ssh['chin'][1]]])]
+        best = min((register(sp['rgba'], ref['rgba'], exclude_moving=hm, exclude_fixed=ref_hair, roi=roi, init=i,
+                             scale_bounds=(0.8, 1.25)) for i in inits), key=lambda r: r[1])
+        M = best[0]
+        hw = warp(sp['rgba'], M, (W, H))
+        valid = (warp_mask(hm.astype(np.float32), M, (W, H)) < 0.05) & (roi > 0)
+        out[name] = M
+        rep[name] = {**mat_report(M, best[1]), 'chamfer_px': round(chamfer(hw, ref['rgba'], valid)[0], 3)}
+    return out, rep
+
+
+POSE_MARGIN = 160
+HEAD_TILT = {'idle': (-15, 24, 3), 'windup': (-15, 24, 5), 'strike': (-15, 24, 6), 'hit': (-66, 9, -30)}   # deg: lo, hi, prior
+TILT_COST = 0.004
+
+
+def build_poses_prod(body, style, rel):
+    rep, entries = {}, {}
+    sheet = SRC[body]['poses'][style]
+    cells, mains = split_cells(keyed(sheet), 2, 2, name=sheet)
+    scale, lays = pose_layout(cells, mains)
+    rep['pack_scale'] = round(scale, 4)
+    sides = side_pieces()
+    side_stats = [piece_stats(sp) for sp in sides]
+    ref_shape = side_shape(sides[HAIR_STYLES.index(SIDE_REF)])
+    entries_p = {}
+    for pose, cell in zip(POSES, cells):
+        x0, y0, x1, y1 = alpha_bbox(cell)
+        m = POSE_MARGIN
+        win = (max(0, x0 - m), max(0, y0 - m), min(cell.shape[1], x1 + m), min(cell.shape[0], y1 + m))
+        crop = np.ascontiguousarray(cell[win[1]:win[3], win[0]:win[2]])
+        bp = prod_piece(crop)
+        entries_p[pose] = {'win': win, 'base': bp, 'head': head_blob(bp)}
+    hb0 = bbox(entries_p['idle']['head'])
+    s0 = 0.9 * (hb0[3] - hb0[1]) / (ref_shape['box'][3] - ref_shape['box'][1])
+    s_values = s0 * np.linspace(0.6, 1.5, 28)
+    th_values = np.radians(np.arange(-60, 31, 3))
+    grids = {pose: side_grid(ref_shape, e['head'], s_values, th_values) for pose, e in entries_p.items()}
+    tot = [sum(min((v[0] for (ii, j), v in g.items() if ii == i), default=1.0) for g in grids.values())
+           for i in range(len(s_values))]
+    s_fix = float(s_values[int(np.argmin(tot))])
+    rep['head_scale'] = round(s_fix, 4)
+    cw = (BATTLE_W, BATTLE_H)
+    for pi, (pose, e) in enumerate(entries_p.items()):
+        # A round bald head says little about its own rotation, so each pose looks in a plausible range around a
+        # prior (upright for the stances, thrown back for the hit), with a small cost for leaving the prior.
+        lo, hi, prior = HEAD_TILT[pose]
+        s_pose = s_fix * np.linspace(0.85, 1.2, 8)
+        g = side_grid(ref_shape, e['head'], s_pose, np.radians(np.arange(lo, hi + 1, 3)))
+        pen = lambda M: TILT_COST * abs(np.degrees(np.arctan2(M[1, 0], M[0, 0])) - prior) / 20
+        c0, M0 = min(g.values(), key=lambda t: t[0] + pen(t[1]))
+        Mref, cost = refine_side(ref_shape, e['head'], M0, float(np.hypot(M0[0, 0], M0[1, 0])))
+        th = np.degrees(np.arctan2(Mref[1, 0], Mref[0, 0]))
+        if not lo - 3 <= th <= hi + 3:
+            Mref, cost = M0, c0
+        bp, head = e['base'], e['head']
+        H, W = bp['rgba'].shape[:2]
+        head_reg = ndi.binary_dilation(head, structure=disk(3))
+        ba = np.maximum(bp['rgba'][..., 3], 1e-4)
+        lum = bp['rgba'][..., :3] @ LUM
+        steel = (bp['seg']['masks']['neutral'] / ba > 0.6) & (lum > 0.5)
+        hands = (bp['seg']['masks']['skin'] / ba > 0.5) & ~head_reg
+        allow = cv2.GaussianBlur((~ndi.binary_dilation(steel | hands, iterations=1)).astype(np.float32), (0, 0), 0.6)
+        lay_ = lays[pi]
+        win = e['win']
+        origin = (round(ANCHOR_X - (lay_['fx'] - win[0]) * scale), round(GROUND_Y - (lay_['my1'] - win[1]) * scale))
+        full = (0, 0, W, H)
+        base_S = dec_of(bp, piece_stats(bp))
+        canvas = place_dec(base_S, full, scale, cw, origin)
+        extra = {'groundY': GROUND_Y, 'anchorX': ANCHOR_X, 'scale': round(scale, 4)}
+        entries[f'mc.{body}.pose.{style}.{pose}'] = write_layer(canvas, f'mc/{body}/pose-{style}-{pose}.webp', cw, extra)
+        r0 = {**mat_report(Mref, cost), 'head_box': list(bbox(head))}
+        # does the figure fit the canvas?
+        fb = bbox(canvas[..., 0] > 0.03)
+        r0['canvas_box'] = list(fb)
+        if fb[0] <= 0 or fb[1] <= 0 or fb[2] >= BATTLE_W or fb[3] >= BATTLE_H:
+            r0['warning'] = 'touches the canvas edge'
+        rep[pose] = r0
+        for hi, (name, sp) in enumerate(zip(HAIR_STYLES, sides)):
+            M = compose(Mref, rel[name])
+            s = float(np.hypot(M[0, 0], M[1, 0]))
+            src = prefilter(embolden(sp, INK_BOOST / s), s)
+            hw = warp_piece(src, M, (W, H))
+            r = {}
+            lay = hair_layer(hw, bp, report=r)
+            lay2 = masked_piece(lay, lay['rgba'][..., 3] * allow)
+            lay2['film'] = lay['film'] * allow
+            r['occluded_hair_px'] = int(((1 - allow) * (hw['seg']['masks']['hair'] > 0.3)).sum())
+            S = place_dec(dec_of(lay2, side_stats[hi]), full, scale, cw, origin)
+            hb = bbox(S[..., 0] > 0.03) if (S[..., 0] > 0.03).any() else None
+            if hb and (hb[0] <= 0 or hb[1] <= 0 or hb[2] >= BATTLE_W or hb[3] >= BATTLE_H):
+                r['warning'] = 'hair touches the canvas edge'
+            entries[f'mc.{body}.hair.{name}.pose.{style}.{pose}'] = write_layer(
+                S, f'mc/{body}/hair-{name}-pose-{style}-{pose}.webp', cw, extra)
+            rep[f'{pose}.{name}'] = r
+    return entries, rep
+
+
+# ---- contact sheets from the packed files -------------------------------------------------------------------------
+def load_manifest():
+    return json.load(open(os.path.join(ART_DIR, 'assets.json')))['images']
+
+
+def compose_ids(images, ids, look, wh):
+    """Decode and stack packed layers (first id at the bottom) on an empty canvas: float RGBA."""
+    canvas = np.zeros((wh[1], wh[0], 4), np.float32)
+    for i in ids:
+        e = images.get(i)
+        if e is None:
+            continue
+        art, data, (x, y, w, h) = read_layer(e)
+        img = decode(art, data, look).astype(np.float32) / 255
+        layer = np.zeros_like(canvas)
+        layer[y:y + h, x:x + w] = img
+        canvas = over(layer, canvas)
+    return canvas
+
+
+def portrait_ids(look, expr='neutral'):
+    b = look['body']
+    ids = [f'mc.{b}.bust', f"mc.{b}.face.{look['eyes']}.{expr}"]
+    if look.get('scar', 'none') != 'none':
+        ids.append(f"mc.{b}.scar.{look['scar']}")
+    ids.append(f"mc.{b}.hair.{look['hairStyle']}.portrait")
+    return ids
+
+
+def token_ids(look, style):
+    b = look['body']
+    return [f'mc.{b}.token.{style}', f"mc.{b}.hair.{look['hairStyle']}.token.{style}"]
+
+
+def pose_ids(look, style, pose):
+    b = look['body']
+    return [f'mc.{b}.pose.{style}.{pose}', f"mc.{b}.hair.{look['hairStyle']}.pose.{style}.{pose}"]
+
+
+def ids_of(group):
+    return [x['id'] for x in LOOKS[group]]
+
+
+def make_prod_sheets(outdir):
+    os.makedirs(outdir, exist_ok=True)
+    images = load_manifest()
+    rng = np.random.default_rng(7)
+    key = {'skin': 'tan', 'hairColor': 'black', 'accent': 'crimson'}
+    skins, hcols, accs = ids_of('skins'), ids_of('hairColors'), ids_of('accents')
+    hstyles, eyes, scars = ids_of('hairStyles'), ids_of('eyes'), [s for s in ids_of('scars') if s != 'none']
+    P = (PORTRAIT, PORTRAIT)
+    for body in BODIES:
+        # 1. hairs x eye shapes, neutral, one natural look per column
+        rows, labels = [], []
+        for e in eyes:
+            row = []
+            for i, h in enumerate(hstyles):
+                lk = {'body': body, 'eyes': e, 'hairStyle': h, 'scar': 'none', 'skin': skins[i % 6],
+                      'hairColor': hcols[(i * 3) % 10], 'accent': accs[i % 6]}
+                row.append(small(compose_ids(images, portrait_ids(lk), lk, P), 256))
+            rows.append(row)
+            labels.append(e)
+        # the scars on mixed skin tones, then on the other eye shapes and expressions
+        row, row2 = [], []
+        for i, sc in enumerate(scars):
+            lk = {'body': body, 'eyes': 'almond', 'hairStyle': 'crop', 'scar': sc, 'skin': skins[i % 6],
+                  'hairColor': 'black', 'accent': 'crimson'}
+            row.append(small(compose_ids(images, portrait_ids(lk), lk, P), 256))
+            lk2 = {**lk, 'eyes': eyes[1 + i % 2], 'skin': skins[(i + 3) % 6]}
+            row2.append(small(compose_ids(images, portrait_ids(lk2, EXPRS[1 + i % 3]), lk2, P), 256))
+        rows += [row, row2]
+        labels += ['scars\nalmond', 'scars\nround/narrow\nangry/hurt/smile']
+        save_sheet(f'portraits-{body}', sheet(rows, row_labels=labels, col_labels=hstyles, label_w=120,
+                                              title=f'{body}: hair styles x eye shapes (neutral), then scars ({", ".join(scars)})'), outdir)
+        # every expression and eye shape, bald, key colors, at full size, to check the faces line up
+        rows = [[compose_ids(images, [f'mc.{body}.bust', f'mc.{body}.face.{e}.{x}'], key, P) for x in EXPRS] for e in eyes]
+        save_sheet(f'faces-{body}', sheet(rows, row_labels=list(eyes), col_labels=EXPRS, label_w=90,
+                                          title=f'{body}: bald faces, key colors'), outdir)
+    # 2. random full looks
+    tiles, caps = [], []
+    for i in range(16):
+        lk = {'body': BODIES[rng.integers(2)], 'skin': skins[rng.integers(6)], 'hairStyle': hstyles[rng.integers(8)],
+              'hairColor': hcols[rng.integers(10)], 'eyes': eyes[rng.integers(3)],
+              'scar': (['none'] + scars)[rng.integers(7)], 'accent': accs[rng.integers(6)]}
+        ex = EXPRS[rng.integers(4)]
+        tiles.append(small(compose_ids(images, portrait_ids(lk, ex), lk, P), 288))
+        caps.append(f"{lk['body']} {lk['skin']} {lk['eyes']} {ex}\n{lk['hairColor']} {lk['hairStyle']}, {lk['scar']}, {lk['accent']}")
+    rows = [tiles[i:i + 4] for i in range(0, 16, 4)]
+    caps = [caps[i:i + 4] for i in range(0, 16, 4)]
+    save_sheet('random-looks', sheet(rows, captions=caps, gap=12, title='16 random looks (seed 7)'), outdir)
+    # 3. tokens
+    tlooks = [key, {'skin': 'porcelain', 'hairColor': 'blond', 'accent': 'teal'},
+              {'skin': 'deep', 'hairColor': 'white', 'accent': 'mustard'}, {'skin': 'olive', 'hairColor': 'auburn', 'accent': 'violet'}]
+    T = (TOKEN, TOKEN)
+    for body in BODIES:
+        rows, labels = [], []
+        for s in STYLES:
+            for li, lk0 in enumerate(tlooks[:2] if s != 'vanguard' else tlooks):
+                row = []
+                for h in hstyles:
+                    lk = {**lk0, 'body': body, 'hairStyle': h}
+                    t = compose_ids(images, token_ids(lk, s), lk, T)
+                    row += [t, small(t, 48)]
+                rows.append(row)
+                labels.append(f"{s}\n{lk0['skin']}\n{lk0['hairColor']}")
+        save_sheet(f'tokens-{body}', sheet(rows, row_labels=labels, col_labels=[f'{h}' if z == 0 else '48' for h in hstyles for z in (0, 1)],
+                                           label_w=100, title=f'{body}: tokens 192 and 48 px'), outdir)
+    # 4. poses
+    plooks = [({'skin': 'fair', 'hairColor': 'copper', 'accent': 'teal'}, 0),
+              ({'skin': 'deep', 'hairColor': 'platinum', 'accent': 'crimson'}, 1),
+              ({'skin': 'olive', 'hairColor': 'black', 'accent': 'bone'}, 2)]
+    view = (40, 70, 512, 380)
+    for body in BODIES:
+        rows, labels = [], []
+        for s in STYLES:
+            rows.append([compose_ids(images, [f'mc.{body}.pose.{s}.{p}'], key, (BATTLE_W, BATTLE_H))[view[1]:view[3], view[0]:view[2]] for p in POSES])
+            labels.append(f'{s}\nbald')
+            for lk0, j in plooks:
+                h = hstyles[(STYLES.index(s) * 3 + j) % 8]
+                lk = {**lk0, 'body': body, 'hairStyle': h}
+                rows.append([compose_ids(images, pose_ids(lk, s, p), lk, (BATTLE_W, BATTLE_H))[view[1]:view[3], view[0]:view[2]] for p in POSES])
+                labels.append(f"{s}\n{h}\n{lk0['hairColor']}")
+        save_sheet(f'poses-{body}', sheet(rows, row_labels=labels, col_labels=POSES, label_w=100,
+                                          title=f'{body}: battle poses, packed size'), outdir)
+        # every hair on every pose, heads only, key colors, 2x
+        rows, labels = [], []
+        for s in STYLES:
+            for p in POSES:
+                base = images[f'mc.{body}.pose.{s}.{p}']
+                bx, by, bw, bh = base['bbox']
+                row = []
+                for h in hstyles:
+                    lk = {**key, 'body': body, 'hairStyle': h}
+                    img = compose_ids(images, pose_ids(lk, s, p), lk, (BATTLE_W, BATTLE_H))
+                    hb = images.get(f'mc.{body}.hair.{h}.pose.{s}.{p}')
+                    hx, hy, hw_, hh = hb['bbox'] if hb else (bx, by, bw, 60)
+                    x0, y0 = max(0, min(hx, bx + bw // 3) - 8), max(0, min(hy, by) - 8)
+                    x1, y1 = min(BATTLE_W, hx + hw_ + 8), min(BATTLE_H, max(hy + hh, by + 70) + 8)
+                    crop = img[y0:y1, x0:x1]
+                    row.append(cv2.resize(crop, (crop.shape[1] * 2, crop.shape[0] * 2), interpolation=cv2.INTER_NEAREST))
+                rows.append(row)
+                labels.append(f'{s}\n{p}')
+        save_sheet(f'pose-hair-{body}', sheet(rows, row_labels=labels, col_labels=hstyles, label_w=100,
+                                              title=f'{body}: every hair on every pose (2x, key colors)'), outdir)
+
+
+# ---- fixture for the TypeScript recolor test ---------------------------------------------------------------------
+def write_fixture():
+    """tests/fixtures/mc-recolor.json: pixels from packed layers (every region code, edges included) and what the
+    reference decode() makes of them under a few looks, so tests/mc-recolor.test.ts can check the TypeScript math."""
+    images = load_manifest()
+    rng = np.random.default_rng(3)
+    looks = [{'body': 'lean', 'skin': 'deep', 'hairStyle': 'topknot', 'hairColor': 'platinum', 'eyes': 'round', 'scar': 'none', 'accent': 'teal'},
+             {'body': 'broad', 'skin': 'porcelain', 'hairStyle': 'long', 'hairColor': 'auburn', 'eyes': 'narrow', 'scar': 'burn', 'accent': 'bone'},
+             {'body': 'lean', 'skin': 'olive', 'hairStyle': 'crop', 'hairColor': 'black', 'eyes': 'almond', 'scar': 'claws', 'accent': 'mustard'}]
+    pixels = []
+    for lid in ('mc.lean.bust', 'mc.lean.hair.topknot.portrait', 'mc.broad.hair.long.portrait', 'mc.broad.scar.burn',
+                'mc.lean.token.duelist', 'mc.broad.pose.spiritblade.strike'):
+        art, data, _ = read_layer(images[lid])
+        code = np.round(data[..., 2] / 64).astype(int)
+        for c in range(5):
+            ys, xs = np.nonzero((code == c) & (art[..., 3] > 0))
+            if not len(ys):
+                continue
+            for k in rng.choice(len(ys), min(6, len(ys)), replace=False):
+                pixels.append({'layer': lid, 'art': art[ys[k], xs[k]].tolist(), 'data': data[ys[k], xs[k]].tolist()})
+    cases = []
+    for lk in looks:
+        art = np.array([[p['art'] for p in pixels]], np.uint8)
+        data = np.array([[p['data'] for p in pixels]], np.uint8)
+        out = decode(art, data, lk)[0]
+        cases.append({'look': lk, 'expected': out.tolist()})
+    path = os.path.join(REPO_ROOT, 'tests', 'fixtures', 'mc-recolor.json')
+    with open(path, 'w') as f:
+        json.dump({'note': 'Written by tools/art/mc_build.py fixture. Pixels from packed MC layers and the reference decode.',
+                   'pixels': [{'art': p['art'], 'data': p['data']} for p in pixels], 'cases': cases}, f)
+        f.write('\n')
+    print(f'wrote {path}: {len(pixels)} pixels x {len(cases)} looks')
+
+
+# ---- build driver ------------------------------------------------------------------------------------------------
+def _job(args):
+    kind = args[0]
+    t0 = __import__('time').time()
+    if kind == 'portraits':
+        e, r = build_portraits_prod(args[1])
+    elif kind == 'tokens':
+        e, r = build_tokens_prod(args[1])
+    else:
+        e, r = build_poses_prod(args[1], args[2], args[3])
+    print(f'  {"/".join(str(a) for a in args[:3] if isinstance(a, str))}: {len(e)} layers, '
+          f'{__import__("time").time() - t0:.0f} s', flush=True)
+    return tuple(args[:3] if kind == 'poses' else args[:2]), e, r
+
+
+def build_all(raw, only=None):
+    """Build every MC layer into src/art/mc and merge the entries into src/art/assets.json (all `mc.` ids are
+    replaced). `only` limits it to job kinds (portraits, tokens, poses) for quicker iteration."""
+    global RAW
+    RAW = raw
+    from multiprocessing import Pool
+    print('side heads')
+    rel, rel_rep = side_rel(side_pieces())
+    jobs = []
+    for body in BODIES:
+        if not only or 'portraits' in only:
+            jobs.append(('portraits', body))
+        if not only or 'tokens' in only:
+            jobs.append(('tokens', body))
+        if not only or 'poses' in only:
+            jobs += [('poses', body, s, rel) for s in STYLES]
+    print(f'{len(jobs)} jobs')
+    with Pool(min(4, len(jobs))) as pool:
+        results = pool.map(_job, jobs, chunksize=1)
+    assets_path = os.path.join(ART_DIR, 'assets.json')
+    manifest = json.load(open(assets_path))
+    images = manifest['images']
+    new = {}
+    report = {'side_heads': rel_rep}
+    for key_, e, r in results:
+        report['.'.join(key_)] = r
+        new.update({k: v for k, v in e.items() if v is not None})
+    # drop the old entries this run rebuilt
+    def rebuilt(k):
+        parts = k.split('.')
+        if parts[0] != 'mc':
+            return False
+        for key_, _, _ in results:
+            body = key_[1]
+            if parts[1] != body:
+                continue
+            if key_[0] == 'portraits' and (parts[2] in ('portrait', 'scar', 'bust', 'face') or parts[-1] == 'portrait'):
+                return True
+            if key_[0] == 'tokens' and 'token' in parts:
+                return True
+            if key_[0] == 'poses' and 'pose' in parts and key_[2] in parts:
+                return True
+        return False
+    for k in [k for k in images if rebuilt(k)]:
+        old = images.pop(k)
+        if k not in new:
+            for r in (old['path'], old.get('layer', {}).get('data')):
+                if r and os.path.exists(os.path.join(ART_DIR, r)):
+                    os.remove(os.path.join(ART_DIR, r))
+    images.update(new)
+    manifest['images'] = {k: images[k] for k in sorted(images)}
+    with open(assets_path, 'w') as f:
+        json.dump(manifest, f, indent=2, sort_keys=True)
+        f.write('\n')
+    os.makedirs(PROD_OUT, exist_ok=True)
+    with open(os.path.join(PROD_OUT, 'build-report.json'), 'w') as f:
+        json.dump(report, f, indent=1)
+    total = sum(entry_bytes(v) for k, v in manifest['images'].items() if k.startswith('mc.'))
+    count = sum(1 for k in manifest['images'] if k.startswith('mc.'))
+    print(f'{len(new)} layers written; MC set now {count} files, {total / 1024:.0f} KB')
+    print('report:', os.path.join(PROD_OUT, 'build-report.json'))
+
+
 def main():
     global RAW
-    RAW = sys.argv[1] if len(sys.argv) > 1 else RAW
-    outdir = sys.argv[2] if len(sys.argv) > 2 else OUT
-    os.makedirs(outdir, exist_ok=True)
-    report = {}
-    print('portraits')
-    P = build_portraits(report)
-    print('tokens')
-    T = build_tokens(report)
-    print('poses')
-    Pz = build_poses(report)
-    print('sheets')
-    jpgs = make_sheets(P, T, Pz, outdir, report)
-    with open(os.path.join(outdir, 'registration.json'), 'w') as f:
-        json.dump(report, f, indent=1)
-    print('wrote', os.path.join(outdir, 'registration.json'))
-    return jpgs
+    args = sys.argv[1:]
+    cmd = args[0] if args and args[0] in ('build', 'sheets', 'fixture', 'eval') else 'eval'
+    if args and args[0] == cmd:
+        args = args[1:]
+    if cmd == 'build':
+        only = set(a for a in args if a in ('portraits', 'tokens', 'poses'))
+        rest = [a for a in args if a not in only]
+        build_all(rest[0] if rest else RAW, only)
+    elif cmd == 'sheets':
+        RAW = args[0] if args else RAW
+        make_prod_sheets(args[1] if len(args) > 1 else PROD_OUT)
+    elif cmd == 'fixture':
+        write_fixture()
+    else:
+        RAW = args[0] if args else RAW
+        outdir = args[1] if len(args) > 1 else OUT
+        os.makedirs(outdir, exist_ok=True)
+        report = {}
+        print('portraits')
+        P = build_portraits(report)
+        print('tokens')
+        T = build_tokens(report)
+        print('poses')
+        Pz = build_poses(report)
+        print('sheets')
+        make_sheets(P, T, Pz, outdir, report)
+        with open(os.path.join(outdir, 'registration.json'), 'w') as f:
+            json.dump(report, f, indent=1)
+        print('wrote', os.path.join(outdir, 'registration.json'))
 
 
 if __name__ == '__main__':

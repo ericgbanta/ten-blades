@@ -1,0 +1,75 @@
+{
+  "bodies": [
+    { "id": "lean", "name": "Lean" },
+    { "id": "broad", "name": "Broad" }
+  ],
+  "skins": [
+    { "id": "porcelain", "name": "Porcelain", "base": "#f3d5c3", "shadow": "#dcae9a" },
+    { "id": "fair", "name": "Fair", "base": "#e8bd9c", "shadow": "#cf9878" },
+    { "id": "tan", "name": "Tan", "base": "#c99470", "shadow": "#ab7452" },
+    { "id": "olive", "name": "Olive", "base": "#a87a52", "shadow": "#89603d" },
+    { "id": "brown", "name": "Brown", "base": "#7d5236", "shadow": "#623e27" },
+    { "id": "deep", "name": "Deep", "base": "#4f3222", "shadow": "#3b2418" }
+  ],
+  "hairColors": [
+    { "id": "black", "name": "Black", "base": "#3a3e4c", "shadow": "#24262f" },
+    { "id": "darkbrown", "name": "Dark brown", "base": "#4e3728", "shadow": "#36251b" },
+    { "id": "chestnut", "name": "Chestnut", "base": "#7a4a2c", "shadow": "#57321e" },
+    { "id": "auburn", "name": "Auburn", "base": "#8e3f26", "shadow": "#652a1a" },
+    { "id": "copper", "name": "Copper", "base": "#c0602e", "shadow": "#93431f" },
+    { "id": "blond", "name": "Blond", "base": "#d9b56a", "shadow": "#b18a48" },
+    { "id": "platinum", "name": "Platinum", "base": "#d3d0c6", "shadow": "#a9a59c" },
+    { "id": "grey", "name": "Grey", "base": "#8c8c8e", "shadow": "#67676b" },
+    { "id": "white", "name": "White", "base": "#eae6de", "shadow": "#c2bdb4" },
+    { "id": "teal", "name": "Teal", "base": "#2f6b6a", "shadow": "#1f4a4c" }
+  ],
+  "accents": [
+    { "id": "crimson", "name": "Crimson", "base": "#8f1f24", "shadow": "#640e12" },
+    { "id": "teal", "name": "Teal", "base": "#2f6f6c", "shadow": "#1c4e4b" },
+    { "id": "mustard", "name": "Mustard", "base": "#b48a2c", "shadow": "#7e5e15" },
+    { "id": "violet", "name": "Violet", "base": "#5c3d78", "shadow": "#3e2754" },
+    { "id": "olive", "name": "Olive", "base": "#5b6630", "shadow": "#3f471e" },
+    { "id": "bone", "name": "Bone", "base": "#d8cfb8", "shadow": "#97907f" }
+  ],
+  "hairStyles": [
+    { "id": "crop", "name": "Crop" },
+    { "id": "shoulder", "name": "Shoulder" },
+    { "id": "braid", "name": "Braid" },
+    { "id": "topknot", "name": "Topknot" },
+    { "id": "long", "name": "Long" },
+    { "id": "curls", "name": "Curls" },
+    { "id": "ponytail", "name": "Ponytail" },
+    { "id": "bob", "name": "Bob" }
+  ],
+  "eyes": [
+    { "id": "almond", "name": "Almond" },
+    { "id": "round", "name": "Round" },
+    { "id": "narrow", "name": "Narrow" }
+  ],
+  "scars": [
+    { "id": "none", "name": "None" },
+    { "id": "cheek", "name": "Cheek scar" },
+    { "id": "brow", "name": "Brow scar" },
+    { "id": "nose", "name": "Nose scar" },
+    { "id": "claws", "name": "Claw marks" },
+    { "id": "burn", "name": "Burn" },
+    { "id": "tattoo", "name": "Tattoo" }
+  ],
+  "expressions": ["neutral", "angry", "hurt", "smile"],
+  "poses": ["idle", "windup", "strike", "hit"],
+  "default": {
+    "body": "lean",
+    "skin": "tan",
+    "hairStyle": "crop",
+    "hairColor": "darkbrown",
+    "eyes": "almond",
+    "scar": "none",
+    "accent": "crimson"
+  },
+  "recolor": {
+    "uMin": -0.6,
+    "uMax": 1.25,
+    "highlightSlope": 0.6,
+    "filmShade": 0.55
+  }
+}
