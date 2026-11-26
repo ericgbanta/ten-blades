@@ -3,6 +3,7 @@
 // (party carried over, permadeath applied, chapter marked complete). Pure.
 
 import { partyAfterBattle, type BattleSetup, type BattleState, type PartyUnit, type Permadeath } from '../core';
+import { DEFAULT_LOOK, type McLook } from '../art/mc/look';
 import {
   SAVE_VERSION,
   type CampaignSave,
@@ -14,10 +15,10 @@ import {
   type SuspendSave,
 } from './format';
 
-/** What the new game flow collects. Phase 4 adds the look to `mc`. */
+/** What the new game flow collects. A missing look gets the default one. */
 export interface NewGameChoices {
   settings: CampaignSettings;
-  mc: McProfile;
+  mc: Omit<McProfile, 'look'> & { look?: McLook };
 }
 
 export function newCampaign(choices: NewGameChoices, chapters: readonly ChapterDef[], now: number): CampaignSave {
@@ -29,7 +30,7 @@ export function newCampaign(choices: NewGameChoices, chapters: readonly ChapterD
     createdAt: now,
     updatedAt: now,
     settings: { ...choices.settings },
-    mc: { ...choices.mc, name: choices.mc.name.trim() },
+    mc: { ...choices.mc, name: choices.mc.name.trim(), look: { ...(choices.mc.look ?? DEFAULT_LOOK) } },
     party: [],
     fallen: [],
     progress: { current: first.id, completed: [] },

@@ -4,7 +4,9 @@ import { decodeSaveCode, decodeSaveCodeText, encodeSaveCode } from '../src/save/
 import { newCampaign } from '../src/save/campaign';
 import type { CampaignSave, SaveContext } from '../src/save/format';
 import { memoryStorage } from '../src/save/storage';
+import { DEFAULT_LOOK } from '../src/art/mc/look';
 import v1 from './fixtures/save-v1.json';
+import v2 from './fixtures/save-v2.json';
 
 const ctx: SaveContext = { data: gameData, chapters };
 
@@ -24,10 +26,19 @@ describe('save codes', () => {
     });
   }
 
-  it('round trips the v1 fixture and survives spaces and line breaks from pasting', async () => {
-    const code = await encodeSaveCode(v1 as CampaignSave);
+  it('round trips the v2 fixture and survives spaces and line breaks from pasting', async () => {
+    const code = await encodeSaveCode(v2 as CampaignSave);
     const pasted = `  ${code.slice(0, 20)}\n${code.slice(20, 50)} \r\n${code.slice(50)}\n`;
-    expect(await decodeSaveCode(pasted, ctx)).toEqual({ ok: true, value: v1 });
+    expect(await decodeSaveCode(pasted, ctx)).toEqual({ ok: true, value: v2 });
+  });
+
+  it('imports a code made from a version 1 save, with the default look', async () => {
+    const code = await encodeSaveCode(v1 as unknown as CampaignSave);
+    const r = await decodeSaveCode(code, ctx);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.version).toBe(2);
+    expect(r.value.mc.look).toEqual(DEFAULT_LOOK);
   });
 
   it('accepts bare base64 of the JSON', async () => {

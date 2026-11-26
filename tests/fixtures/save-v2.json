@@ -1,0 +1,76 @@
+{
+  "version": 2,
+  "kind": "campaign",
+  "createdAt": 1764140000000,
+  "updatedAt": 1764143600000,
+  "settings": {
+    "difficulty": "normal",
+    "permadeath": "classic"
+  },
+  "mc": {
+    "name": "Ysolde Ærwyn",
+    "pronouns": "she",
+    "style": "duelist",
+    "look": {
+      "body": "broad",
+      "skin": "olive",
+      "hairStyle": "braid",
+      "hairColor": "auburn",
+      "eyes": "round",
+      "scar": "claws",
+      "accent": "teal"
+    }
+  },
+  "party": [
+    {
+      "id": "mc",
+      "name": "Ysolde Ærwyn",
+      "classId": "duelist",
+      "level": 2,
+      "xp": 20,
+      "stats": {
+        "hp": 21,
+        "str": 6,
+        "mag": 1,
+        "skl": 9,
+        "spd": 10,
+        "lck": 7,
+        "def": 6,
+        "res": 2,
+        "mov": 5
+      },
+      "weaponId": "hunting_knife",
+      "isLord": true
+    },
+    {
+      "id": "stranger",
+      "name": "The Stranger",
+      "classId": "wanderer",
+      "level": 1,
+      "xp": 96,
+      "stats": {
+        "hp": 36,
+        "str": 12,
+        "mag": 4,
+        "skl": 15,
+        "spd": 15,
+        "lck": 10,
+        "def": 9,
+        "res": 7,
+        "mov": 6
+      },
+      "weaponId": "widows_hush_stranger",
+      "isLord": false
+    }
+  ],
+  "fallen": [],
+  "progress": {
+    "current": null,
+    "completed": [
+      "prologue"
+    ]
+  },
+  "flags": {},
+  "gold": 0,
+  "shards": 0
+}

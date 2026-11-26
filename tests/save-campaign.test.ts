@@ -1,3 +1,4 @@
+import { DEFAULT_LOOK } from '../src/art/mc/look';
 import { describe, expect, it } from 'vitest';
 import { applyAction, createBattle, type BattleState } from '../src/core';
 import { chapters, gameData } from '../src/data';
@@ -37,11 +38,19 @@ describe('chapter order', () => {
 describe('new campaign', () => {
   it('starts at the first chapter with nothing carried, and trims the name', () => {
     const c = start('classic');
-    expect(c).toMatchObject({ version: 1, kind: 'campaign', createdAt: 100, updatedAt: 100, party: [], fallen: [], gold: 0, shards: 0, flags: {} });
+    expect(c).toMatchObject({ version: 2, kind: 'campaign', createdAt: 100, updatedAt: 100, party: [], fallen: [], gold: 0, shards: 0, flags: {} });
     expect(c.mc.name).toBe('Ash');
+    expect(c.mc.look).toEqual(DEFAULT_LOOK);
     expect(c.progress).toEqual({ current: 'prologue', completed: [] });
     expect(currentChapter(c, chapters)?.mapId).toBe('prologue');
     expect(battleSetup(c)).toEqual({ difficulty: 'normal', permadeath: 'classic', mc: { name: 'Ash', style: 'vanguard' }, party: [] });
+  });
+
+  it('keeps the look the creator made, as a copy', () => {
+    const look = { ...DEFAULT_LOOK, body: 'broad', hairStyle: 'bob', scar: 'tattoo' };
+    const c = newCampaign({ settings: { difficulty: 'normal', permadeath: 'casual' }, mc: { name: 'Ash', pronouns: 'he', style: 'duelist', look } }, chapters, 1);
+    expect(c.mc.look).toEqual(look);
+    expect(c.mc.look).not.toBe(look);
   });
 });
 

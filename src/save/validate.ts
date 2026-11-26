@@ -3,6 +3,7 @@
 // Run migrate() first; this only accepts SAVE_VERSION.
 
 import { STAT_KEYS, type BattleState, type GameData, type PartyUnit, type Pos } from '../core';
+import { lookProblem } from '../art/mc/look';
 import {
   DIFFICULTIES,
   MC_NAME_MAX,
@@ -74,10 +75,12 @@ function checkCampaign(raw: unknown, path: string, ctx: SaveContext): CampaignSa
   oneOf(settings.difficulty, join(path, 'settings.difficulty'), DIFFICULTIES);
   oneOf(settings.permadeath, join(path, 'settings.permadeath'), PERMADEATH_MODES);
 
-  const mc = exactObj(o.mc, join(path, 'mc'), ['name', 'pronouns', 'style']);
+  const mc = exactObj(o.mc, join(path, 'mc'), ['name', 'pronouns', 'style', 'look']);
   checkName(mc.name, join(path, 'mc.name'));
   oneOf(mc.pronouns, join(path, 'mc.pronouns'), PRONOUNS);
   oneOf(mc.style, join(path, 'mc.style'), MC_STYLES);
+  const lookWhy = lookProblem(mc.look);
+  if (lookWhy) throw new ShapeError(join(path, 'mc.look'), lookWhy);
 
   const ids = new Set<string>();
   const party = arr(o.party, join(path, 'party')).map((u, i) => checkPartyUnit(u, join(join(path, 'party'), i), ctx.data, ids));

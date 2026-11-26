@@ -5,30 +5,52 @@ import { readCampaign, readSuspend } from '../src/save/load';
 import { MIGRATIONS, migrate, type MigrationStep } from '../src/save/migrate';
 import v1 from './fixtures/save-v1.json';
 import v1Suspend from './fixtures/suspend-v1.json';
+import v2 from './fixtures/save-v2.json';
+import { DEFAULT_LOOK } from '../src/art/mc/look';
 
 const ctx: SaveContext = { data: gameData, chapters };
 
 describe('migration pipeline', () => {
-  it('is at version 1 with no steps yet', () => {
-    expect(SAVE_VERSION).toBe(1);
-    expect(Object.keys(MIGRATIONS)).toEqual([]);
+  it('is at version 2 with one step, from 1', () => {
+    expect(SAVE_VERSION).toBe(2);
+    expect(Object.keys(MIGRATIONS)).toEqual(['1']);
   });
 
-  it('loads and validates the v1 campaign fixture', () => {
+  it('loads the v1 campaign fixture: everything kept, the default look added', () => {
     const r = readCampaign(v1, ctx);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.value.mc.name).toBe('Ysolde Ærwyn');
+    expect(r.value.version).toBe(2);
+    expect(r.value.mc).toEqual({ name: 'Ysolde Ærwyn', pronouns: 'she', style: 'duelist', look: DEFAULT_LOOK });
     expect(r.value.progress).toEqual({ current: null, completed: ['prologue'] });
     expect(r.value.party.map((u) => u.id)).toEqual(['mc', 'stranger']);
+    expect({ ...r.value, mc: null, version: null }).toEqual({ ...v1, mc: null, version: null });
   });
 
-  it('loads and validates the v1 suspend fixture', () => {
+  it('loads the v1 suspend fixture: the nested campaign gets the look, the battle is untouched', () => {
     const r = readSuspend(v1Suspend, ctx);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
+    expect(r.value.version).toBe(2);
+    expect(r.value.campaign.version).toBe(2);
+    expect(r.value.campaign.mc.look).toEqual(DEFAULT_LOOK);
     expect(r.value.slot).toBe(1);
     expect(r.value.controller.showDanger).toBe(true);
+    expect(r.value.battle).toEqual(v1Suspend.battle);
+  });
+
+  it('loads the v2 fixture as it is', () => {
+    const r = readCampaign(v2, ctx);
+    expect(r).toEqual({ ok: true, value: v2 });
+  });
+
+  it('the 1 to 2 step never changes its input and lands on version 2', () => {
+    const input = structuredClone(v1);
+    const r = migrate(input);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.version).toBe(2);
+    expect(input).toEqual(v1);
   });
 
   it('runs the steps in order up to the target and never changes the input', () => {

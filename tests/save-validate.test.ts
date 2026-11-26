@@ -5,7 +5,7 @@ import { battleSetup, newCampaign, suspendSave } from '../src/save/campaign';
 import type { CampaignSave, SaveContext, SuspendSave } from '../src/save/format';
 import { readCampaign, readSuspend } from '../src/save/load';
 import { validateCampaign, validateSuspend } from '../src/save/validate';
-import fixture from './fixtures/save-v1.json';
+import fixture from './fixtures/save-v2.json';
 
 const ctx: SaveContext = { data: gameData, chapters };
 
@@ -31,7 +31,7 @@ function errorOf(r: { ok: boolean; error?: string }): string {
 }
 
 describe('campaign validator', () => {
-  it('accepts a new campaign and the v1 fixture', () => {
+  it('accepts a new campaign and the v2 fixture', () => {
     expect(validateCampaign(campaign(), ctx)).toEqual({ ok: true, value: campaign() });
     expect(validateCampaign(fixture, ctx).ok).toBe(true);
   });
@@ -44,7 +44,7 @@ describe('campaign validator', () => {
   const cases: [string, (c: CampaignSave) => unknown, RegExp][] = [
     ['not an object', () => 'hello', /expected an object/],
     ['a list', () => [], /expected an object, found a list/],
-    ['wrong version', (c) => ({ ...c, version: 2 }), /^version: expected 1, found 2/],
+    ['wrong version', (c) => ({ ...c, version: 1 }), /^version: expected 2, found 1/],
     ['wrong kind', (c) => ({ ...c, kind: 'suspend' }), /not a campaign save/],
     ['missing field', (c) => broken(c, (o) => delete (o as Partial<CampaignSave>).gold), /^gold: missing/],
     ['unknown field', (c) => ({ ...c, cheat: true }), /^cheat: not a known field/],
@@ -55,6 +55,12 @@ describe('campaign validator', () => {
     ['control char in name', (c) => broken(c, (o) => (o.mc.name = 'A\nB')), /control character/],
     ['bad pronouns', (c) => broken(c, (o) => ((o.mc as { pronouns: string }).pronouns = 'it')), /mc.pronouns/],
     ['bad style', (c) => broken(c, (o) => ((o.mc as { style: string }).style = 'medic')), /mc.style/],
+    ['no look', (c) => broken(c, (o) => delete (o.mc as Partial<CampaignSave['mc']>).look), /^mc.look: missing/],
+    ['an unknown skin tone', (c) => broken(c, (o) => (o.mc.look.skin = 'green')), /^mc.look: skin: unknown skin tone "green"/],
+    ['an unknown hair style', (c) => broken(c, (o) => (o.mc.look.hairStyle = 'mohawk')), /mc.look: hairStyle: unknown hair style/],
+    ['an unknown scar', (c) => broken(c, (o) => (o.mc.look.scar = 'eyepatch')), /mc.look: scar: unknown scar or marking/],
+    ['a look field that is not text', (c) => broken(c, (o) => ((o.mc.look as unknown as { eyes: number }).eyes = 2)), /mc.look: eyes: expected text/],
+    ['an extra look field', (c) => broken(c, (o) => ((o.mc.look as unknown as { hat: string }).hat = 'tricorn')), /mc.look: hat: unknown field/],
     ['unknown chapter', (c) => broken(c, (o) => (o.progress.current = 'chapter9')), /progress.current: expected one of prologue/],
     ['completed twice', (c) => broken(c, (o) => (o.progress = { current: null, completed: ['prologue', 'prologue'] })), /listed twice/],
     ['current already done', (c) => broken(c, (o) => (o.progress.completed = ['prologue'])), /already completed/],

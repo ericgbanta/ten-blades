@@ -2,9 +2,12 @@
 // constants only. See docs/SAVES.md for the rules on changing this shape.
 
 import type { BattleState, Difficulty, GameData, McStyle, PartyUnit, Permadeath } from '../core';
+import type { McLook } from '../art/mc/look';
+
+export type { McLook };
 
 /** The version every save is written at. Bump it and add a step in migrate.ts on any shape change. */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 /** Campaign slots. The suspend save has its own slot and remembers which of these it belongs to. */
 export type SlotId = 1 | 2 | 3;
@@ -26,14 +29,15 @@ export interface CampaignSettings {
 }
 
 /**
- * The main character as the player built them. Phase 4 adds a `look` object
- * (body, skin, hair, face, marking, accent) in save version 2, with a migration
- * that gives version 1 saves a default look.
+ * The main character as the player built them. `look` arrived in save version 2
+ * (the migration gives version 1 saves the default look); its ids are checked
+ * against src/data/looks.json.
  */
 export interface McProfile {
   name: string;
   pronouns: Pronouns;
   style: McStyle;
+  look: McLook;
 }
 
 export interface ChapterProgress {

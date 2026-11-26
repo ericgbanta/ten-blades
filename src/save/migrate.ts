@@ -3,6 +3,7 @@
 // shape: bump SAVE_VERSION, add the step for the old version here, and add a
 // fixture of the old version under tests/fixtures (see docs/SAVES.md).
 
+import { DEFAULT_LOOK } from '../art/mc/look';
 import { SAVE_VERSION, fail, ok, type Result } from './format';
 import type { Obj } from './shape';
 
@@ -11,12 +12,25 @@ export type RawSave = Obj & { version: number };
 
 export type MigrationStep = (save: RawSave) => RawSave;
 
+/** Version 1 to 2: the main character gets a look. Version 1 saves predate the creator, so they get the default. */
+function addLook(save: RawSave): RawSave {
+  const withLook = (c: Obj): Obj => {
+    const mc = c.mc;
+    if (typeof mc !== 'object' || mc === null || Array.isArray(mc)) return { ...c, version: 2 };
+    return { ...c, version: 2, mc: { ...(mc as Obj), look: { ...DEFAULT_LOOK } } };
+  };
+  if (save.kind === 'suspend' && typeof save.campaign === 'object' && save.campaign !== null) {
+    return { ...save, version: 2, campaign: withLook(save.campaign as Obj) };
+  }
+  return withLook(save) as RawSave;
+}
+
 /**
- * Steps keyed by the version they upgrade from. Empty while SAVE_VERSION is 1.
- * A step must handle both kinds (`campaign` and `suspend`, whose `campaign`
- * field is a campaign save of the same version).
+ * Steps keyed by the version they upgrade from. A step must handle both kinds
+ * (`campaign` and `suspend`, whose `campaign` field is a campaign save of the
+ * same version).
  */
-export const MIGRATIONS: Readonly<Record<number, MigrationStep>> = {};
+export const MIGRATIONS: Readonly<Record<number, MigrationStep>> = { 1: addLook };
 
 /**
  * Upgrade a parsed save to `target`. Returns the upgraded object, still unchecked:
