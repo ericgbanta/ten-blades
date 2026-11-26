@@ -6,9 +6,9 @@
 import Phaser from 'phaser';
 import type { BattleState, GameData, School, Unit } from '../core';
 import { imageMeta, imageUrl } from '../art/manifest';
-import { composeMcPose } from '../art/mc/compose';
+import { composeMcPortrait, composeMcPose } from '../art/mc/compose';
 import { lookKey, type McLook } from '../art/mc/look';
-import { battleArt, BATTLE_POSES, type BattlePose } from '../ui/artMap';
+import { battleArt, BATTLE_POSES, portraitId, type BattlePose } from '../ui/artMap';
 import type { Fighter, FightScript, FxKind, SceneStep } from '../battle/fightTimeline';
 import type { FightPlayOptions, FightStage } from '../battle/stage';
 import { backdropPlacement, fightLayout, type FightLayout } from './fightLayout';
@@ -46,6 +46,8 @@ export class FightScene extends Phaser.Scene implements FightStage {
   private opts: FightPlayOptions | null = null;
   private ready = false;
   private whenReady: (() => void)[] = [];
+  /** Portrait URLs already decoded for the HUD. */
+  private warmed = new Set<string>();
 
   constructor(
     private readonly dpr: number,
@@ -58,6 +60,7 @@ export class FightScene extends Phaser.Scene implements FightStage {
   create(): void {
     this.cameras.main.setRoundPixels(false);
     this.makeFxTextures();
+    this.warmUp();
     this.ready = true;
     for (const fn of this.whenReady.splice(0)) fn();
   }
@@ -65,6 +68,23 @@ export class FightScene extends Phaser.Scene implements FightStage {
   private untilReady(): Promise<void> {
     if (this.ready) return Promise.resolve();
     return new Promise((resolve) => this.whenReady.push(resolve));
+  }
+
+  /**
+   * Draw one of each effect off screen for a frame, so the first impact of the first scene does not pay for the
+   * font, the particle emitter and the curves (measured as a 80 to 100 ms frame before this).
+   */
+  private warmUp(): void {
+    const off = -10000;
+    const objs: Phaser.GameObjects.GameObject[] = [
+      this.add.text(off, off, '0123456789!+Miss CRITICAL falls', { fontFamily: FONT, fontSize: '40px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 6 }),
+      this.add.particles(off, off, 'fx.spark', { lifespan: 50, speed: 10, emitting: false }),
+      this.add.particles(off, off, 'fx.dot', { lifespan: 50, speed: 10, emitting: false, blendMode: 'ADD' }),
+      this.add.graphics().lineStyle(4, 0xffffff, 1).beginPath().arc(off, off, 20, 0, 2).strokePath(),
+      this.add.circle(off, off, 10, 0xffffff, 0.5).setStrokeStyle(2, 0xffffff),
+    ];
+    for (const o of objs) if (o instanceof Phaser.GameObjects.Particles.ParticleEmitter) o.explode(4);
+    this.time.delayedCall(120, () => objs.forEach((o) => o.destroy()));
   }
 
   /** Small textures for particles, made once. */
@@ -104,6 +124,8 @@ export class FightScene extends Phaser.Scene implements FightStage {
       const unit = state.units.find((u) => u.id === f.unitId);
       if (!unit) continue;
       const art = battleArt(unit);
+      // The HUD's medallions: decode the portrait (or compose the main character's) now, not on the first frame.
+      loads.push(this.warmPortrait(unit, art.kind === 'mc'));
       if (art.kind === 'placeholder') {
         this.placeholderTexture(unit.team);
         continue;
@@ -151,6 +173,20 @@ export class FightScene extends Phaser.Scene implements FightStage {
       );
     }
     await Promise.all(loads);
+  }
+
+  private warmPortrait(unit: Unit, mc: boolean): Promise<void> {
+    if (mc) return composeMcPortrait(this.look, 'neutral').then(
+      () => undefined,
+      () => undefined,
+    );
+    const id = portraitId(unit);
+    const url = id ? imageUrl(id) : undefined;
+    if (!url || this.warmed.has(url)) return Promise.resolve();
+    this.warmed.add(url);
+    const img = new Image();
+    img.src = url;
+    return img.decode().catch(() => undefined);
   }
 
   private backdropKey(state: BattleState): string | null {
@@ -217,10 +253,13 @@ export class FightScene extends Phaser.Scene implements FightStage {
     this.build(script, state);
     return new Promise<void>((resolve) => {
       let done = false;
+      // The map is covered (by the band, and by the HUD and a dark veil in portrait): stop drawing it meanwhile.
+      this.scene.setVisible(false, 'map');
       const end = () => {
         if (done) return;
         done = true;
         this.finish = null;
+        this.scene.setVisible(true, 'map');
         this.time.removeAllEvents();
         this.tweens.killAll();
         this.cameras.main.resetFX();
@@ -258,9 +297,9 @@ export class FightScene extends Phaser.Scene implements FightStage {
     const L = this.layout;
     const band = { x: this.px(L.band.x), y: this.px(L.band.y), w: this.px(L.band.w), h: this.px(L.band.h) };
     const groundY = this.px(L.groundY);
-    // Darken the map outside the band (portrait); the HUD sits over part of it.
+    // Under the band in portrait: a dark field for the HUD (the map is hidden while the scene plays).
     if (!L.landscape) {
-      this.keep(this.add.rectangle(0, band.h, this.scale.width, this.scale.height - band.h, 0x050406, 0.78).setOrigin(0, 0).setDepth(-2));
+      this.keep(this.add.rectangle(0, band.h, this.scale.width, this.scale.height - band.h, 0x0c0a0f, 1).setOrigin(0, 0).setDepth(-2));
     }
     const bdKey = this.backdropKey(state);
     if (bdKey && this.textures.exists(bdKey)) {
