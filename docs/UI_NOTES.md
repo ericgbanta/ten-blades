@@ -1,4 +1,4 @@
-# Battle UI notes
+# UI notes
 
 How the battle screen is put together (phase 2). The rules live in `src/core`; everything here only displays state and sends actions. See `docs/CORE_API.md` for the core itself.
 
@@ -15,7 +15,9 @@ How the battle screen is put together (phase 2). The rules live in `src/core`; e
 | `src/game/camera.ts`, `gestures.ts` | Pure camera math (clamp, zoom around a point, reveal a tile) and the tap, pan and pinch tracker. |
 | `src/game/start.ts` | Boots Phaser and returns a small `GameHandle`. |
 | `src/ui/Battle.tsx` | The battle route: plays the campaign run (new, loaded or resumed) or a quick battle, builds the controller, mounts Phaser, renders the overlays, measures them for the camera. |
-| `src/ui/Title.tsx`, `src/ui/menus/*` | Title (Continue, New game, Load game, Settings), the new game flow, load game, settings and the chapter complete screen. |
+| `src/ui/Title.tsx`, `src/ui/menus/*` | Title (Continue, New game, Load game, Settings), the new game flow and creator, load game, settings and the chapter complete screen. |
+| `src/ui/mc/McPicture.tsx` | Canvas elements that show a composed MC portrait, face crop, token or pose. |
+| `src/ui/DevMc.tsx` | The hidden MC art check page, `#/dev/mc`. |
 | `src/ui/battle/*` | Preact overlays: top bar, bottom bar, unit card, action menu, forecast, heal preview, phase banner, level-up, dialogs, end screen, and the test hook. |
 
 ## Selection state machine
@@ -64,6 +66,22 @@ Timing: every animation length goes through `Timing.ms(base)`, scaled by the spe
 - The HP bar and the lord star (top left) and boss crown (top right) live in a second container at depth 25, above every token, which `MapScene.update` keeps on its token. A unit below never covers them with its head.
 - The camera allows a 0.3 tile strip above the map, so heads on the top row can be panned into view.
 
+## New game flow and the creator
+
+Steps: choose a slot, your path (permadeath and difficulty), your hero (name and pronouns), your look (the creator, which ends with Begin). The state and step rules are pure functions in `src/ui/menus/newGameDraft.ts`; `tests/new-game.test.ts` covers them.
+
+The creator (`src/ui/menus/Creator.tsx`) keeps a live preview pinned under the header: the portrait (tap it to cycle neutral, angry, hurt and smiling) and the map token for the chosen combat style, with a Randomize button. Below it are four tabs: Look (body type, skin tone), Hair (style, color), Face (eyes, scar or marking) and Style (combat style, outfit accent). Option buttons and color swatches are at least 44 px; swatches carry the color's name as their label. In landscape on a phone the preview sits on the left and the options on the right. Randomize uses the seeded RNG with a seed from the clock and changes only the look. All options come from `src/data/looks.json`.
+
+## Main character pictures
+
+`src/art/mc/compose.ts` builds the MC's pictures from the packed layers (see `docs/ART_GENERATION.md`): `composeMcPortrait(look, expr)`, `composeMcToken(look, style)` and `composeMcPose(look, style, pose)` each return a canvas the size of the matching packed canvas. Each layer is fetched and decoded once; each composed picture is cached by look (up to 64), so drawing it again is free. The returned canvas is shared: draw it, do not change it. A missing layer is skipped and a missing base draws a plain head-and-shoulders shape. The pure parts (look checks, palette lookup, layer ids, the per-pixel recolor) are in `look.ts` and `recolor.ts`, tested in `tests/mc-look.test.ts` and `tests/mc-recolor.test.ts` (against pixels decoded by the Python build).
+
+Measured in headless Chromium on the dev page: composing a 384 portrait from loaded layers takes about 3.5 ms, 17 ms with the CPU slowed four times and 25 ms at six times (a phone-class device). The first draw of a look, with fetching and decoding of its layers, took 40 to 90 ms unthrottled and 160 to 300 ms at four times slower with seven pictures loading at once.
+
+On the map, the battle route composes the MC's token for their look and style before Phaser starts and hands a copy to the scene, which registers it as the texture `token.mc` and uses it for the player's lord unit, with the same baked outline and hit flash as other tokens. A quick battle (`quick=1`) uses the default look. The unit card shows the MC's face, cut from the neutral portrait, beside the name and HP.
+
+`#/dev/mc` shows the newest saved campaign's look (or a random one; `#/dev/mc?seed=N` picks one) as the portrait in four expressions, the token in three styles and all twelve battle poses, with Randomize and first-draw times. It sets `window.__mc.timePortrait(runs)` for timing. Battle poses are composed but not shown in battle yet.
+
 ## Test hook
 
 With `test=1` in the URL (`?test=1&seed=7#/battle`), `window.__tb` offers:
@@ -78,6 +96,7 @@ With `test=1` in the URL (`?test=1&seed=7#/battle`), `window.__tb` offers:
 | `tileSize()` | Current tile size in CSS px. |
 | `suggest(unitId)` | The charge AI's choice for a player unit, so a test can script a strategy and still play it by taps. |
 | `saved()` | Resolves true once every queued save write has finished, so a test can reload safely. |
+| `tokenTexture(unitId)` | The texture key a unit's map token shows (`token.mc` for the composed MC), or null for a placeholder. |
 
 URL overrides (query or after the hash route): `seed=N` fixes the seed of every battle, campaign ones included; without it each battle seeds from the clock. `quick=1` on the battle route (`?test=1&quick=1&seed=7#/battle`) plays an unsaved quick battle, which also takes `style=vanguard|duelist|spiritblade`, `difficulty=normal|hard|lunatic` and `mode=classic|casual`. Without `quick=1` and without a campaign run (for example after a page reload), the battle route goes back to the title, where Continue resumes the suspended battle.
 

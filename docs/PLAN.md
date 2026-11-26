@@ -90,7 +90,8 @@ DracoQuest's redesign took 61 generations in a day and needed one top-up. Nothin
 | 1 Core rules | Done (see `docs/CORE_API.md`) |
 | 2 Battle map | Done (see `docs/UI_NOTES.md`) |
 | 3 Saves and modes | Done (see `docs/SAVES.md`) |
-| 4 to 9 | Not started |
+| 4 Story layer | In progress. The character creator is done: MC art layers, runtime recolor and compositing, the creator in the new game flow, the look in the save (version 2) and the MC's token on the map. Dialogue, chapter flow, recruiting and events are not started. |
+| 5 to 9 | Not started |
 
 ## Questions for Eric
 

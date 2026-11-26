@@ -76,6 +76,33 @@ Tiles and backdrops are not keyed. `pack_tiles` finds the tile rectangles from t
 
 Ids in the manifest: `battle.<id>.<pose>`, `portrait.<id>.<expr>`, `token.<classId>`, `tile.<terrainId>` and `backdrop.<name>`. Battle and portrait ids use the sheet id (stranger, gravemaw, captain, soldier, and so on). Tokens use the class id the map asks for: the Stranger is `token.wanderer`, the Hunter-Captain is `token.hunter_captain`, and Gravemaw's bearer, who has no class yet, is `token.gravemaw_bearer`. Each entry holds `path` (relative to `src/art`), `width`, `height` and `bbox` ([x, y, w, h] of the visible art); battle entries add `groundY`, `anchorX` and `scale`. `imageUrl(id)` gives the bundled URL and `imageMeta(id)` the entry. `src/art/manifest.ts` bundles every `.webp` under `src/art` with `import.meta.glob`, so new folders need no change there. `tests/art-manifest.test.ts` checks every entry's file exists and ids are well formed.
 
+## The main character
+
+The MC is built from layers, recolored at runtime to the look the player picks in the creator. The build is `tools/art/mc_build.py`; the runtime is `src/art/mc`.
+
+### Key colors and sheets
+
+Every MC sheet is drawn in key colors so the game can find each region: skin is a plain mid tan (the only warm hue), hair is royal blue, the accent cloth (neck scarf and waist sash) is red, and everything else is neutral (charcoal, grey, black, pale steel). Eyebrows are black ink and do not recolor. The text that says this to Codex is in `tools/art/prompts/mc-key.txt` and is repeated in every `mc-*.txt` prompt. Characters are drawn completely bald, and hair, faces and marks come from sheets that redraw the same bust with one thing changed.
+
+There are two bodies, Lean (sheets `mc-*` and `mc-a-*`) and Broad (`mc-b-*`). Per body: a base sheet (bust, chibi, side view), three face sheets (2 x 2 expressions neutral, angry, hurt, smile; eye shapes almond, round, narrow), two hair sheets (2 x 2, hairs crop, shoulder, braid, topknot, then long, curls, ponytail, bob), a 3 x 2 scar sheet (cheek, brow, nose, claws, burn, tattoo), two chibi hair sheets, a sheet of three bald chibis (vanguard, duelist, spiritblade), and three pose sheets (2 x 2 idle, windup, strike, hit) per combat style. Both bodies share two side-profile hair sheets (`mc-hair-side`, `mc-hair-side2`), which put the hair on the battle poses.
+
+### Building
+
+`python3 tools/art/mc_build.py build <raw_dir>` writes every layer to `src/art/mc/<body>/` and replaces the `mc.` entries in `src/art/assets.json` (add `portraits`, `tokens` or `poses` to rebuild only those). It needs numpy, scipy, Pillow and opencv-python-headless, runs the jobs on four processes and takes about four minutes. `python3 tools/art/mc_build.py sheets` writes contact sheets made from the packed files (default folder `mcprod` in the session scratchpad), `fixture` writes `tests/fixtures/mc-recolor.json` for the recolor test, and `eval [raw_dir] [out]` still runs the first layer experiment and its evaluation sheets. A report of every registration is written next to the sheets as `build-report.json`.
+
+How it works, briefly:
+
+- Segmentation: each key region is found by hue, and every pixel is modelled as a mix of the region's flat color and the nearest neutral color (usually ink). Small specks of red inside the skin (a reddish shadow on a cheek) count as skin.
+- Portraits: the twelve bald faces of a body are registered to its almond neutral bust. The body below the face is the same in all of them, so it ships once as the bust, and each face ships as a layer cut to the head and neck. Marks a sheet added that the reference face does not have are replaced by the reference's pixels (the broad narrow-eyed faces came with a scratch on the cheek). Hair layers are registered to the neutral bust and keep off the eyes, brows and mouth of all twelve faces. A shaved scalp becomes a translucent film. Scars are the difference from the neutral bust on the skin, with anything over a changing feature cut away. Every layer of a body uses one placement on the 384 x 384 canvas, bottom aligned like `pack.py` portraits.
+- Tokens: each chibi hair is cut from its sheet against that sheet's bald chibi, then moved onto each style's bald chibi by registering the heads. One scale per body; 192 x 192, bottom centered with the 8 px margin.
+- Poses: as `pack.py`, one scale per pose sheet with the idle body 240 px tall, feet on y 360 at x 192, on 512 x 384. The side hair heads are registered to the topknot head, which is fitted to each pose's head by shape (rotation kept to a plausible range per pose), thickened to the body's line weight and kept behind steel and hands. The Spiritblade's white light burst is neutral and stays.
+
+### Runtime format
+
+Each layer is two WebP files over the same rectangle of its canvas: the art (lossy, alpha lossless) holds the neutral part of every pixel, and `<name>.data.webp` (lossless) holds, per pixel, the region membership t, the tone u within the region and the region code. The game recolors with one table lookup and one blend per pixel: `out = N + t * (LUT[region][u] - N)`, where the table is the palette tone at u (base at 0, shadow at 1). Nothing is guessed from hue at runtime, so lossy compression of the art cannot shift a region, and the data compresses well because it is flat inside each region. This was chosen over shipping key-color art and classifying hue in the browser (edges drift, needs lossless art and the segmentation logic in TypeScript) and over per-region grayscale layers (three to four images per layer). Palettes are in `src/data/looks.json`.
+
+Manifest ids: `mc.<body>.bust`, `mc.<body>.face.<eyes>.<expr>`, `mc.<body>.scar.<scar>`, `mc.<body>.hair.<hair>.portrait`, `mc.<body>.token.<style>`, `mc.<body>.hair.<hair>.token.<style>`, `mc.<body>.pose.<style>.<pose>` and `mc.<body>.hair.<hair>.pose.<style>.<pose>`. Each entry has the usual `path`, `width`, `height` (the canvas) and `bbox`, plus `layer` with `encoding` ("mc1"), `rect` and the `data` path; pose entries add `groundY`, `anchorX` and `scale`. The set is 651 files, about 2.2 MB.
+
 ## What exists
 
 | Batch | Generations | Result |
@@ -88,4 +115,7 @@ Ids in the manifest: `battle.<id>.<pose>`, `portrait.<id>.<expr>`, `token.<class
 | Village tileset 1 | 1 | The eight terrain tiles (`tile.plain` to `tile.wall`). Usable first try. |
 | Village battle backdrop 1 | 1 | `backdrop.village`, kept in the manifest for the later battle scene phase. Usable first try. |
 
-Not made yet: MC layers, tokens for the MC's three style classes, other tilesets and backdrops, icons.
+| MC test (Lean body: base, faces, two hairs sheets, chibis, side hair, vanguard poses) | 6 | All usable first try. Judged good enough to build the full set. |
+| MC full set (eye shapes, hairs 5 to 8, scars, chibi styles and hairs, duelist and spiritblade poses, the whole Broad body, side hairs 5 to 8) | 22 | All usable first try. 28 MC generations in total. Built by `tools/art/mc_build.py` into 651 files, about 2.2 MB. |
+
+Not made yet: other tilesets and backdrops, icons.

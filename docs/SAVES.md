@@ -26,11 +26,12 @@ One JSON object per slot.
 
 | Field | Meaning |
 | --- | --- |
-| `version` | The save version, 1 now. |
+| `version` | The save version, 2 now. |
 | `kind` | Always `campaign`. |
 | `createdAt`, `updatedAt` | Epoch milliseconds, passed in by the UI. `updatedAt` is the "last played" time on the load screen. It changes when the campaign is written: at new game and after each won chapter. |
 | `settings` | `difficulty` (`normal`, `hard`, `lunatic`) and `permadeath` (`classic`, `casual`), chosen at new game and fixed after. |
-| `mc` | `name` (1 to 16 characters, any script, no control characters), `pronouns` (`he`, `she`, `they`) and `style` (`vanguard`, `duelist`, `spiritblade`). Phase 4 adds `look` here. |
+| `mc` | `name` (1 to 16 characters, any script, no control characters), `pronouns` (`he`, `she`, `they`), `style` (`vanguard`, `duelist`, `spiritblade`) and `look`. |
+| `mc.look` | The creator's choices: `body`, `skin`, `hairStyle`, `hairColor`, `eyes`, `scar` (or `none`) and `accent`, each an id from `src/data/looks.json`. Added in version 2. |
 | `party` | `PartyUnit[]` carried into the next map, in unit order, as built by `partyAfterBattle`. Empty before the prologue, when the MC is built from `mc`. When not empty it holds exactly one lord (the MC). |
 | `fallen` | `PartyUnit[]` lost for good in Classic mode. Never the MC. |
 | `progress` | `current`: the chapter id to play next, or null once the story so far is finished. `completed`: chapter ids won, in order. |
@@ -56,7 +57,7 @@ There is one suspend slot. It holds the battle in progress, written whenever the
 `validateCampaign`, `validateSuspend` and `validateBattleState` return `{ ok: true, value }` with a typed save, or `{ ok: false, error }` with a readable path and problem, such as `party[0].classId: unknown class "dragon"`. They check:
 
 - The shape: every field present, no unknown fields, the right types, whole numbers in range.
-- Ids against game data: classes, weapons, maps, terrain and chapter ids.
+- Ids against game data: classes, weapons, maps, terrain and chapter ids, and every field of `mc.look` against `src/data/looks.json` (`lookProblem` in `src/art/mc/look.ts`).
 - Invariants: unit ids unique, at most one lord and none among the fallen, the current chapter not already completed, a living unit with HP from 1 to its max and a fallen one at 0, positions on the map, enemy and ally units with an AI, the battle's map size matching the map data.
 
 `readCampaign` and `readSuspend` run `migrate` first and wrap any error in a plain sentence for the player. Storage also validates every save before writing it, so a bad object never reaches the disk.
@@ -70,7 +71,15 @@ There is one suspend slot. It holds the battle in progress, written whenever the
 3. Update the validator for the new shape.
 4. Keep `tests/fixtures/save-v1.json` (and every later fixture) as it is, add a fixture of the version you are leaving if there is none yet, and add a test that loads each old fixture through `readCampaign` and checks the result.
 
-`migrate(raw)` checks that the object has a whole-number version, refuses versions newer than the game knows, then runs the steps one at a time and checks that each step lands on the next version. It never changes its input. Version 1 has no steps yet; `tests/save-migrate.test.ts` runs a pretend two-step chain to prove the pipeline, and loads `tests/fixtures/save-v1.json` and `tests/fixtures/suspend-v1.json`.
+`migrate(raw)` checks that the object has a whole-number version, refuses versions newer than the game knows, then runs the steps one at a time and checks that each step lands on the next version. It never changes its input.
+
+Steps so far:
+
+| From | To | Change |
+| --- | --- | --- |
+| 1 | 2 | `mc.look` added. Version 1 saves predate the creator, so they get the default look from `looks.json`. A suspend save gets it in its nested `campaign`; the battle state is untouched. |
+
+`tests/save-migrate.test.ts` loads `tests/fixtures/save-v1.json` and `tests/fixtures/suspend-v1.json` through `readCampaign` and `readSuspend` and checks the default look, loads `tests/fixtures/save-v2.json` as it is, and runs a pretend chain to prove the pipeline. `tests/save-code.test.ts` also imports a save code made from a version 1 save.
 
 ## Storage
 
