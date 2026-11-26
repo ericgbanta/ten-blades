@@ -4,13 +4,15 @@
 
 import Phaser from 'phaser';
 import type { BattleEvent, BattleState, GameData, Pos, Unit } from '../core';
-import { imageUrl } from '../art/manifest';
+import { imageMeta, imageUrl } from '../art/manifest';
+import propDefs from '../data/props.json';
 import type { Overlay } from '../battle/selection';
 import type { Stage, Timing } from '../battle/stage';
-import { clampPose, centerPose, defaultTileCss, revealRect, zoomAround, NO_INSETS, type CameraPose, type Insets, type View } from './camera';
+import { clampPose, centerOn, defaultTileCss, revealRect, zoomAround, NO_INSETS, type CameraPose, type Insets, type View } from './camera';
 import { GestureTracker } from './gestures';
 import { HIGHLIGHT, TEXT, TILE } from './palette';
-import { drawTerrain } from './terrainArt';
+import { buildGround, GROUND_PX } from './ground';
+import { groundKeys, type GroundInput } from './groundPlan';
 import { UnitToken } from './token';
 import { tweenDone } from './tween';
 
@@ -21,7 +23,10 @@ export interface SceneInput {
   start(): Promise<void>;
 }
 
-const MIN_TILE_CSS = 46;
+/** Smallest default tile: a 10 to 12 column map fits the width of a 375 px phone at this size or larger. */
+const MIN_TILE_CSS = 36;
+/** Default tile when even the width does not fit at MIN_TILE_CSS; the camera then opens on the player's units. */
+const FALLBACK_TILE_CSS = 44;
 const MAX_TILE_CSS = 64;
 const ZOOM_MAX_CSS = 112;
 const TAP_SLOP_CSS = 10;
@@ -31,6 +36,18 @@ const HEADROOM = 0.3;
 
 /** Texture key of the main character's token, composed at runtime from their look (see src/art/mc). */
 export const MC_TOKEN_KEY = 'token.mc';
+
+/** A tall prop on a tile where a unit stands fades to this, so the unit stays readable. */
+const PROP_UNDER_UNIT_ALPHA = 0.35;
+/** The point under a prop's contact shadow sits this far down its tile. */
+const PROP_GROUND = 0.84;
+
+interface PropDef {
+  name: string;
+  size: 'small' | 'tall';
+  terrains: string[];
+}
+const PROPS = propDefs as Record<string, PropDef>;
 
 const tileCenter = (p: Pos): { x: number; y: number } => ({ x: (p.x + 0.5) * TILE, y: (p.y + 0.5) * TILE });
 
@@ -46,6 +63,10 @@ export class MapScene extends Phaser.Scene implements Stage {
   private cursor: Pos | null = null;
   private lastState: BattleState;
   private pendingOverlay: Overlay | null = null;
+  /** Set by the first tap, pan or zoom; until then a layout change refits the default view. */
+  private interacted = false;
+  /** Tall props, faded while a unit stands on their tile. */
+  private tallProps: { image: Phaser.GameObjects.Image; x: number; y: number }[] = [];
 
   constructor(
     initial: BattleState,
@@ -68,7 +89,9 @@ export class MapScene extends Phaser.Scene implements Stage {
     const s = this.lastState;
     const classIds = new Set(s.units.map((u) => u.classId));
     for (const w of s.reinforcements) for (const u of w.units) classIds.add(u.classId);
-    const ids = [...new Set(s.map.terrain)].map((t) => `tile.${t}`).concat([...classIds].map((c) => `token.${c}`));
+    const ids = groundKeys(this.groundInput())
+      .concat([...classIds].map((c) => `token.${c}`))
+      .concat([...new Set(this.mapProps().map((p) => `prop.${p.id}`))]);
     for (const id of ids) {
       const url = imageUrl(id);
       if (url) this.load.image(id, url);
@@ -100,19 +123,47 @@ export class MapScene extends Phaser.Scene implements Stage {
     void this.input0.start();
   }
 
+  private groundInput(): GroundInput {
+    const s = this.lastState;
+    return { mapId: s.mapId, width: s.map.width, height: s.map.height, terrain: s.map.terrain };
+  }
+
+  private mapProps(): { id: string; x: number; y: number }[] {
+    return this.gameData.maps[this.lastState.mapId]?.props ?? [];
+  }
+
   private drawMap(s: BattleState): void {
-    const g = this.add.graphics().setDepth(0);
-    s.map.terrain.forEach((t, i) => {
-      const x = (i % s.map.width) * TILE;
-      const y = Math.floor(i / s.map.width) * TILE;
-      const key = `tile.${t}`;
-      if (this.textures.exists(key)) this.add.image(x, y, key).setOrigin(0).setDisplaySize(TILE, TILE).setDepth(0);
-      else drawTerrain(g, t, x, y);
-    });
+    buildGround(this, this.groundInput());
     const grid = this.add.graphics().setDepth(1);
-    grid.lineStyle(2, 0x000000, 0.28);
+    grid.lineStyle(2, 0x000000, 0.3);
     for (let x = 0; x <= s.map.width; x++) grid.lineBetween(x * TILE, 0, x * TILE, s.map.height * TILE);
     for (let y = 0; y <= s.map.height; y++) grid.lineBetween(0, y * TILE, s.map.width * TILE, y * TILE);
+    this.drawProps();
+  }
+
+  /** Props stand on the lower middle of their tile, depth sorted with the units: a unit on the row behind (above)
+   * is drawn first, so a tall prop covers its feet but never its HP bar, which lives on the overlay layer. */
+  private drawProps(): void {
+    let missing: Phaser.GameObjects.Graphics | null = null;
+    for (const p of this.mapProps()) {
+      const key = `prop.${p.id}`;
+      const depth = 10 + p.y * 0.01 - 0.005;
+      const gx = (p.x + 0.5) * TILE;
+      const gy = (p.y + PROP_GROUND) * TILE;
+      const meta = imageMeta(key);
+      if (!this.textures.exists(key) || !meta) {
+        missing ??= this.add.graphics().setDepth(2);
+        missing.fillStyle(0x2a2620, 0.9);
+        missing.fillEllipse(gx, gy - TILE * 0.12, TILE * 0.36, TILE * 0.24);
+        continue;
+      }
+      const img = this.add
+        .image(gx, gy, key)
+        .setOrigin((meta.anchorX ?? meta.width / 2) / meta.width, (meta.groundY ?? meta.height) / meta.height)
+        .setScale(TILE / GROUND_PX)
+        .setDepth(depth);
+      if (PROPS[p.id]?.size === 'tall') this.tallProps.push({ image: img, x: p.x, y: p.y });
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -147,7 +198,7 @@ export class MapScene extends Phaser.Scene implements Stage {
     const freeH = (v.height - v.insets.top - v.insets.bottom) / this.dpr;
     const fit = Math.min(freeW / this.lastState.map.width, freeH / this.lastState.map.height);
     const toZoom = (css: number) => (css * this.dpr) / TILE;
-    return { min: toZoom(Math.max(16, Math.min(MIN_TILE_CSS, fit))), max: toZoom(ZOOM_MAX_CSS) };
+    return { min: toZoom(Math.max(16, Math.min(FALLBACK_TILE_CSS, fit))), max: toZoom(ZOOM_MAX_CSS) };
   }
 
   private setPose(p: CameraPose): void {
@@ -161,7 +212,8 @@ export class MapScene extends Phaser.Scene implements Stage {
     cam.setScroll(c.scrollX, c.scrollY);
   }
 
-  /** Default zoom, map centered, lord in view. */
+  /** Default view: the zoom from defaultTileCss, centered on the player's units, the lord in view. The clamp keeps
+   * the map inside the area the bars leave free, so no row is hidden under them. */
   private fitCamera(): void {
     const v = this.view();
     const s = this.lastState;
@@ -172,17 +224,31 @@ export class MapScene extends Phaser.Scene implements Stage {
       (v.height - v.insets.top - v.insets.bottom) / this.dpr,
       MIN_TILE_CSS,
       MAX_TILE_CSS,
+      FALLBACK_TILE_CSS,
     );
+    const zoom = (css * this.dpr) / TILE;
     const { w, h } = this.mapSize();
-    let pose = centerPose((css * this.dpr) / TILE, w, h, v);
+    const team = s.units.filter((u) => u.alive && u.team === 'player');
+    let pose: CameraPose;
+    if (team.length > 0) {
+      const xs = team.map((u) => u.pos.x);
+      const ys = team.map((u) => u.pos.y);
+      const cx = ((Math.min(...xs) + Math.max(...xs) + 1) / 2) * TILE;
+      const cy = ((Math.min(...ys) + Math.max(...ys) + 1) / 2) * TILE;
+      pose = centerOn(zoom, cx, cy, v);
+    } else pose = centerOn(zoom, w / 2, h / 2, v);
+    // On an axis where the whole map fits, center the map instead.
+    const mid = centerOn(zoom, w / 2, h / 2, v);
+    if (w * zoom <= v.width - v.insets.left - v.insets.right) pose = { ...pose, scrollX: mid.scrollX };
+    if ((h + TILE * HEADROOM) * zoom <= v.height - v.insets.top - v.insets.bottom) pose = { ...pose, scrollY: mid.scrollY - (TILE * HEADROOM) / 2 };
     const lord = s.units.find((u) => u.isLord && u.alive);
-    if (lord) pose = revealRect(pose, lord.pos.x * TILE, lord.pos.y * TILE, TILE, TILE * 2, v, REVEAL_MARGIN_CSS * this.dpr);
+    if (lord) pose = revealRect(pose, lord.pos.x * TILE, lord.pos.y * TILE, TILE, TILE, v, REVEAL_MARGIN_CSS * this.dpr);
     this.setPose(pose);
   }
 
-  /** The screen changed size: refit until the player has moved the camera, else keep the view. */
+  /** The screen changed size: refit until the player has touched the map, else keep the view. */
   private relayout(): void {
-    if (this.cameraTouched) this.keepInView();
+    if (this.interacted || this.cameraTouched) this.keepInView();
     else this.fitCamera();
   }
 
@@ -196,7 +262,10 @@ export class MapScene extends Phaser.Scene implements Stage {
   /** CSS pixels covered by the overlays. Panels open and close often, so this never refits. */
   setInsets(insets: Insets): void {
     this.cssInsets = insets;
-    if (this.sys.isActive()) this.keepInView();
+    if (!this.sys.isActive()) return;
+    // The bars are measured after the scene starts: until the player touches the map, frame it again.
+    if (this.interacted || this.cameraTouched) this.keepInView();
+    else this.fitCamera();
   }
 
   /** Pan so the tiles are in the uncovered view. */
@@ -250,6 +319,7 @@ export class MapScene extends Phaser.Scene implements Stage {
 
   private onGesture(g: ReturnType<GestureTracker['move']>): void {
     if (!g) return;
+    this.interacted = true;
     const p = this.pose();
     if (g.kind === 'pan') {
       this.cameraTouched = true;
@@ -310,6 +380,11 @@ export class MapScene extends Phaser.Scene implements Stage {
 
   update(): void {
     for (const t of this.tokens.values()) t.syncOverlay();
+    if (this.tallProps.length > 0) {
+      const taken = new Set<string>();
+      for (const t of this.tokens.values()) if (t.visible) taken.add(`${Math.floor(t.x / TILE)},${Math.floor(t.y / TILE)}`);
+      for (const p of this.tallProps) p.image.setAlpha(taken.has(`${p.x},${p.y}`) ? PROP_UNDER_UNIT_ALPHA : 1);
+    }
   }
 
   sync(state: BattleState): void {

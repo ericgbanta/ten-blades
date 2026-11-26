@@ -78,8 +78,23 @@ export function revealRect(pose: CameraPose, x: number, y: number, w: number, h:
   };
 }
 
-/** Default tile size in CSS pixels: fit the map if that keeps tiles at least `min`, capped at `max`. */
-export function defaultTileCss(cols: number, rows: number, cssW: number, cssH: number, min: number, max: number): number {
-  const fit = Math.min(cssW / cols, cssH / rows);
-  return Math.max(min, Math.min(max, Math.floor(fit)));
+/** Pan so the world point (wx, wy) sits in the middle of the uncovered part of the view. */
+export function centerOn(zoom: number, wx: number, wy: number, view: View): CameraPose {
+  const { width, height, insets } = view;
+  const cx = (insets.left + width - insets.right) / 2;
+  const cy = (insets.top + height - insets.bottom) / 2;
+  return { zoom, scrollX: wx - cx / zoom, scrollY: wy - cy / zoom };
+}
+
+/**
+ * Default tile size in CSS pixels for a map of cols x rows in a free area of cssW x cssH. The whole map if its tiles
+ * stay at least `min`; else the full width if that keeps them at least `min` (the player pans up and down); else
+ * `fallback`, and the player pans both ways. Never above `max`.
+ */
+export function defaultTileCss(cols: number, rows: number, cssW: number, cssH: number, min: number, max: number, fallback = min): number {
+  const both = Math.min(cssW / cols, cssH / rows);
+  if (both >= min) return Math.min(max, Math.floor(both));
+  const wide = cssW / cols;
+  if (wide >= min) return Math.min(max, Math.floor(wide));
+  return Math.min(max, fallback);
 }

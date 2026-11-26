@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { centerPose, clampPose, defaultTileCss, revealRect, zoomAround, NO_INSETS, type View } from '../src/game/camera';
+import { centerOn, centerPose, clampPose, defaultTileCss, revealRect, zoomAround, NO_INSETS, type View } from '../src/game/camera';
 import { GestureTracker } from '../src/game/gestures';
 import { coveredInsets } from '../src/ui/battle/insets';
 
@@ -39,6 +39,22 @@ describe('camera math', () => {
     expect(defaultTileCss(10, 12, 1200, 1000, 46, 64)).toBe(64);
     expect(defaultTileCss(10, 12, 600, 660, 46, 64)).toBe(55);
     expect(NO_INSETS.top).toBe(0);
+  });
+
+  it('fits a 10 to 12 column map to a phone width at 36 px or more, else falls back to 44 px', () => {
+    // The prologue on a 375 x 667 phone with the bars at rest: the whole map fits.
+    expect(defaultTileCss(10, 12, 375, 554, 36, 64, 44)).toBe(37);
+    // 11 columns at 430 wide fit the width but not the height: the player pans up and down.
+    expect(defaultTileCss(11, 20, 430, 600, 36, 64, 44)).toBe(39);
+    // 12 columns at 430 wide would be 35.8 px: too small, so 44 px.
+    expect(defaultTileCss(12, 20, 430, 760, 36, 64, 44)).toBe(44);
+    // 14 columns cannot fit at 36 px on a 375 px phone.
+    expect(defaultTileCss(14, 18, 375, 554, 36, 64, 44)).toBe(44);
+  });
+
+  it('centers a world point in the uncovered view', () => {
+    const p = centerOn(2, 300, 400, view);
+    expect(p).toEqual({ zoom: 2, scrollX: 300 - 200 / 2, scrollY: 400 - 275 / 2 });
   });
 });
 

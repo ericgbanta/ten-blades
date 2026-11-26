@@ -16,7 +16,8 @@ test('select, move, forecast, attack, end turn and enemy phase', async ({ page }
   const errors = trackErrors(page);
   await start(page);
   await expect(page.getByTestId('objective')).toContainText('Rout the enemy');
-  expect(await page.evaluate(() => window.__tb!.tileSize())).toBeGreaterThanOrEqual(44);
+  // The 10 column prologue opens fitted to the 375 px width, so tiles are about 37 px (never under 36).
+  expect(await page.evaluate(() => window.__tb!.tileSize())).toBeGreaterThanOrEqual(36);
 
   // Turn 1: the MC moves two tiles up and waits.
   await tapTile(page, 4, 10);
@@ -108,5 +109,22 @@ test('plays the prologue to the victory screen by taps', async ({ page }) => {
   const fresh = await state(page);
   expect(fresh.turn).toBe(1);
   expect(fresh.units.filter((u) => u.team === 'enemy' && u.alive)).toHaveLength(6);
+  expect(errors).toEqual([]);
+});
+
+test('the skirmish test map opens through the quick battle URL, framed on the player', async ({ page }) => {
+  const errors = trackErrors(page);
+  await page.goto('./?test=1&quick=1&seed=7&map=skirmish_test#/battle');
+  await idle(page);
+  const s = await state(page);
+  expect(s.mapId).toBe('skirmish_test');
+  expect([s.map.width, s.map.height]).toEqual([14, 18]);
+  // 14 columns cannot fit a 375 px phone at 36 px, so it opens at 44 px tiles with the lord on screen.
+  expect(await page.evaluate(() => window.__tb!.tileSize())).toBeCloseTo(44, 0);
+  const lord = await page.evaluate(() => window.__tb!.tileToScreen(5, 16));
+  expect(lord!.x).toBeGreaterThan(0);
+  expect(lord!.x).toBeLessThan(375);
+  expect(lord!.y).toBeGreaterThan(60);
+  expect(lord!.y).toBeLessThan(667 - 60);
   expect(errors).toEqual([]);
 });
