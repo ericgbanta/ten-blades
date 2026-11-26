@@ -37,6 +37,7 @@ The design doc leaves some questions open. The build needs answers to a few of t
 | 1 | Core rules | Grid, movement ranges, terrain, combat forecast and resolution, triangle, phases, three AI behaviors, objectives, XP and leveling, all tested with fixed seeds. A balance simulator script. |
 | 2 | Battle map | The prologue map on screen. Tap to select, move, preview, attack, wait, end turn. Enemy phase plays out. Pan and pinch zoom. Win and lose screens. **First working version.** |
 | 3 | Saves and modes | IndexedDB saves (3 slots plus suspend), suspend after every action, export and import code, new game flow with Classic or Casual and Normal, Hard or Lunatic. |
+| 3.5 | Map and UI pass | Added 2026-11-26 at Eric's request, to run before the rest of the story layer. Maps: two or three variants per terrain, roads, walls and shorelines that join up with their neighbours, props drawn over tiles, the opening view framed properly at 375 wide, and maps drawn in Tiled and imported. UI: a panel and button kit, a display font, icons for stats, weapons and schools, and the unit card, forecast and menus reworked on that kit. About 6 to 10 Codex generations. |
 | 4 | Story layer | Dialogue scenes with portraits, chapter flow from JSON, the character creator, talk to recruit, mid-battle events and reinforcements, story choices that set flags. |
 | 5 | Battle scenes and powers | Side-view scenes tweened from four poses, particles drawn in code, speed-up and skip. Resolve gauge, Echo, Devour and Scatter, portrait cut-in. |
 | 6 | Camp | Forge and awakening to tier 2, merchant, barracks and deployment, war map, one side skirmish. |
@@ -90,6 +91,7 @@ DracoQuest's redesign took 61 generations in a day and needed one top-up. Nothin
 | 1 Core rules | Done (see `docs/CORE_API.md`) |
 | 2 Battle map | Done (see `docs/UI_NOTES.md`) |
 | 3 Saves and modes | Done (see `docs/SAVES.md`) |
+| 3.5 Map and UI pass | In progress |
 | 4 Story layer | In progress. The character creator is done: MC art layers, runtime recolor and compositing, the creator in the new game flow, the look in the save (version 2) and the MC's token on the map. Dialogue, chapter flow, recruiting and events are not started. |
 | 5 to 9 | Not started |
 
