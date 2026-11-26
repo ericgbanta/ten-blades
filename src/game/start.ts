@@ -1,45 +1,53 @@
+// Boots Phaser with the map scene. The canvas is sized in device pixels and
+// shown at CSS size, so tokens and numbers stay sharp on high density screens.
+
 import Phaser from 'phaser';
+import type { BattleState, GameData, Pos } from '../core';
+import type { Insets } from './camera';
+import { MapScene, type SceneInput } from './MapScene';
 
-const COLS = 8;
-const ROWS = 12;
-const COLORS = [0x2a2433, 0x3a3046, 0x4a2a2e, 0x2e4a3a];
-
-class GridScene extends Phaser.Scene {
-  constructor() {
-    super('grid');
-  }
-
-  create() {
-    this.layout();
-    this.scale.on('resize', () => this.layout());
-  }
-
-  private layout() {
-    this.children.removeAll();
-    const { width, height } = this.scale;
-    const size = Math.floor(Math.min(width / COLS, height / ROWS));
-    const ox = Math.floor((width - size * COLS) / 2);
-    const oy = Math.floor((height - size * ROWS) / 2);
-    for (let r = 0; r < ROWS; r++) {
-      for (let c = 0; c < COLS; c++) {
-        const color = COLORS[(r * 3 + c * 7 + ((r * c) % 3)) % COLORS.length] ?? COLORS[0]!;
-        this.add
-          .rectangle(ox + c * size, oy + r * size, size - 2, size - 2, color)
-          .setOrigin(0)
-          .setStrokeStyle(1, 0x6a5a7a);
-      }
-    }
-  }
+export interface GameHandle {
+  /** CSS pixels the overlays cover on each side. */
+  setInsets(insets: Insets): void;
+  /** CSS client coordinates of a tile's center, or null until the scene runs. */
+  tileToClient(pos: Pos): { x: number; y: number } | null;
+  /** Pan instantly so the tile is in the uncovered view. */
+  revealTile(pos: Pos): void;
+  /** True when no camera pan is running. */
+  cameraIdle(): boolean;
+  /** Current tile size in CSS pixels. */
+  tileCss(): number;
+  destroy(): void;
 }
 
-/** Create the Phaser game inside `parent`. Returns a function that destroys it. */
-export function startGame(parent: HTMLElement): () => void {
+export function startGame(parent: HTMLElement, state: BattleState, data: GameData, input: SceneInput): GameHandle {
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
+  const size = () => ({ w: Math.max(1, parent.clientWidth), h: Math.max(1, parent.clientHeight) });
+  const { w, h } = size();
+  const scene = new MapScene(state, data, input, dpr);
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent,
     backgroundColor: '#0c0a0f',
-    scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
-    scene: GridScene,
+    scale: { mode: Phaser.Scale.NONE, width: w * dpr, height: h * dpr, zoom: 1 / dpr },
+    input: { activePointers: 3 },
+    banner: false,
+    scene,
   });
-  return () => game.destroy(true);
+  const observer = new ResizeObserver(() => {
+    const s = size();
+    game.scale.resize(s.w * dpr, s.h * dpr);
+  });
+  observer.observe(parent);
+  return {
+    setInsets: (i) => scene.setInsets(i),
+    tileToClient: (p) => scene.tileToClient(p),
+    revealTile: (p) => scene.revealTile(p),
+    tileCss: () => scene.tileCss(),
+    cameraIdle: () => scene.cameraIdle(),
+    destroy: () => {
+      observer.disconnect();
+      game.destroy(true);
+    },
+  };
 }
