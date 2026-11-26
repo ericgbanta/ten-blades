@@ -61,7 +61,8 @@ describe('hold', () => {
 
   it('attacks once something enters its range, then charges for good', () => {
     let s = makeBattle(map, [place('p', 'fighter', 'player', 4, 0, { isLord: true }), place('e', 'fighter', 'enemy', 9, 0, { ai: { behavior: 'hold' } })]);
-    s = patchUnit(s, 'p', { stats: { hp: 60, def: 20 }, hp: 60 });
+    // Tough enough to survive, but still hurtable (the AI never attacks for 0 damage).
+    s = patchUnit(s, 'p', { stats: { hp: 60, def: 10 }, hp: 60 });
     s = toEnemy(s);
     expect(planAiAction(s, data)).toEqual({ type: 'attack', unitId: 'e', to: pos(5, 0), targetId: 'p' });
     s = runAiPhase(s, data).state;

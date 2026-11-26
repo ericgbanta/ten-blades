@@ -46,6 +46,15 @@ export function validateGameData(data: GameData): string[] {
 
   for (const d of DIFFICULTIES) if (!data.balance.difficulty[d]) errs.push(`balance: no difficulty ${d}`);
   for (const k of STAT_KEYS) if (!isInt(data.balance.statCaps[k])) errs.push(`balance: statCaps.${k} missing`);
+  const divisors: [string, number][] = [
+    ['combat.hitLckDiv', data.balance.combat.hitLckDiv],
+    ['combat.critSklDiv', data.balance.combat.critSklDiv],
+    ['xp.hitDiv', data.balance.xp.hitDiv],
+    ['xp.perLevel', data.balance.xp.perLevel],
+  ];
+  for (const [k, v] of divisors) {
+    if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0) errs.push(`balance: ${k} must be above 0`);
+  }
 
   for (const [id, m] of Object.entries(data.maps)) {
     if (m.id !== id) errs.push(`map ${id}: id field is ${m.id}`);
@@ -121,7 +130,19 @@ function validateMap(m: MapData, data: GameData): string[] {
   if (obj.type === 'defeatBoss' && !m.placements.some((p) => p.kind === 'unit' && p.isBoss && p.team === 'enemy')) {
     errs.push(`${where}: defeatBoss without a boss`);
   }
-  if (obj.type === 'protect' && !ids.has(obj.unitId)) errs.push(`${where}: protect target ${obj.unitId} missing`);
+  if (obj.type === 'defeatBoss') {
+    // A boss arriving later would let the battle be won before it shows up, and a
+    // blocked arrival tile would make the map unwinnable, so bosses start on the map.
+    m.reinforcements.forEach((w, i) => {
+      for (const p of w.units) if (p.isBoss && p.team === 'enemy') errs.push(`${where}: boss ${p.id} arrives in a wave (wave ${i}); defeatBoss bosses must start on the map`);
+    });
+  }
+  if (obj.type === 'protect') {
+    // The protected unit must be on the field from the start, on the player or ally team.
+    const t = m.placements.find((p): p is UnitPlacement => p.kind === 'unit' && p.id === obj.unitId);
+    if (!t) errs.push(`${where}: protect target ${obj.unitId} is not placed at the start`);
+    else if (t.team === 'enemy') errs.push(`${where}: protect target ${obj.unitId} is an enemy`);
+  }
   if (obj.type === 'escape') for (const t of obj.tiles) checkPos(t, 'escape tile', null);
   if ((obj.type === 'survive' || obj.type === 'protect') && (!isInt(obj.turns) || obj.turns < 1)) {
     errs.push(`${where}: bad turns`);

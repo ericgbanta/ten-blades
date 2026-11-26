@@ -1,6 +1,7 @@
 // Battle creation and the action reducer.
 
 import { forecast, resolveCombat } from './combat';
+import { ActionError } from './errors';
 import {
   areHostile,
   attackWeaponOf,
@@ -37,24 +38,21 @@ import {
   type UnitPlacement,
 } from './types';
 
-/** Thrown by applyAction for an action that is not legal in the given state. */
-export class ActionError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ActionError';
-  }
-}
+export { ActionError };
 
 // ---------------------------------------------------------------------------
 // Creation
 // ---------------------------------------------------------------------------
 
+/** Scale enemy stats for the difficulty, then clamp to the stat caps (and at least 0). */
 function applyDifficulty(stats: Stats, difficulty: Difficulty, data: GameData): Stats {
   const d = data.balance.difficulty[difficulty];
+  const caps = data.balance.statCaps;
   const out = { ...stats };
   for (const k of STAT_KEYS) {
     if (k === 'mov') continue;
-    out[k] = Math.round(stats[k] * d.statMultiplier) + (d.statBonus[k] ?? 0);
+    const v = Math.round(stats[k] * d.statMultiplier) + (d.statBonus[k] ?? 0);
+    out[k] = Math.max(0, Math.min(v, caps[k]));
   }
   return out;
 }
@@ -139,6 +137,10 @@ export function newMc(setup: BattleSetup, data: GameData): PartyUnit {
  * Create a battle on `map`. The MC slot takes the party's lord, or a new MC built
  * from `setup.mc`. Party slots take the other party members in order (unused slots
  * stay empty). Turn 1, player phase.
+ *
+ * Throws an Error if two units would share an id (party members, map placements
+ * and every reinforcement wave count), or if a protect objective's unit is not on
+ * the player or ally team at the start.
  */
 export function createBattle(map: MapData, setup: BattleSetup, seed: number, data: GameData): BattleState {
   const party = setup.party ?? [];
@@ -152,6 +154,15 @@ export function createBattle(map: MapData, setup: BattleSetup, seed: number, dat
       const m = others[next++];
       if (m) units.push(unitFromParty(m, p.pos));
     } else units.push(unitFromPlacement(p, setup.difficulty, data));
+  }
+  const ids = new Set<string>();
+  for (const id of [...units.map((u) => u.id), ...map.reinforcements.flatMap((w) => w.units.map((p) => p.id))]) {
+    if (ids.has(id)) throw new Error(`Map ${map.id}: duplicate unit id ${id}`);
+    ids.add(id);
+  }
+  const obj = map.objective;
+  if (obj.type === 'protect' && !units.some((u) => u.id === obj.unitId && u.team !== 'enemy')) {
+    throw new Error(`Map ${map.id}: protect target ${obj.unitId} is not a player or ally unit at the start`);
   }
   const terrain: string[] = [];
   for (const row of map.tiles) {
@@ -180,9 +191,31 @@ export function createBattle(map: MapData, setup: BattleSetup, seed: number, dat
 // Validation
 // ---------------------------------------------------------------------------
 
+const ACTION_TYPES = ['wait', 'attack', 'heal', 'endPhase'];
+
+function isPos(v: unknown): v is Pos {
+  if (typeof v !== 'object' || v === null) return false;
+  const p = v as Record<string, unknown>;
+  return Number.isInteger(p.x) && Number.isInteger(p.y);
+}
+
+/** Why a value is not a well-formed Action, or null. Guards against malformed input from the UI or a save. */
+function shapeError(action: unknown): string | null {
+  if (typeof action !== 'object' || action === null) return 'Not an action';
+  const a = action as Record<string, unknown>;
+  if (typeof a.type !== 'string' || !ACTION_TYPES.includes(a.type)) return `Unknown action type ${String(a.type)}`;
+  if (a.type === 'endPhase') return null;
+  if (typeof a.unitId !== 'string') return `${a.type} needs a unitId`;
+  if (!isPos(a.to)) return `${a.type} needs a target tile`;
+  if (a.type !== 'wait' && typeof a.targetId !== 'string') return `${a.type} needs a targetId`;
+  return null;
+}
+
 /** Why `action` is illegal in `state`, or null if it is legal. */
 export function validateAction(state: BattleState, action: Action, data: GameData): string | null {
   if (state.result !== 'ongoing') return 'The battle is over';
+  const shape = shapeError(action);
+  if (shape !== null) return shape;
   if (action.type === 'endPhase') return null;
   const unit = findUnit(state, action.unitId);
   if (!unit || !unit.alive) return `No living unit ${action.unitId}`;
@@ -335,7 +368,11 @@ function advancePhase(s: BattleState, data: GameData, events: BattleEvent[]): vo
   terrainHeal(s, next, data, events);
 }
 
-/** Waves for this turn arrive at the start of the enemy phase. A blocked tile drops that unit. They act next turn. */
+/**
+ * Waves for this turn arrive at the start of the enemy phase. A blocked tile drops
+ * that unit. Each arrival acts in its team's next phase: enemies next turn, allies
+ * in this turn's ally phase, player units in the next player phase.
+ */
 function spawnReinforcements(s: BattleState, data: GameData, events: BattleEvent[]): void {
   const due = s.reinforcements.filter((w) => w.turn === s.turn);
   if (due.length === 0) return;
@@ -345,7 +382,8 @@ function spawnReinforcements(s: BattleState, data: GameData, events: BattleEvent
     for (const p of w.units) {
       if (unitAt(s, p.pos) || findUnit(s, p.id)) continue;
       const u = unitFromPlacement(p, s.options.difficulty, data);
-      u.acted = true;
+      // Only units of the phase in progress wait; the others reset when their phase comes.
+      u.acted = u.team === s.phase;
       s.units.push(u);
       ids.push(u.id);
     }

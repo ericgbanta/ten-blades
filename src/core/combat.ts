@@ -1,7 +1,8 @@
 // Combat math (forecast) and resolution. Resolution uses the forecast numbers, so
 // what the player previews is exactly what is rolled.
 
-import { attackWeaponOf, distance, getUnit, terrainAt } from './grid';
+import { ActionError } from './errors';
+import { attackWeaponOf, distance, findUnit, getUnit, inBounds, terrainAt } from './grid';
 import { nextInt, rollPercent, type RngState } from './rng';
 import type {
   Balance,
@@ -68,8 +69,22 @@ function sideNumbers(
 }
 
 /**
+ * True if `unitId` could land damage on `targetId` where it stands: hit above 0 and
+ * damage above 0, ignoring range. The AI uses it to skip foes it cannot hurt.
+ */
+export function canHurt(state: BattleState, unitId: string, targetId: string, data: GameData): boolean {
+  const a = getUnit(state, unitId);
+  const d = getUnit(state, targetId);
+  const aw = attackWeaponOf(a, data);
+  if (!aw) return false;
+  const side = sideNumbers(a, aw, d, d.pos, attackWeaponOf(d, data), state, data);
+  return side.hit > 0 && side.damage > 0;
+}
+
+/**
  * Preview a fight: `attackerId` standing on `from` attacks `defenderId` where it stands.
- * Throws if the attacker has no attack weapon or the defender is out of range.
+ * Throws ActionError if either unit is unknown, the attacker has no attack weapon,
+ * `from` is off the map, or the defender is out of range from `from`.
  */
 export function forecast(
   state: BattleState,
@@ -78,12 +93,15 @@ export function forecast(
   from: Pos,
   data: GameData,
 ): Forecast {
-  const a = getUnit(state, attackerId);
-  const d = getUnit(state, defenderId);
+  const a = findUnit(state, attackerId);
+  const d = findUnit(state, defenderId);
+  if (!a) throw new ActionError(`No unit ${attackerId}`);
+  if (!d) throw new ActionError(`No unit ${defenderId}`);
   const aw = attackWeaponOf(a, data);
-  if (!aw) throw new Error(`${a.id} has no attack weapon`);
+  if (!aw) throw new ActionError(`${a.id} has no attack weapon`);
+  if (!inBounds(state, from)) throw new ActionError(`${from.x},${from.y} is off the map`);
   const dist = distance(from, d.pos);
-  if (dist < aw.range[0] || dist > aw.range[1]) throw new Error(`${d.id} is out of ${a.id}'s range`);
+  if (dist < aw.range[0] || dist > aw.range[1]) throw new ActionError(`${d.id} is out of ${a.id}'s range`);
   const dw = attackWeaponOf(d, data);
   const attacker = sideNumbers(a, aw, d, d.pos, dw, state, data);
   const canCounter = dw !== null && dist >= dw.range[0] && dist <= dw.range[1];
