@@ -79,6 +79,21 @@ export interface ControllerOptions {
   sleep?: (ms: number, onCancel: (cancel: () => void) => void) => Promise<void>;
   reducedMotion?: boolean;
   speed?: Speed;
+  /** Start with the danger zone shown (a resumed battle keeps it). */
+  showDanger?: boolean;
+  /**
+   * Called with every state the battle should be resumable from: at start, right
+   * after each player action is applied (before its animations play, so closing
+   * the tab mid-animation cannot undo the outcome), and when playback comes to
+   * rest. Also called with the final state once the battle ends. The state may
+   * be in an AI phase; `start()` on that state plays the AI on to the next rest.
+   */
+  onCheckpoint?: (state: BattleState, extra: CheckpointExtra) => void;
+}
+
+/** Controller state that a resume keeps. */
+export interface CheckpointExtra {
+  showDanger: boolean;
 }
 
 const defaultSleep = (ms: number, onCancel: (cancel: () => void) => void): Promise<void> =>
@@ -110,6 +125,8 @@ export class BattleController {
   private cached: BattleView | null = null;
   private readonly sleep: NonNullable<ControllerOptions['sleep']>;
   private readonly reduced: boolean;
+  private readonly onCheckpoint: ControllerOptions['onCheckpoint'];
+  private lastCheckpoint: BattleState | null = null;
 
   constructor(
     initial: BattleState,
@@ -120,6 +137,8 @@ export class BattleController {
     this.sleep = options.sleep ?? defaultSleep;
     this.reduced = options.reducedMotion ?? false;
     this.speed = options.speed ?? 'normal';
+    this.showDanger = options.showDanger ?? false;
+    this.onCheckpoint = options.onCheckpoint;
   }
 
   // -------------------------------------------------------------------------
@@ -173,10 +192,15 @@ export class BattleController {
     this.refreshOverlay();
   }
 
-  /** Show the opening banner. Call once the stage is attached. */
+  /**
+   * Show the opening banner, then, for a resumed state that is not waiting on
+   * the player (an AI phase, or no player unit left to act), play on to the next
+   * rest. Call once the stage is attached.
+   */
   start(): Promise<void> {
     return this.runBusy(async () => {
-      await this.showBanner(this.state.phase, this.state.turn);
+      if (this.state.result === 'ongoing') await this.showBanner(this.state.phase, this.state.turn);
+      await this.runAutomatic();
     });
   }
 
@@ -323,17 +347,36 @@ export class BattleController {
     this.previewed = null;
     this.stage?.setOverlay(overlayFor(this.state, NO_SELECTION, this.data, []));
     void this.runBusy(async () => {
-      let action: Action | null = first;
-      for (let n = 0; action && n < MAX_AUTO_ACTIONS; n++) {
-        const r = applyAction(this.state, action, this.data);
-        this.state = r.state;
-        await this.playEvents(r.events);
-        this.stage?.sync(this.state);
-        this.changed();
-        action = this.nextAutomaticAction();
-      }
-      if (this.state.result !== 'ongoing') this.ended = battleSummary(this.state);
+      await this.applyAndPlay(first);
+      await this.runAutomatic();
     });
+  }
+
+  private async applyAndPlay(action: Action, checkpoint = true): Promise<void> {
+    const r = applyAction(this.state, action, this.data);
+    this.state = r.state;
+    // The outcome is decided now: save it before the animations play.
+    if (checkpoint) this.checkpoint();
+    await this.playEvents(r.events);
+    this.stage?.sync(this.state);
+    this.changed();
+  }
+
+  /** Auto end and the AI phases, until the player has a choice or the battle ends. Then checkpoint. */
+  private async runAutomatic(): Promise<void> {
+    let action = this.nextAutomaticAction();
+    for (let n = 0; action && n < MAX_AUTO_ACTIONS; n++) {
+      await this.applyAndPlay(action, false);
+      action = this.nextAutomaticAction();
+    }
+    this.checkpoint();
+    if (this.state.result !== 'ongoing') this.ended = battleSummary(this.state);
+  }
+
+  private checkpoint(): void {
+    if (this.state === this.lastCheckpoint) return;
+    this.lastCheckpoint = this.state;
+    this.onCheckpoint?.(this.state, { showDanger: this.showDanger });
   }
 
   /** AI moves during enemy and ally phases; End turn once every player unit has acted. */
