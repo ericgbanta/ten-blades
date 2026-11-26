@@ -37,3 +37,4 @@ export { checkOutcome, battleSummary, fallenPlayerUnitIds, type BattleSummary } 
 export { createBattle, applyAction, validateAction, newMc, ActionError } from './battle';
 export { planAiAction, planUnitAction, runAiPhase } from './ai';
 export { validateGameData } from './validate';
+export { healAmount, healRange } from './healQueries';

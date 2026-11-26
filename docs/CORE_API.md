@@ -87,6 +87,7 @@ All are pure and cheap enough to call on every tap.
 - `unitThreatTiles(state, unitId, data)` and `threatTiles(state, data, team = 'enemy')`: tiles an enemy unit, or all of them, can attack this turn. Guard units only count from their guard area.
 - `forecast(state, attackerId, defenderId, from, data)`: the fight preview. `attacker` and `counter` each give `hp`, `attack`, `damage` per hit, `hit` %, `crit` %, `strikes` (2 means a double) and `triangle` (`advantage`, `disadvantage` or `neutral`). `counter` is null when the defender cannot strike back, and `defenderTriangle` still gives its triangle edge. Resolution uses exactly these numbers.
 - `getUnit`, `unitAt`, `livingUnits`, `terrainAt`, `distance`, `areHostile`.
+- `healAmount(state, healerId, targetId, data)`: HP a staff heal would restore now. `healRange(state, unitId, data)`: every tile a staff user could heal after moving (the green overlay).
 - `checkOutcome(state)` and `battleSummary(state)`.
 
 ## Objectives
