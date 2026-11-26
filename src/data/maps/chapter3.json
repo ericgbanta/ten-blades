@@ -4,7 +4,7 @@
   "width": 14,
   "height": 18,
   "tiles": [
-    "XX#####GG#####",
+    "XXXXXXXGGXXXXX",
     "XXoo______ooXX",
     "Xooo______oooX",
     "ooXXoo__ooXXoo",
@@ -23,7 +23,7 @@
     "XoooXXooXXoooX",
     "XoooXXooXXoooX"
   ],
-  "legend": {"#": "wall", "B": "bridge", "o": "cobble", "_": "flagstone", "X": "building", "S": "stall", "c": "canal", "G": "gate", "C": "crates"},
+  "legend": {"B": "bridge", "o": "cobble", "_": "flagstone", "X": "building", "S": "stall", "c": "canal", "G": "gate", "C": "crates"},
   "placements": [
     {"kind": "mc", "pos": {"x": 6, "y": 16}},
     {"kind": "party", "pos": {"x": 7, "y": 16}},
