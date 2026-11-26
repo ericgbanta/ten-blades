@@ -173,7 +173,7 @@ function Hub({ camp }: { camp: CampView }) {
             {talk.map((t) => (
               <button key={t.scene} type="button" class={`choice talk-entry${t.read ? ' read' : ''}`} onClick={() => goCamp(`talk/${t.scene}`)}>
                 <span class="choice-name">
-                  {talkTitle(t.scene)}
+                  {t.title}
                   {!t.read && <span class="choice-tag new">New</span>}
                 </span>
                 <span class="choice-line">{t.read ? 'Heard. Listen again.' : 'Something stirs by the fire.'}</span>
@@ -196,18 +196,6 @@ function Hub({ camp }: { camp: CampView }) {
         />
       )}
     </main>
-  );
-}
-
-/** A campfire scene's name in the list: its first narrated words would spoil it, so a plain title by id. */
-function talkTitle(scene: string): string {
-  const titles: Record<string, string> = { camp_first_night: 'The first night' };
-  return (
-    titles[scene] ??
-    scene
-      .replace(/^camp_/, '')
-      .replace(/_/g, ' ')
-      .replace(/^./, (ch) => ch.toUpperCase())
   );
 }
 

@@ -10,6 +10,8 @@ export const FACILITIES: readonly Facility[] = ['forge', 'merchant', 'barracks',
 /** A campfire scene offered in camp once its conditions hold. Reading it sets `flag` (default `read_<scene>`). */
 export interface TalkDef {
   scene: string;
+  /** The name in the camp's list (the scene id when left out). */
+  title?: string;
   when?: StoryCondition[];
   flag?: string;
 }

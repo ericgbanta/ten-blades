@@ -150,6 +150,8 @@ export function Deploy({ camp, target }: { camp: CampView; target: string }) {
     const err = camp.apply((cc) => setBenched(cc, id, bench, campCtx, skirmishId));
     setMsg(err ? { text: err, bad: true } : null);
   };
+  // Units the map itself puts on your side (the Ridge's wardens), who fight but do not join.
+  const guests = map.placements.filter((p) => p.kind === 'unit' && p.team === 'player').length;
   const avg = info.deployed.length ? Math.round(info.deployed.reduce((n, u) => n + u.level, 0) / info.deployed.length) : 1;
   return (
     <Screen title="Deploy" back={() => (window.location.hash = '#/camp/warmap')} backLabel="Map" class="camp-screen">
@@ -159,6 +161,7 @@ export function Deploy({ camp, target }: { camp: CampView; target: string }) {
           <span class="num">{count}</span> of <span class="num">{info.max}</span> deploying
           {sk && <span class="muted"> · Foes near level {Math.max(1, avg + (sk.scaling.offset ?? 0))}</span>}
         </p>
+        {guests > 0 && <p class="deploy-guests">{guests === 1 ? 'One ally of the map fights' : `${guests} allies of the map fight`} beside you.</p>}
       </header>
       <ul class="deploy-list">
         {info.units.map(({ unit: u, status }, i) => {
@@ -173,26 +176,24 @@ export function Deploy({ camp, target }: { camp: CampView; target: string }) {
                   <span class={`deploy-status ${status}`}>{locked && status === 'deploy' ? 'Must go' : STATUS_TEXT[status]}</span>
                 </span>
               </span>
-              <span class="row-btns">
-                <button
-                  type="button"
-                  class={`btn small${status === 'benched' ? '' : ' quiet'}`}
-                  disabled={locked || status === 'wounded'}
-                  aria-label={status === 'benched' ? `Send ${u.name}` : `Keep ${u.name} in camp`}
-                  onClick={() => toggle(u.id, status !== 'benched')}
-                >
-                  {status === 'benched' ? 'Send' : 'Stay'}
-                </button>
-                <button
-                  type="button"
-                  class="btn quiet order"
-                  disabled={i === 0}
-                  aria-label={`Move ${u.name} up`}
-                  onClick={() => camp.apply((cc) => reorder(cc, u.id, -1))}
-                >
-                  ▲
-                </button>
-              </span>
+              {!locked && (
+                <span class="row-btns">
+                  <button
+                    type="button"
+                    class={`btn small${status === 'benched' ? '' : ' quiet'}`}
+                    disabled={status === 'wounded'}
+                    aria-label={status === 'benched' ? `Send ${u.name}` : `Keep ${u.name} in camp`}
+                    onClick={() => toggle(u.id, status !== 'benched')}
+                  >
+                    {status === 'benched' ? 'Send' : 'Stay'}
+                  </button>
+                  {i > 0 && (
+                    <button type="button" class="btn quiet order" aria-label={`Move ${u.name} up`} onClick={() => camp.apply((cc) => reorder(cc, u.id, -1))}>
+                      ▲
+                    </button>
+                  )}
+                </span>
+              )}
             </li>
           );
         })}

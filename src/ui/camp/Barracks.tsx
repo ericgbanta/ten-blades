@@ -3,7 +3,7 @@
 
 import { useState } from 'preact/hooks';
 import { STAT_KEYS, isBound, weaponDef, type PartyUnit } from '../../core';
-import { equip, fromConvoy, isWounded, reorder, toConvoy, canWield } from '../../camp/barracks';
+import { canWield, equip, fromConvoy, isWounded, reorder, setBenched, toConvoy } from '../../camp/barracks';
 import { bladeViews } from '../../camp/forge';
 import { gameData } from '../../data';
 import { Icon } from '../kit';
@@ -162,6 +162,20 @@ function UnitSheet({ camp, unit: u }: { camp: CampView; unit: PartyUnit }) {
           </div>
           <Chips camp={camp} u={u} />
           <p class="sheet-growth">Grows best in {growthHint(u.classId)}</p>
+          {!u.isLord && (
+            <button
+              type="button"
+              class={`btn small sheet-bench${c.benched.includes(u.id) ? '' : ' quiet'}`}
+              aria-pressed={!c.benched.includes(u.id)}
+              onClick={() =>
+                run(c.benched.includes(u.id) ? `${u.name} will deploy.` : `${u.name} stays in camp.`, (cc) =>
+                  setBenched(cc, u.id, !cc.benched.includes(u.id), campCtx, null),
+                )
+              }
+            >
+              {c.benched.includes(u.id) ? 'Send to battle' : 'Keep in camp'}
+            </button>
+          )}
         </div>
       </header>
       <dl class="stat-grid">

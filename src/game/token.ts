@@ -174,11 +174,11 @@ export class UnitToken extends Phaser.GameObjects.Container {
   private drawBase(g: Phaser.GameObjects.Graphics): void {
     const c = this.acted ? ACTED_COLORS : TEAM_COLORS[this.look.team];
     if (this.look.awakened) {
-      // The Awakened blade's glow: two soft pale-blue rings under the base.
-      g.fillStyle(0x9fd0ff, 0.16);
-      g.fillEllipse(0, BASE_Y, BASE_RX * 2 + 22, BASE_RY * 2 + 16);
-      g.fillStyle(0xbfe0ff, 0.26);
-      g.fillEllipse(0, BASE_Y, BASE_RX * 2 + 12, BASE_RY * 2 + 9);
+      // The Awakened blade's glow: a soft pale-blue halo and a bright ring around the base.
+      g.fillStyle(0x9fd0ff, 0.22);
+      g.fillEllipse(0, BASE_Y, BASE_RX * 2 + 26, BASE_RY * 2 + 18);
+      g.lineStyle(3, 0xcfe8ff, 0.95);
+      g.strokeEllipse(0, BASE_Y, BASE_RX * 2 + 12, BASE_RY * 2 + 9);
     }
     g.fillStyle(0x000000, 0.35);
     g.fillEllipse(0, BASE_Y + 3, BASE_RX * 2 + 8, BASE_RY * 2 + 6);

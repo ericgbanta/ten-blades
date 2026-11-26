@@ -378,7 +378,7 @@ describe('the camp hub', () => {
 
   it('offers the campfire talk, marks it read, and keeps the choice flags', () => {
     const fresh = { ...camp(), flags: { prologue_promise: true } };
-    expect(talkList(fresh, ctx)).toEqual([{ scene: 'camp_first_night', flag: 'read_camp_first_night', read: false }]);
+    expect(talkList(fresh, ctx)).toEqual([{ scene: 'camp_first_night', title: 'The first night', flag: 'read_camp_first_night', read: false }]);
     const read = readTalk(fresh, 'camp_first_night', { told: true }, ctx, 7);
     expect(talkList(read, ctx)[0]!.read).toBe(true);
     expect(read.flags.told).toBe(true);
@@ -394,5 +394,26 @@ describe('the camp hub', () => {
     const left = settle(leaveCamp(c, 5), playable, gameData, 5);
     expect(left.progress).toEqual({ current: 'chapter1', completed: ['prologue'], stage: 'intro', scenes: ['ch1_intro'] });
     expect(flowStep(c, chapters, gameData)).toMatchObject({ kind: 'camp' });
+  });
+});
+
+describe('the shipped camp content', () => {
+  it('names only real maps, scenes, weapons, items and skirmishes', async () => {
+    const { scenes } = await import('../src/data/story');
+    for (const [id, sk] of Object.entries(campContent.skirmishes)) {
+      expect(gameData.maps[sk.mapId], id).toBeDefined();
+      if (sk.lore) expect(scenes[sk.lore], sk.lore).toBeDefined();
+      for (const d of sk.rewards.drops ?? []) expect(gameData.items[d.item], d.item).toBeDefined();
+    }
+    for (const ch of chapters) for (const id of ch.skirmishes?.ids ?? []) expect(campContent.skirmishes[id], id).toBeDefined();
+    for (const [mapId, r] of Object.entries(campContent.economy.rewards)) {
+      expect(gameData.maps[mapId], mapId).toBeDefined();
+      for (const d of r.drops ?? []) expect(gameData.items[d.item], d.item).toBeDefined();
+    }
+    for (const shop of Object.values(campContent.economy.shops)) {
+      for (const w of shop.weapons) expect(gameData.weapons[w]?.price, w).toBeGreaterThan(0);
+      for (const it of shop.items) expect(gameData.items[it], it).toBeDefined();
+    }
+    expect(campContent.economy.upgradeCosts).toHaveLength(gameData.balance.weaponRanks.max);
   });
 });

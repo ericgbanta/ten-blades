@@ -29,6 +29,7 @@ export function campBackdrop(c: CampaignSave, ctx: Pick<CampCtx, 'chapters'>): s
 
 export interface TalkEntry {
   scene: string;
+  title: string;
   flag: string;
   read: boolean;
 }
@@ -45,7 +46,7 @@ export function talkList(c: CampaignSave, ctx: Pick<CampCtx, 'chapters'>): TalkE
     for (const t of camp.talk ?? []) {
       if (!storyConditionsHold(t.when, story) || out.some((o) => o.scene === t.scene)) continue;
       const flag = talkFlag(t);
-      out.push({ scene: t.scene, flag, read: c.flags[flag] === true });
+      out.push({ scene: t.scene, title: t.title ?? t.scene, flag, read: c.flags[flag] === true });
     }
   }
   return out;

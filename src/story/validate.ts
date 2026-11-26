@@ -1,6 +1,7 @@
 // Checks for the story content: scenes, speakers, chapters and the scenes map events ask for. Returns a list of
 // problems (empty when all is well). tests/story.test.ts runs it on the shipped data.
 
+import { FACILITIES } from '../camp/types';
 import type { GameData, McStyle } from '../core';
 import { unknownTokens, type TextContext } from './text';
 import { EXPRESSIONS, SCENE_FX, type ChapterDef, type SceneDef, type SceneNode, type SpeakerDef } from './types';
@@ -61,6 +62,15 @@ export function validateStory(story: StoryData, data: GameData, artIds: (id: str
         else if (!cls.weaponKinds.includes(weapon.kind)) errs.push(`${where}: a ${style} cannot use ${w}`);
       }
     }
+    // Camp: the act, the facilities and campfire scenes after it, its skirmishes and deploy rule.
+    if (!Number.isInteger(ch.act) || ch.act < 1) errs.push(`${where}: act must be a whole number of 1 or more`);
+    for (const f of ch.campAfter?.unlocks ?? []) if (!FACILITIES.includes(f)) errs.push(`${where}: unknown facility ${f}`);
+    for (const t of ch.campAfter?.talk ?? []) {
+      if (!story.scenes[t.scene]) errs.push(`${where}: unknown camp scene ${t.scene}`);
+      else if (story.scenes[t.scene]!.battle) errs.push(`${where}: ${t.scene} is a mid-battle scene`);
+    }
+    if (ch.skirmishes && (!Number.isInteger(ch.skirmishes.cap) || ch.skirmishes.cap < 0)) errs.push(`${where}: skirmish cap must be a whole number`);
+    if (ch.deploy?.max !== undefined && (!Number.isInteger(ch.deploy.max) || ch.deploy.max < 1)) errs.push(`${where}: deploy.max must be at least 1`);
   }
   // The chapter chain has no loop.
   for (const start of story.chapters) {

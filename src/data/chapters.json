@@ -26,7 +26,7 @@
     "next": "chapter1",
     "campAfter": {
       "unlocks": ["barracks", "warmap", "merchant", "forge"],
-      "talk": [{"scene": "camp_first_night"}],
+      "talk": [{"scene": "camp_first_night", "title": "The first night"}],
       "backdrop": "camp"
     }
   },

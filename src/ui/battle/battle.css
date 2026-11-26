@@ -806,7 +806,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: safe center;
+  overflow-y: auto;
   gap: var(--sp-3);
   padding: calc(16px + var(--safe-t)) calc(16px + var(--safe-r)) calc(16px + var(--safe-b)) calc(16px + var(--safe-l));
   background: radial-gradient(ellipse at 50% 32%, rgba(58, 18, 24, 0.97), rgba(9, 7, 10, 0.985) 68%);
@@ -1671,4 +1672,23 @@
 .blade-power.awakened {
   color: #cfe6ff;
   text-shadow: 0 0 6px rgba(150, 205, 255, 0.6);
+}
+
+/* Four orders and more in one row: the icons step aside so every word fits at 375 px. */
+.action-menu.crowded .btn-row .btn:not(.power-btn) .icon {
+  display: none;
+}
+
+.action-menu.crowded .btn-row .btn:not(.power-btn) {
+  letter-spacing: 0.01em;
+}
+
+/* An Awakened bearer's two powers share a row. */
+.action-menu.two-powers .btn-row .btn.power-btn {
+  flex-basis: calc(50% - var(--sp-1));
+  padding: 0 10px;
+}
+
+.action-menu.two-powers .power-btn .resolve-bar {
+  width: 40px;
 }

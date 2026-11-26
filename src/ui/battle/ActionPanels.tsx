@@ -49,7 +49,10 @@ function PowerButton({ power, run, first }: { power: PowerOption; run: Run; firs
 
 export function ActionMenu({ unit, options, run, data, powers }: { unit: Unit; options: MenuOption[]; run: Run; data: GameData; powers: PowerOption[] }) {
   return (
-    <section class="panel action-menu" aria-label={`Orders for ${unit.name}`}>
+    <section
+      class={`panel action-menu${options.filter((o) => o !== 'power').length >= 4 ? ' crowded' : ''}${powers.length > 1 ? ' two-powers' : ''}`}
+      aria-label={`Orders for ${unit.name}`}
+    >
       <p class="panel-title">
         <span class={`team-name team-${unit.team}`}>{unit.name}</span>
         <span class="panel-sub">Orders</span>
