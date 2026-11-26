@@ -79,7 +79,7 @@ The ground is planned per cell by `planGround` in `src/game/groundPlan.ts` (pure
 - Props: a map's optional `props` list (`{ id, x, y }`, ids from `src/data/props.json`) is drawn as images anchored at the lower middle of the tile, depth 10 plus row times 0.01 minus a little, so a unit on the same row stands in front and a tall prop covers the feet of a unit on the row behind. HP bars live on the overlay layer above both. A tall prop fades to 35 percent while a unit stands on its tile. Highlights stay under props and tokens; the grid is drawn at 30 percent black.
 - Measured in headless Chromium (software WebGL) at 375 x 667 and device scale 2, dragging the 14 by 18 skirmish map for four seconds: frames averaged 16.8 ms (median 16.7, 95th percentile 16.8), so 60 fps; with the CPU slowed four times, 28.9 ms average (median 33.3).
 
-`?test=1&quick=1&map=skirmish_test#/battle` opens the 14 by 18 skirmish test map, which has a river with a bridge and a ford, a walled fort, a village, forest belts, hills, roads, five player units and eight enemies. It is not in the chapter list.
+`?test=1&quick=1&map=skirmish_test#/battle` opens the 14 by 18 skirmish test map, which has a river with a bridge and a ford, a walled fort, a village, forest belts, hills, roads, five player units and eight enemies, plus a deserter who joins if the main character talks to him. It is not in the chapter list.
 
 ## Tokens
 
