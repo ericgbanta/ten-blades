@@ -91,7 +91,7 @@ DracoQuest's redesign took 61 generations in a day and needed one top-up. Nothin
 | 1 Core rules | Done (see `docs/CORE_API.md`) |
 | 2 Battle map | Done (see `docs/UI_NOTES.md`) |
 | 3 Saves and modes | Done (see `docs/SAVES.md`) |
-| 3.5 Map and UI pass | In progress |
+| 3.5 Map and UI pass | Done (see `docs/MAPS.md` and `docs/UI_NOTES.md`). Known leftovers: the top row can sit under the header while the unit card is open, thin weapon icons are faint at small sizes, and the forecast panel is 28 px taller than before. |
 | 4 Story layer | In progress. The character creator is done: MC art layers, runtime recolor and compositing, the creator in the new game flow, the look in the save (version 2) and the MC's token on the map. Dialogue, chapter flow, recruiting and events are not started. |
 | 5 to 9 | Not started |
 
