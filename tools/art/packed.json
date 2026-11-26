@@ -2,85 +2,85 @@
  "battle.adept.hit": {
   "anchorX": 192,
   "bbox": [
-   109,
-   130,
-   224,
+   78,
+   131,
+   216,
    230
   ],
-  "bytes": 16426,
+  "bytes": 17134,
   "extent": {
-   "below": 0,
-   "left": 83,
-   "right": 141,
-   "top": 230
+   "below": 1,
+   "left": 114,
+   "right": 102,
+   "top": 229
   },
   "groundY": 360,
   "height": 384,
   "path": "battle/adept-hit.webp",
-  "scale": 0.4878,
+  "scale": 0.4898,
   "width": 512
  },
  "battle.adept.idle": {
   "anchorX": 192,
   "bbox": [
-   134,
+   149,
    120,
-   101,
+   105,
    240
   ],
-  "bytes": 13246,
+  "bytes": 12830,
   "extent": {
    "below": 0,
-   "left": 58,
-   "right": 43,
+   "left": 43,
+   "right": 62,
    "top": 240
   },
   "groundY": 360,
   "height": 384,
   "path": "battle/adept-idle.webp",
-  "scale": 0.4878,
+  "scale": 0.4898,
   "width": 512
  },
  "battle.adept.strike": {
   "anchorX": 192,
   "bbox": [
-   62,
-   137,
-   304,
-   223
+   68,
+   135,
+   329,
+   226
   ],
-  "bytes": 22496,
+  "bytes": 20574,
   "extent": {
-   "below": 0,
-   "left": 130,
-   "right": 174,
-   "top": 223
+   "below": 1,
+   "left": 124,
+   "right": 205,
+   "top": 225
   },
   "groundY": 360,
   "height": 384,
   "path": "battle/adept-strike.webp",
-  "scale": 0.4878,
+  "scale": 0.4898,
   "width": 512
  },
  "battle.adept.windup": {
   "anchorX": 192,
   "bbox": [
-   77,
-   139,
+   106,
+   131,
    213,
-   221
+   230
   ],
-  "bytes": 18154,
+  "bytes": 17862,
   "extent": {
-   "below": 0,
-   "left": 115,
-   "right": 98,
-   "top": 221
+   "below": 1,
+   "left": 86,
+   "right": 127,
+   "top": 229
   },
   "groundY": 360,
   "height": 384,
   "path": "battle/adept-windup.webp",
-  "scale": 0.4878,
+  "scale": 0.4898,
   "width": 512
  },
  "battle.archer.hit": {
@@ -671,6 +671,90 @@
   "scale": 0.4969,
   "width": 512
  },
+ "battle.needles.hit": {
+  "anchorX": 192,
+  "bbox": [
+   77,
+   165,
+   189,
+   195
+  ],
+  "bytes": 15844,
+  "extent": {
+   "below": 0,
+   "left": 115,
+   "right": 74,
+   "top": 195
+  },
+  "groundY": 360,
+  "height": 384,
+  "path": "battle/needles-hit.webp",
+  "scale": 0.4253,
+  "width": 512
+ },
+ "battle.needles.idle": {
+  "anchorX": 192,
+  "bbox": [
+   131,
+   155,
+   137,
+   205
+  ],
+  "bytes": 13198,
+  "extent": {
+   "below": 0,
+   "left": 61,
+   "right": 76,
+   "top": 205
+  },
+  "groundY": 360,
+  "height": 384,
+  "path": "battle/needles-idle.webp",
+  "scale": 0.4253,
+  "width": 512
+ },
+ "battle.needles.strike": {
+  "anchorX": 192,
+  "bbox": [
+   96,
+   177,
+   280,
+   184
+  ],
+  "bytes": 17068,
+  "extent": {
+   "below": 1,
+   "left": 96,
+   "right": 184,
+   "top": 183
+  },
+  "groundY": 360,
+  "height": 384,
+  "path": "battle/needles-strike.webp",
+  "scale": 0.4253,
+  "width": 512
+ },
+ "battle.needles.windup": {
+  "anchorX": 192,
+  "bbox": [
+   110,
+   162,
+   165,
+   199
+  ],
+  "bytes": 16376,
+  "extent": {
+   "below": 1,
+   "left": 82,
+   "right": 83,
+   "top": 198
+  },
+  "groundY": 360,
+  "height": 384,
+  "path": "battle/needles-windup.webp",
+  "scale": 0.4253,
+  "width": 512
+ },
  "battle.ranger.hit": {
   "anchorX": 192,
   "bbox": [
@@ -925,12 +1009,12 @@
  },
  "portrait.adept.neutral": {
   "bbox": [
-   25,
+   61,
    8,
-   333,
+   262,
    368
   ],
-  "bytes": 42060,
+  "bytes": 25288,
   "height": 384,
   "path": "portraits/adept-neutral.webp",
   "width": 384
@@ -1091,6 +1175,54 @@
   "path": "portraits/medic-neutral.webp",
   "width": 384
  },
+ "portrait.needles.angry": {
+  "bbox": [
+   31,
+   11,
+   322,
+   365
+  ],
+  "bytes": 34516,
+  "height": 384,
+  "path": "portraits/needles-angry.webp",
+  "width": 384
+ },
+ "portrait.needles.hurt": {
+  "bbox": [
+   32,
+   8,
+   320,
+   368
+  ],
+  "bytes": 34438,
+  "height": 384,
+  "path": "portraits/needles-hurt.webp",
+  "width": 384
+ },
+ "portrait.needles.neutral": {
+  "bbox": [
+   31,
+   11,
+   321,
+   365
+  ],
+  "bytes": 33590,
+  "height": 384,
+  "path": "portraits/needles-neutral.webp",
+  "width": 384
+ },
+ "portrait.needles.smile": {
+  "bbox": [
+   32,
+   10,
+   319,
+   366
+  ],
+  "bytes": 34438,
+  "height": 384,
+  "path": "portraits/needles-smile.webp",
+  "width": 384
+ },
  "portrait.ranger.neutral": {
   "bbox": [
    25,
@@ -1165,12 +1297,12 @@
  },
  "token.adept": {
   "bbox": [
-   56,
+   61,
    8,
-   80,
+   70,
    176
   ],
-  "bytes": 8562,
+  "bytes": 8394,
   "height": 192,
   "path": "tokens/adept.webp",
   "width": 192
@@ -1257,6 +1389,18 @@
   "bytes": 10920,
   "height": 192,
   "path": "tokens/medic.webp",
+  "width": 192
+ },
+ "token.needles_bearer": {
+  "bbox": [
+   47,
+   8,
+   98,
+   176
+  ],
+  "bytes": 11370,
+  "height": 192,
+  "path": "tokens/needles_bearer.webp",
   "width": 192
  },
  "token.ranger": {

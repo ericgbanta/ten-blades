@@ -3,57 +3,57 @@
     "battle.adept.hit": {
       "anchorX": 192,
       "bbox": [
-        109,
-        130,
-        224,
+        78,
+        131,
+        216,
         230
       ],
       "groundY": 360,
       "height": 384,
       "path": "battle/adept-hit.webp",
-      "scale": 0.4878,
+      "scale": 0.4898,
       "width": 512
     },
     "battle.adept.idle": {
       "anchorX": 192,
       "bbox": [
-        134,
+        149,
         120,
-        101,
+        105,
         240
       ],
       "groundY": 360,
       "height": 384,
       "path": "battle/adept-idle.webp",
-      "scale": 0.4878,
+      "scale": 0.4898,
       "width": 512
     },
     "battle.adept.strike": {
       "anchorX": 192,
       "bbox": [
-        62,
-        137,
-        304,
-        223
+        68,
+        135,
+        329,
+        226
       ],
       "groundY": 360,
       "height": 384,
       "path": "battle/adept-strike.webp",
-      "scale": 0.4878,
+      "scale": 0.4898,
       "width": 512
     },
     "battle.adept.windup": {
       "anchorX": 192,
       "bbox": [
-        77,
-        139,
+        106,
+        131,
         213,
-        221
+        230
       ],
       "groundY": 360,
       "height": 384,
       "path": "battle/adept-windup.webp",
-      "scale": 0.4878,
+      "scale": 0.4898,
       "width": 512
     },
     "battle.archer.hit": {
@@ -448,6 +448,62 @@
       "scale": 0.4969,
       "width": 512
     },
+    "battle.needles.hit": {
+      "anchorX": 192,
+      "bbox": [
+        77,
+        165,
+        189,
+        195
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/needles-hit.webp",
+      "scale": 0.4253,
+      "width": 512
+    },
+    "battle.needles.idle": {
+      "anchorX": 192,
+      "bbox": [
+        131,
+        155,
+        137,
+        205
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/needles-idle.webp",
+      "scale": 0.4253,
+      "width": 512
+    },
+    "battle.needles.strike": {
+      "anchorX": 192,
+      "bbox": [
+        96,
+        177,
+        280,
+        184
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/needles-strike.webp",
+      "scale": 0.4253,
+      "width": 512
+    },
+    "battle.needles.windup": {
+      "anchorX": 192,
+      "bbox": [
+        110,
+        162,
+        165,
+        199
+      ],
+      "groundY": 360,
+      "height": 384,
+      "path": "battle/needles-windup.webp",
+      "scale": 0.4253,
+      "width": 512
+    },
     "battle.ranger.hit": {
       "anchorX": 192,
       "bbox": [
@@ -618,9 +674,9 @@
     },
     "portrait.adept.neutral": {
       "bbox": [
-        25,
+        61,
         8,
-        333,
+        262,
         368
       ],
       "height": 384,
@@ -770,6 +826,50 @@
       "path": "portraits/medic-neutral.webp",
       "width": 384
     },
+    "portrait.needles.angry": {
+      "bbox": [
+        31,
+        11,
+        322,
+        365
+      ],
+      "height": 384,
+      "path": "portraits/needles-angry.webp",
+      "width": 384
+    },
+    "portrait.needles.hurt": {
+      "bbox": [
+        32,
+        8,
+        320,
+        368
+      ],
+      "height": 384,
+      "path": "portraits/needles-hurt.webp",
+      "width": 384
+    },
+    "portrait.needles.neutral": {
+      "bbox": [
+        31,
+        11,
+        321,
+        365
+      ],
+      "height": 384,
+      "path": "portraits/needles-neutral.webp",
+      "width": 384
+    },
+    "portrait.needles.smile": {
+      "bbox": [
+        32,
+        10,
+        319,
+        366
+      ],
+      "height": 384,
+      "path": "portraits/needles-smile.webp",
+      "width": 384
+    },
     "portrait.ranger.neutral": {
       "bbox": [
         25,
@@ -838,9 +938,9 @@
     },
     "token.adept": {
       "bbox": [
-        56,
+        61,
         8,
-        80,
+        70,
         176
       ],
       "height": 192,
@@ -922,6 +1022,17 @@
       ],
       "height": 192,
       "path": "tokens/medic.webp",
+      "width": 192
+    },
+    "token.needles_bearer": {
+      "bbox": [
+        47,
+        8,
+        98,
+        176
+      ],
+      "height": 192,
+      "path": "tokens/needles_bearer.webp",
       "width": 192
     },
     "token.ranger": {

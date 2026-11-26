@@ -24,17 +24,20 @@ ART = os.path.join(REPO, 'src', 'art')
 NAMED = ['stranger', 'gravemaw', 'captain']
 MILITIA = ['soldier', 'ranger', 'adept', 'medic']
 IMPERIAL = ['legionary', 'hunter', 'inquisitor', 'archer']
-POSE_CHARS = NAMED + MILITIA + IMPERIAL
+LATE_NAMED = ['needles']             # named characters made after the first sheets; their token is a single image
+SINGLE_BUSTS = ['adept']             # generic units whose bust was redone as a single image (bust-<id>.png)
+SINGLE_TOKENS = ['needles', 'adept'] # tokens made as single images (token-<id>.png); these win over sheet cells
+POSE_CHARS = NAMED + LATE_NAMED + MILITIA + IMPERIAL
 POSES = ['idle', 'windup', 'strike', 'hit']        # 2x2 order: top-left, top-right, bottom-left, bottom-right
 EXPRS = ['neutral', 'angry', 'hurt', 'smile']
 # Map tokens are looked up by class id (src/game/MapScene.ts asks for token.<classId>).
-TOKEN_ID = {'stranger': 'wanderer', 'captain': 'hunter_captain', 'gravemaw': 'gravemaw_bearer'}
+TOKEN_ID = {'stranger': 'wanderer', 'captain': 'hunter_captain', 'gravemaw': 'gravemaw_bearer', 'needles': 'needles_bearer'}
 
 # ---- fixed layout -----------------------------------------------------------------------------------------------
 BATTLE_W, BATTLE_H = 512, 384     # one canvas for every battle pose of every character
 GROUND_Y = 360                    # feet baseline on that canvas
 ANCHOR_X = 192                    # feet center of the idle pose (characters face right, so weapons reach right)
-IDLE_HEIGHT = {}                  # per character override of the idle body height in px; default below
+IDLE_HEIGHT = {'needles': 205}                  # per character override of the idle body height in px; default below
 DEFAULT_IDLE_HEIGHT = 240
 PORTRAIT = 384                    # square portrait canvas
 PORTRAIT_MARGIN = 8
@@ -239,11 +242,11 @@ def pack_expr(raw, cid, report, assets):
         write_portrait(cid, expr, canvas, report, assets)
 
 
-def pack_busts(raw, sheet, ids, report, assets):
-    path = os.path.join(raw, f'busts-{sheet}.png')
+def pack_busts(raw, sheet, ids, report, assets, single=False):
+    path = os.path.join(raw, f'bust-{sheet}.png' if single else f'busts-{sheet}.png')
     if not os.path.exists(path):
         return
-    cells, _ = split_cells(key(path), 2, 2, name=f'busts-{sheet}')
+    cells, _ = split_cells(key(path), 1 if single else 2, 1 if single else 2, name=f'busts-{sheet}')
     # One scale for the whole sheet, so the four generic busts read as the same size next to each other.
     boxes = [alpha_bbox(c) for c in cells]
     inner = PORTRAIT - 2 * PORTRAIT_MARGIN
@@ -257,8 +260,8 @@ def pack_busts(raw, sheet, ids, report, assets):
 
 
 # ---- tokens -----------------------------------------------------------------------------------------------------
-def pack_tokens(raw, sheet, ids, report, assets):
-    path = os.path.join(raw, f'tokens-{sheet}.png')
+def pack_tokens(raw, sheet, ids, report, assets, single=False):
+    path = os.path.join(raw, f'token-{sheet}.png' if single else f'tokens-{sheet}.png')
     if not os.path.exists(path):
         return
     cells, _ = split_cells(key(path), 1, len(ids), name=f'tokens-{sheet}')
@@ -292,7 +295,7 @@ def main():
         if want(cid, 'poses', 'battle'):
             print(f'poses {cid}')
             pack_poses(raw, cid, report, assets)
-    for cid in NAMED:
+    for cid in NAMED + LATE_NAMED:
         if want(cid, 'expr', 'portraits'):
             print(f'expressions {cid}')
             pack_expr(raw, cid, report, assets)
@@ -304,6 +307,14 @@ def main():
         if want(*ids, 'tokens'):
             print(f'tokens {sheet}')
             pack_tokens(raw, sheet, ids, report, assets)
+    for cid in SINGLE_BUSTS:
+        if want(cid, 'busts', 'portraits'):
+            print(f'bust {cid}')
+            pack_busts(raw, cid, [cid], report, assets, single=True)
+    for cid in SINGLE_TOKENS:
+        if want(cid, 'tokens'):
+            print(f'token {cid}')
+            pack_tokens(raw, cid, [cid], report, assets, single=True)
     manifest['images'] = {k: assets[k] for k in sorted(assets)}
     with open(assets_path, 'w') as f:
         json.dump(manifest, f, indent=2, sort_keys=True)

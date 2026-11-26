@@ -74,5 +74,6 @@ Ids in the manifest: `battle.<id>.<pose>`, `portrait.<id>.<expr>` and `token.<cl
 | Style samples A to D | 4 | A chosen; it is the anchor and the Stranger's sheet |
 | Character sheets (bust, front, side) | 11 | Gravemaw's bearer, the Thousand Needles thief, the Hunter-Captain, Soldier, Ranger, Adept, Medic, Legionary, Hunter, Inquisitor, Archer. All usable first try. |
 | Thief rework (sheet 1), pose sheets (11), expression sheets (3), generic bust sheets (2), token sheets (3) | 20 | All usable first try. Packed by `tools/art/pack.py` into 75 WebP files (44 battle poses, 20 portraits, 11 tokens), about 1.5 MB. |
+| Thief and Adept follow-up | 7 | The thief's expressions, poses and token from the reworked sheet. The Adept redone as a fair-haired young man with spectacles (sheet, poses, bust, token), because the first one looked like the Ranger and the Stranger. The thief is packed shorter than the adults (`IDLE_HEIGHT` in `pack.py`). All usable first try. |
 
 Not made yet: MC layers, tilesets, backdrops, icons.
