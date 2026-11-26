@@ -88,7 +88,7 @@ DracoQuest's redesign took 61 generations in a day and needed one top-up. Nothin
 | --- | --- |
 | 0 Scaffold | Done |
 | 1 Core rules | Done (see `docs/CORE_API.md`) |
-| 2 Battle map | Not started |
+| 2 Battle map | Done (see `docs/UI_NOTES.md`) |
 | 3 to 9 | Not started |
 
 ## Questions for Eric
