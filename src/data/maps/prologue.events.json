@@ -1,0 +1,37 @@
+[
+  {
+    "id": "start_lesson",
+    "trigger": { "type": "battleStart" },
+    "effects": [{ "type": "scene", "sceneId": "prologue_b_start" }]
+  },
+  {
+    "id": "terrain_lesson",
+    "trigger": { "type": "phaseStart", "turn": 2 },
+    "conditions": [{ "type": "alive", "unitId": "stranger" }],
+    "effects": [{ "type": "scene", "sceneId": "prologue_b_terrain" }]
+  },
+  {
+    "id": "first_kill",
+    "trigger": { "type": "defeated", "byId": "stranger" },
+    "effects": [{ "type": "scene", "sceneId": "prologue_b_first_kill" }]
+  },
+  {
+    "id": "stranger_wounded",
+    "trigger": { "type": "hpBelow", "unitId": "stranger", "percent": 50 },
+    "effects": [{ "type": "scene", "sceneId": "prologue_b_wounded" }]
+  },
+  {
+    "id": "captain_voice",
+    "trigger": { "type": "phaseStart", "turn": 3 },
+    "conditions": [{ "type": "alive", "unitId": "stranger" }],
+    "effects": [{ "type": "scene", "sceneId": "prologue_b_captain" }]
+  },
+  {
+    "id": "stranger_falls",
+    "trigger": { "type": "defeated", "unitId": "stranger" },
+    "effects": [
+      { "type": "setFlag", "flag": "stranger_fell", "value": true },
+      { "type": "scene", "sceneId": "prologue_b_stranger_falls" }
+    ]
+  }
+]

@@ -40,12 +40,24 @@ export {
   turnLimitReached,
   objectiveStatus,
   partyAfterBattle,
+  endBattle,
   type BattleSummary,
   type ObjectiveStatus,
   type PartyAfterBattle,
 } from './objectives';
 export { ActionError } from './errors';
-export { createBattle, applyAction, validateAction, newMc } from './battle';
+export { createBattle, startBattle, applyAction, validateAction, newMc } from './battle';
+export { unitFromPlacement, aiStateFrom } from './units';
+export {
+  runEvents,
+  talkTargets,
+  canTalk,
+  mapEvents,
+  flagValue,
+  storyConditionHolds,
+  storyConditionsHold,
+  type StoryContext,
+} from './events';
 export { planAiAction, planUnitAction, runAiPhase } from './ai';
 export { validateGameData } from './validate';
 export { healAmount, healRange } from './healQueries';

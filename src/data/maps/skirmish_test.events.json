@@ -1,0 +1,11 @@
+[
+  {
+    "id": "recruit_deserter",
+    "trigger": { "type": "talk", "unitId": "mc", "targetId": "deserter" },
+    "effects": [
+      { "type": "scene", "sceneId": "skirmish_recruit" },
+      { "type": "setTeam", "unitId": "deserter", "team": "player" },
+      { "type": "setFlag", "flag": "skirmish_deserter_joined", "value": true }
+    ]
+  }
+]

@@ -10,7 +10,7 @@
  "tilewidth": 96,
  "tileheight": 96,
  "nextlayerid": 4,
- "nextobjectid": 26,
+ "nextobjectid": 27,
  "properties": [
   {
    "name": "id",
@@ -779,6 +779,50 @@
        "value": true
       }
      ]
+    },
+    {
+     "id": 14,
+     "x": 816,
+     "y": 1296,
+     "width": 0,
+     "height": 0,
+     "rotation": 0,
+     "visible": true,
+     "point": true,
+     "name": "Deserter",
+     "type": "unit",
+     "properties": [
+      {
+       "name": "id",
+       "type": "string",
+       "value": "deserter"
+      },
+      {
+       "name": "classId",
+       "type": "string",
+       "value": "hunter"
+      },
+      {
+       "name": "team",
+       "type": "string",
+       "value": "enemy"
+      },
+      {
+       "name": "level",
+       "type": "int",
+       "value": 1
+      },
+      {
+       "name": "ai",
+       "type": "string",
+       "value": "guard"
+      },
+      {
+       "name": "tags",
+       "type": "string",
+       "value": "recruitable"
+      }
+     ]
     }
    ]
   },
@@ -793,7 +837,7 @@
    "draworder": "topdown",
    "objects": [
     {
-     "id": 14,
+     "id": 15,
      "name": "well",
      "type": "well",
      "x": 336,
@@ -805,7 +849,7 @@
      "point": true
     },
     {
-     "id": 15,
+     "id": 16,
      "name": "fence",
      "type": "fence",
      "x": 144,
@@ -817,7 +861,7 @@
      "point": true
     },
     {
-     "id": 16,
+     "id": 17,
      "name": "haystack",
      "type": "haystack",
      "x": 144,
@@ -829,7 +873,7 @@
      "point": true
     },
     {
-     "id": 17,
+     "id": 18,
      "name": "cart",
      "type": "cart",
      "x": 432,
@@ -841,7 +885,7 @@
      "point": true
     },
     {
-     "id": 18,
+     "id": 19,
      "name": "signpost",
      "type": "signpost",
      "x": 432,
@@ -853,7 +897,7 @@
      "point": true
     },
     {
-     "id": 19,
+     "id": 20,
      "name": "banner",
      "type": "banner",
      "x": 816,
@@ -865,7 +909,7 @@
      "point": true
     },
     {
-     "id": 20,
+     "id": 21,
      "name": "barrels",
      "type": "barrels",
      "x": 1104,
@@ -877,7 +921,7 @@
      "point": true
     },
     {
-     "id": 21,
+     "id": 22,
      "name": "campfire",
      "type": "campfire",
      "x": 1104,
@@ -889,7 +933,7 @@
      "point": true
     },
     {
-     "id": 22,
+     "id": 23,
      "name": "rubble",
      "type": "rubble",
      "x": 816,
@@ -901,7 +945,7 @@
      "point": true
     },
     {
-     "id": 23,
+     "id": 24,
      "name": "dead_tree",
      "type": "dead_tree",
      "x": 336,
@@ -913,7 +957,7 @@
      "point": true
     },
     {
-     "id": 24,
+     "id": 25,
      "name": "graves",
      "type": "graves",
      "x": 144,
@@ -925,7 +969,7 @@
      "point": true
     },
     {
-     "id": 25,
+     "id": 26,
      "name": "wheel",
      "type": "wheel",
      "x": 720,

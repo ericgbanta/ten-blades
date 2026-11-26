@@ -42,6 +42,8 @@ describe('level-ups', () => {
     ai: null,
     isBoss: false,
     isLord: false,
+    tags: [],
+    left: false,
   });
 
   it('is deterministic for a seed', () => {

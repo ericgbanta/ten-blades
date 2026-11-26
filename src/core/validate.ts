@@ -1,6 +1,16 @@
 // Cross-reference checks for game data. Returns a list of problems (empty when valid).
 
-import { STAT_KEYS, type GameData, type MapData, type Pos, type UnitPlacement } from './types';
+import {
+  STAT_KEYS,
+  type AiSpec,
+  type EventCondition,
+  type GameData,
+  type MapData,
+  type MapEvent,
+  type Objective,
+  type Pos,
+  type UnitPlacement,
+} from './types';
 
 const SCHOOLS = ['heavy', 'swift', 'arcane', 'none'];
 const TEAMS = ['player', 'enemy', 'ally'];
@@ -11,8 +21,13 @@ function isInt(v: unknown): v is number {
   return typeof v === 'number' && Number.isInteger(v);
 }
 
+/** Story content the map events refer to. When given, scene ids in events are checked against it. */
+export interface StoryRefs {
+  sceneIds: readonly string[];
+}
+
 /** Check every id reference and basic shape in the game data. */
-export function validateGameData(data: GameData): string[] {
+export function validateGameData(data: GameData, story?: StoryRefs): string[] {
   const errs: string[] = [];
   const moveTypes = new Set<string>();
 
@@ -58,12 +73,12 @@ export function validateGameData(data: GameData): string[] {
 
   for (const [id, m] of Object.entries(data.maps)) {
     if (m.id !== id) errs.push(`map ${id}: id field is ${m.id}`);
-    errs.push(...validateMap(m, data));
+    errs.push(...validateMap(m, data, story));
   }
   return errs;
 }
 
-function validateMap(m: MapData, data: GameData): string[] {
+function validateMap(m: MapData, data: GameData, story: StoryRefs | undefined): string[] {
   const errs: string[] = [];
   const where = `map ${m.id}`;
   if (m.tiles.length !== m.height) errs.push(`${where}: ${m.tiles.length} rows, height ${m.height}`);
@@ -155,5 +170,205 @@ function validateMap(m: MapData, data: GameData): string[] {
   if ((obj.type === 'survive' || obj.type === 'protect') && (!isInt(obj.turns) || obj.turns < 1)) {
     errs.push(`${where}: bad turns`);
   }
+  // Every unit the map can ever hold: placements, waves, event spawns, and the MC (always id "mc").
+  const spawns = (m.events ?? []).flatMap((ev) => ev.effects.flatMap((fx) => (fx.type === 'spawn' ? fx.units : [])));
+  const known = new Set<string>(['mc', ...ids]);
+  for (const p of spawns) known.add(p.id);
+  const tags = new Set<string>();
+  for (const p of [...m.placements, ...m.reinforcements.flatMap((w) => w.units), ...spawns]) {
+    if (p.kind !== 'unit') continue;
+    if (p.tags !== undefined && (!Array.isArray(p.tags) || p.tags.some((t) => typeof t !== 'string' || t === ''))) {
+      errs.push(`${where}: ${p.id} has bad tags`);
+    }
+    for (const t of p.tags ?? []) tags.add(t);
+  }
+  errs.push(...validateEvents(m, data, story, { known, tags, checkUnit, terrainAt }));
+  return errs;
+}
+
+const PHASES = ['player', 'enemy', 'ally'];
+const REPEATABLE = ['enter', 'defeated', 'talk'];
+const FLAG_NAME = /^[a-z][a-z0-9_]*$/;
+
+interface MapRefs {
+  known: Set<string>;
+  tags: Set<string>;
+  checkUnit: (p: UnitPlacement, label: string) => void;
+  terrainAt: (p: Pos) => string | null;
+}
+
+function isFlagValue(v: unknown): boolean {
+  return typeof v === 'boolean' || typeof v === 'string' || (typeof v === 'number' && Number.isFinite(v));
+}
+
+/** Check a map's scripted events: shapes, ids, unit ids, tags, tiles, scenes and weapons. */
+function validateEvents(m: MapData, data: GameData, story: StoryRefs | undefined, refs: MapRefs): string[] {
+  const errs: string[] = [];
+  const events: MapEvent[] = m.events ?? [];
+  const where = `map ${m.id}`;
+  const seen = new Set<string>();
+  const unit = (id: unknown, label: string) => {
+    if (typeof id !== 'string' || !refs.known.has(id)) errs.push(`${label}: unknown unit ${String(id)}`);
+  };
+  const tile = (p: Pos, label: string) => {
+    if (!isInt(p?.x) || !isInt(p?.y) || refs.terrainAt(p) === null) errs.push(`${label}: tile off the map`);
+  };
+  const tag = (t: unknown, label: string) => {
+    if (typeof t !== 'string' || !refs.tags.has(t)) errs.push(`${label}: no unit has tag ${String(t)}`);
+  };
+  const flag = (f: unknown, label: string) => {
+    if (typeof f !== 'string' || !FLAG_NAME.test(f)) errs.push(`${label}: bad flag name ${String(f)}`);
+  };
+  const team = (t: unknown, label: string) => {
+    if (!TEAMS.includes(t as string)) errs.push(`${label}: bad team ${String(t)}`);
+  };
+  const ai = (a: AiSpec, label: string) => {
+    if (!a || !BEHAVIORS.includes(a.behavior)) errs.push(`${label}: bad ai`);
+    else {
+      if (a.tile) tile(a.tile, `${label} ai.tile`);
+      if (a.radius !== undefined && (!isInt(a.radius) || a.radius < 0)) errs.push(`${label}: bad ai radius`);
+    }
+  };
+  const condition = (c: EventCondition, label: string) => {
+    switch (c.type) {
+      case 'flag':
+        flag(c.flag, label);
+        if (c.value !== undefined && !isFlagValue(c.value)) errs.push(`${label}: bad flag value`);
+        return;
+      case 'permadeath':
+        if (c.mode !== 'classic' && c.mode !== 'casual') errs.push(`${label}: bad permadeath ${String(c.mode)}`);
+        return;
+      case 'difficulty':
+        if (!Array.isArray(c.difficulties) || c.difficulties.some((d) => !DIFFICULTIES.includes(d))) errs.push(`${label}: bad difficulties`);
+        return;
+      case 'alive':
+      case 'fallen':
+        unit(c.unitId, label);
+        return;
+      default:
+        errs.push(`${label}: unknown condition ${String((c as { type: unknown }).type)}`);
+    }
+  };
+  const objective = (o: Objective, label: string) => {
+    switch (o.type) {
+      case 'rout':
+      case 'defeatBoss':
+        return;
+      case 'survive':
+        if (!isInt(o.turns) || o.turns < 1) errs.push(`${label}: bad turns`);
+        return;
+      case 'protect':
+        unit(o.unitId, label);
+        if (!isInt(o.turns) || o.turns < 1) errs.push(`${label}: bad turns`);
+        return;
+      case 'escape':
+        for (const t of o.tiles) tile(t, label);
+        return;
+      default:
+        errs.push(`${label}: unknown objective ${String((o as { type: unknown }).type)}`);
+    }
+  };
+
+  events.forEach((ev, i) => {
+    const label = `${where}: event ${typeof ev.id === 'string' && ev.id ? ev.id : `#${i}`}`;
+    if (typeof ev.id !== 'string' || !/^[a-z0-9_]+$/.test(ev.id)) errs.push(`${label}: bad id`);
+    else if (seen.has(ev.id)) errs.push(`${label}: duplicate event id`);
+    seen.add(ev.id);
+    const t = ev.trigger;
+    if (ev.repeatable && !REPEATABLE.includes(t?.type)) errs.push(`${label}: only enter, defeated and talk events can repeat`);
+    switch (t?.type) {
+      case 'battleStart':
+        break;
+      case 'flag':
+        flag(t.flag, label);
+        if (t.value !== undefined && !isFlagValue(t.value)) errs.push(`${label}: bad flag value`);
+        break;
+      case 'phaseStart':
+        if (!isInt(t.turn) || t.turn < 1) errs.push(`${label}: bad turn`);
+        if (t.phase !== undefined && !PHASES.includes(t.phase)) errs.push(`${label}: bad phase ${String(t.phase)}`);
+        break;
+      case 'enter':
+        if (t.unitId !== undefined) unit(t.unitId, label);
+        if (t.team !== undefined) team(t.team, label);
+        if (!t.tiles && !t.area) errs.push(`${label}: enter needs tiles or an area`);
+        for (const p of t.tiles ?? []) tile(p, label);
+        if (t.area) {
+          const a = t.area;
+          if (![a.x, a.y, a.w, a.h].every(isInt) || a.w < 1 || a.h < 1 || a.x < 0 || a.y < 0 || a.x + a.w > m.width || a.y + a.h > m.height) {
+            errs.push(`${label}: area off the map`);
+          }
+        }
+        break;
+      case 'defeated':
+        if (t.unitId !== undefined) unit(t.unitId, label);
+        if (t.byId !== undefined) unit(t.byId, label);
+        if (t.tag !== undefined) tag(t.tag, label);
+        if (t.team !== undefined) team(t.team, label);
+        break;
+      case 'hpBelow':
+        unit(t.unitId, label);
+        if (!isInt(t.percent) || t.percent < 1 || t.percent > 100) errs.push(`${label}: percent must be 1 to 100`);
+        break;
+      case 'talk':
+        unit(t.unitId, label);
+        unit(t.targetId, label);
+        if (t.unitId === t.targetId) errs.push(`${label}: a unit cannot talk to itself`);
+        break;
+      case 'allDefeated':
+        tag(t.tag, label);
+        break;
+      default:
+        errs.push(`${label}: unknown trigger ${String((t as { type?: unknown })?.type)}`);
+    }
+    for (const c of ev.conditions ?? []) condition(c, label);
+    if (!Array.isArray(ev.effects) || ev.effects.length === 0) errs.push(`${label}: no effects`);
+    for (const fx of ev.effects ?? []) {
+      switch (fx.type) {
+        case 'scene':
+          if (typeof fx.sceneId !== 'string') errs.push(`${label}: scene needs a sceneId`);
+          else if (story && !story.sceneIds.includes(fx.sceneId)) errs.push(`${label}: unknown scene ${fx.sceneId}`);
+          break;
+        case 'spawn':
+          if (!Array.isArray(fx.units) || fx.units.length === 0) errs.push(`${label}: spawn needs units`);
+          for (const p of fx.units ?? []) refs.checkUnit(p, `${label} spawn ${p.id}`);
+          break;
+        case 'remove':
+        case 'lock':
+        case 'unlock':
+          unit(fx.unitId, label);
+          break;
+        case 'setTeam':
+          unit(fx.unitId, label);
+          team(fx.team, label);
+          if (fx.ai) ai(fx.ai, label);
+          break;
+        case 'setAi':
+          unit(fx.unitId, label);
+          ai(fx.ai, label);
+          break;
+        case 'setFlag':
+          flag(fx.flag, label);
+          if (!isFlagValue(fx.value)) errs.push(`${label}: bad flag value`);
+          break;
+        case 'objective':
+          objective(fx.objective, label);
+          break;
+        case 'endBattle':
+          if (fx.result !== 'victory' && fx.result !== 'defeat') errs.push(`${label}: bad result`);
+          break;
+        case 'giveWeapon':
+          unit(fx.unitId, label);
+          if (!data.weapons[fx.weaponId]) errs.push(`${label}: unknown weapon ${fx.weaponId}`);
+          break;
+        case 'heal':
+        case 'damage':
+          unit(fx.unitId, label);
+          if (!isInt(fx.amount) || fx.amount < 1) errs.push(`${label}: amount must be a whole number above 0`);
+          break;
+        default:
+          errs.push(`${label}: unknown effect ${String((fx as { type?: unknown }).type)}`);
+      }
+    }
+  });
   return errs;
 }

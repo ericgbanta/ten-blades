@@ -12,6 +12,7 @@ import {
   moveTiles,
   samePos,
   actionTiles,
+  talkTargets,
   unitAt,
   unitThreatTiles,
   validateAction,
@@ -22,7 +23,7 @@ import {
   type Pos,
 } from '../core';
 
-export type TargetMode = 'attack' | 'heal';
+export type TargetMode = 'attack' | 'heal' | 'talk';
 
 export type Selection =
   /** Nothing selected. */
@@ -35,18 +36,24 @@ export type Selection =
   | { kind: 'menu'; unitId: string; to: Pos }
   /** Choosing whom to attack or heal from `to`. */
   | { kind: 'target'; unitId: string; to: Pos; mode: TargetMode }
-  /** The forecast (or heal preview) for one target, waiting for Confirm. */
-  | { kind: 'confirm'; unitId: string; to: Pos; mode: TargetMode; targetId: string };
+  /** The forecast (or heal preview) for one target, waiting for Confirm. Talk needs no confirm. */
+  | { kind: 'confirm'; unitId: string; to: Pos; mode: 'attack' | 'heal'; targetId: string };
 
 export const NO_SELECTION: Selection = { kind: 'none' };
 
-export type MenuOption = 'attack' | 'heal' | 'wait' | 'cancel';
+export type MenuOption = 'attack' | 'heal' | 'talk' | 'wait' | 'cancel';
 
 export type Command = MenuOption | 'confirm' | 'back';
 
 export interface Transition {
   selection: Selection;
   /** The action to apply, when the command commits one. */
+  action: Action | null;
+}
+
+/** What a tap does: the next selection, and an action when the tap commits one (talking to a target). */
+export interface TapResult {
+  selection: Selection;
   action: Action | null;
 }
 
@@ -72,7 +79,23 @@ function canStopOn(state: BattleState, unitId: string, pos: Pos, data: GameData)
 }
 
 function targetsFor(state: BattleState, unitId: string, to: Pos, mode: TargetMode, data: GameData): string[] {
+  if (mode === 'talk') return talkTargets(state, unitId, to, data);
   return mode === 'attack' ? attackTargets(state, unitId, to, data) : healTargets(state, unitId, to, data);
+}
+
+/**
+ * What a tap on a map tile does, including the one tap that commits an action: choosing whom to talk to
+ * (talk has no forecast to confirm).
+ */
+export function tapTileAction(state: BattleState, sel: Selection, pos: Pos, data: GameData): TapResult {
+  if (sel.kind === 'target' && sel.mode === 'talk') {
+    const t = unitAt(state, pos);
+    if (t && talkTargets(state, sel.unitId, sel.to, data).includes(t.id)) {
+      return commit(state, { type: 'talk', unitId: sel.unitId, to: sel.to, targetId: t.id }, data);
+    }
+    return { selection: { kind: 'menu', unitId: sel.unitId, to: sel.to }, action: null };
+  }
+  return { selection: tapTile(state, sel, pos, data), action: null };
 }
 
 /** What a tap on a map tile does. */
@@ -97,7 +120,7 @@ export function tapTile(state: BattleState, sel: Selection, pos: Pos, data: Game
     case 'target':
     case 'confirm': {
       const t = unitAt(state, pos);
-      if (t && targetsFor(state, sel.unitId, sel.to, sel.mode, data).includes(t.id)) {
+      if (sel.mode !== 'talk' && t && targetsFor(state, sel.unitId, sel.to, sel.mode, data).includes(t.id)) {
         return { kind: 'confirm', unitId: sel.unitId, to: sel.to, mode: sel.mode, targetId: t.id };
       }
       return sel.kind === 'confirm'
@@ -113,6 +136,7 @@ export function menuOptions(state: BattleState, sel: Selection, data: GameData):
   const out: MenuOption[] = [];
   if (attackTargets(state, sel.unitId, sel.to, data).length > 0) out.push('attack');
   if (healTargets(state, sel.unitId, sel.to, data).length > 0) out.push('heal');
+  if (talkTargets(state, sel.unitId, sel.to, data).length > 0) out.push('talk');
   out.push('wait', 'cancel');
   return out;
 }
@@ -131,6 +155,7 @@ export function runCommand(state: BattleState, sel: Selection, cmd: Command, dat
     switch (cmd) {
       case 'attack':
       case 'heal':
+      case 'talk':
         return { selection: { kind: 'target', unitId: sel.unitId, to: sel.to, mode: cmd }, action: null };
       case 'wait':
         return commit(state, { type: 'wait', unitId: sel.unitId, to: sel.to }, data);

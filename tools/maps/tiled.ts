@@ -120,6 +120,7 @@ function unitObject(p: Placement, id: number): TiledObject {
   }
   if (p.isBoss !== undefined) props.push(prop('isBoss', p.isBoss));
   if (p.isLord !== undefined) props.push(prop('isLord', p.isLord));
+  if (p.tags !== undefined) props.push(prop('tags', p.tags.join(',')));
   return { ...base, name: p.name, type: 'unit', properties: props };
 }
 
@@ -247,9 +248,11 @@ function placementOf(o: TiledObject, tw: number, th: number, where: string): Pla
   if (isBoss !== undefined) u.isBoss = isBoss;
   const isLord = bool(p.get('isLord'));
   if (isLord !== undefined) u.isLord = isLord;
-  // Keep the key order of hand-written maps: kind, id, name, classId, team, level, weaponId, pos, ai, isBoss, isLord.
-  const { kind: k, id: i, name, classId: c, team: tm, level: lv, weaponId: wp, pos: ps, ai: a, isBoss: b, isLord: l } = u;
-  return JSON.parse(JSON.stringify({ kind: k, id: i, name, classId: c, team: tm, level: lv, weaponId: wp, pos: ps, ai: a, isBoss: b, isLord: l })) as UnitPlacement;
+  const tags = str(p.get('tags'));
+  if (tags !== undefined) u.tags = tags.split(',').map((t) => t.trim()).filter(Boolean);
+  // Keep the key order of hand-written maps: kind, id, name, classId, team, level, weaponId, pos, ai, isBoss, isLord, tags.
+  const { kind: k, id: i, name, classId: c, team: tm, level: lv, weaponId: wp, pos: ps, ai: a, isBoss: b, isLord: l, tags: tg } = u;
+  return JSON.parse(JSON.stringify({ kind: k, id: i, name, classId: c, team: tm, level: lv, weaponId: wp, pos: ps, ai: a, isBoss: b, isLord: l, tags: tg })) as UnitPlacement;
 }
 
 function objectiveOf(p: Map<string, string | number | boolean>, where: string): Objective {

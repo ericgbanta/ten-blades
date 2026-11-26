@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { validateGameData } from '../src/core';
+import type { MapData } from '../src/core';
 import { gameData } from '../src/data';
+
+/** A map as Tiled holds it: events live in their own file, not in Tiled. */
+const tiledPart = (m: MapData): MapData => {
+  const copy = { ...m };
+  delete copy.events;
+  return copy;
+};
 import propDefs from '../src/data/props.json';
 import terrain from '../src/data/terrain.json';
 import { checkProps, formatMap, mapToTmj, tilesetTerrains, tmjToMap, type PropDef, type TiledMap, type TiledTileset } from '../tools/maps/tiled';
@@ -25,14 +33,14 @@ describe('Tiled import', () => {
   });
 
   it('round-trips every map through Tiled, waves and props included', () => {
-    for (const m of Object.values(gameData.maps)) {
+    for (const m of Object.values(gameData.maps).map(tiledPart)) {
       const back = tmjToMap(mapToTmj(m, Object.keys(terrain), '../tiles.tsj'), tilesetTerrains(tileset), m.id);
       expect(back).toEqual(m);
     }
   });
 
   it('reads an escape objective, a guard tile and a tile object placed by its bottom left corner', () => {
-    const m = { ...gameData.maps.prologue!, objective: { type: 'escape' as const, tiles: [{ x: 0, y: 0 }, { x: 9, y: 11 }] } };
+    const m = { ...tiledPart(gameData.maps.prologue!), objective: { type: 'escape' as const, tiles: [{ x: 0, y: 0 }, { x: 9, y: 11 }] } };
     m.placements = m.placements.map((p) => (p.kind === 'unit' && p.id === 'legionary_3' ? { ...p, ai: { behavior: 'guard' as const, radius: 2, tile: { x: 4, y: 1 } } } : p));
     const tmj = mapToTmj(m, Object.keys(terrain), '../tiles.tsj');
     const props = tmj.layers.find((l) => l.name === 'props')!;

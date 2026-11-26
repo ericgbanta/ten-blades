@@ -15,123 +15,19 @@ import {
   terrainAt,
   unitAt,
 } from './grid';
-import { averageStats, combatXp, grantXp } from './leveling';
-import { checkOutcome, fallenPlayerUnitIds, turnLimitReached } from './objectives';
+import { combatXp, grantXp } from './leveling';
+import { canTalk, runEvents } from './events';
+import { checkOutcome, endBattle, turnLimitReached } from './objectives';
 import { canMoveTo, pathTo } from './pathfinding';
 import { createRng } from './rng';
-import {
-  STAT_KEYS,
-  type Action,
-  type ActionResult,
-  type AiState,
-  type BattleEvent,
-  type BattleSetup,
-  type BattleState,
-  type Difficulty,
-  type GameData,
-  type MapData,
-  type PartyUnit,
-  type Pos,
-  type Stats,
-  type Team,
-  type Unit,
-  type UnitPlacement,
-} from './types';
+import { newMc, unitFromParty, unitFromPlacement } from './units';
+import type { Action, ActionResult, BattleEvent, BattleSetup, BattleState, GameData, MapData, PartyUnit, Pos, Team, Unit } from './types';
 
-export { ActionError };
+export { ActionError, newMc, unitFromPlacement };
 
 // ---------------------------------------------------------------------------
 // Creation
 // ---------------------------------------------------------------------------
-
-/** Scale enemy stats for the difficulty, then clamp to the stat caps (and at least 0). */
-function applyDifficulty(stats: Stats, difficulty: Difficulty, data: GameData): Stats {
-  const d = data.balance.difficulty[difficulty];
-  const caps = data.balance.statCaps;
-  const out = { ...stats };
-  for (const k of STAT_KEYS) {
-    if (k === 'mov') continue;
-    const v = Math.round(stats[k] * d.statMultiplier) + (d.statBonus[k] ?? 0);
-    out[k] = Math.max(0, Math.min(v, caps[k]));
-  }
-  return out;
-}
-
-function aiFromPlacement(p: UnitPlacement, difficulty: Difficulty, data: GameData): AiState | null {
-  if (p.team === 'player') return null;
-  const spec = p.ai ?? (p.isBoss ? { behavior: 'guard' as const } : { behavior: 'charge' as const });
-  let behavior = spec.behavior;
-  if (behavior === 'hold' && p.team === 'enemy' && data.balance.difficulty[difficulty].aggressive) behavior = 'charge';
-  return {
-    behavior,
-    guardTile: behavior === 'guard' ? { ...(spec.tile ?? p.pos) } : null,
-    guardRadius: behavior === 'guard' ? (spec.radius ?? 0) : 0,
-    active: false,
-  };
-}
-
-/** Build a unit from map data. Enemies get the difficulty's level and stat changes. */
-export function unitFromPlacement(p: UnitPlacement, difficulty: Difficulty, data: GameData): Unit {
-  const cls = data.classes[p.classId];
-  if (!cls) throw new Error(`Unknown class ${p.classId}`);
-  const isEnemy = p.team === 'enemy';
-  const level = Math.min(p.level + (isEnemy ? data.balance.difficulty[difficulty].levelBonus : 0), data.balance.xp.levelCap);
-  let stats = averageStats(p.classId, level, data);
-  if (isEnemy) stats = applyDifficulty(stats, difficulty, data);
-  return {
-    id: p.id,
-    name: p.name,
-    classId: p.classId,
-    team: p.team,
-    level,
-    xp: 0,
-    stats,
-    hp: stats.hp,
-    weaponId: p.weaponId ?? cls.startingWeapon,
-    pos: { ...p.pos },
-    acted: false,
-    alive: true,
-    ai: aiFromPlacement(p, difficulty, data),
-    isBoss: p.isBoss ?? false,
-    isLord: p.isLord ?? false,
-  };
-}
-
-function unitFromParty(m: PartyUnit, pos: Pos): Unit {
-  return {
-    id: m.id,
-    name: m.name,
-    classId: m.classId,
-    team: 'player',
-    level: m.level,
-    xp: m.xp,
-    stats: { ...m.stats },
-    hp: m.stats.hp,
-    weaponId: m.weaponId,
-    pos: { ...pos },
-    acted: false,
-    alive: true,
-    ai: null,
-    isBoss: false,
-    isLord: m.isLord,
-  };
-}
-
-/** The MC as a fresh level 1 unit of the chosen style, with the style's starting weapon. */
-export function newMc(setup: BattleSetup, data: GameData): PartyUnit {
-  const cls = data.classes[setup.mc.style];
-  if (!cls) throw new Error(`Unknown MC style ${setup.mc.style}`);
-  return {
-    id: 'mc',
-    name: setup.mc.name,
-    classId: setup.mc.style,
-    level: 1,
-    xp: 0,
-    stats: { ...cls.baseStats },
-    weaponId: cls.startingWeapon,
-    isLord: true,
-  };
-}
 
 /**
  * Create a battle on `map`. The MC slot takes the party's lord, or a new MC built
@@ -156,7 +52,8 @@ export function createBattle(map: MapData, setup: BattleSetup, seed: number, dat
     } else units.push(unitFromPlacement(p, setup.difficulty, data));
   }
   const ids = new Set<string>();
-  for (const id of [...units.map((u) => u.id), ...map.reinforcements.flatMap((w) => w.units.map((p) => p.id))]) {
+  const spawned = (map.events ?? []).flatMap((ev) => ev.effects.flatMap((fx) => (fx.type === 'spawn' ? fx.units.map((p) => p.id) : [])));
+  for (const id of [...units.map((u) => u.id), ...map.reinforcements.flatMap((w) => w.units.map((p) => p.id)), ...spawned]) {
     if (ids.has(id)) throw new Error(`Map ${map.id}: duplicate unit id ${id}`);
     ids.add(id);
   }
@@ -173,7 +70,7 @@ export function createBattle(map: MapData, setup: BattleSetup, seed: number, dat
     }
   }
   return {
-    version: 1,
+    version: 2,
     mapId: map.id,
     map: { width: map.width, height: map.height, terrain },
     units,
@@ -184,14 +81,36 @@ export function createBattle(map: MapData, setup: BattleSetup, seed: number, dat
     reinforcements: structuredClone(map.reinforcements.filter((w) => w.difficulties.includes(setup.difficulty))),
     options: { difficulty: setup.difficulty, permadeath: setup.permadeath },
     result: 'ongoing',
+    started: false,
+    flags: { ...(setup.flags ?? {}) },
+    firedEvents: [],
+    recruited: [],
   };
+}
+
+/**
+ * Start the battle: fire the battle start events (battleStart, flag, and turn 1's player phase) and return the
+ * started state with their events. Does nothing to a battle already started. The first action of a battle that
+ * was never started starts it first, so callers that never call this still get the same game.
+ */
+export function startBattle(state: BattleState, data: GameData): ActionResult {
+  if (state.started) return { state, events: [] };
+  const s = structuredClone(state);
+  const events: BattleEvent[] = [];
+  s.started = true;
+  runEvents(s, [], data, events, true);
+  if (s.result === 'ongoing') {
+    const r = checkOutcome(s);
+    if (r !== 'ongoing') endBattle(s, r, events);
+  }
+  return { state: s, events };
 }
 
 // ---------------------------------------------------------------------------
 // Validation
 // ---------------------------------------------------------------------------
 
-const ACTION_TYPES = ['wait', 'attack', 'heal', 'endPhase'];
+const ACTION_TYPES = ['wait', 'attack', 'heal', 'talk', 'endPhase'];
 
 function isPos(v: unknown): v is Pos {
   if (typeof v !== 'object' || v === null) return false;
@@ -228,6 +147,12 @@ export function validateAction(state: BattleState, action: Action, data: GameDat
   const target = findUnit(state, action.targetId);
   if (!target || !target.alive) return `No living target ${action.targetId}`;
   const d = distance(action.to, target.pos);
+  if (action.type === 'talk') {
+    if (target.id === unit.id) return `${unit.id} cannot talk to itself`;
+    if (!canTalk(state, unit.id, target.id, data)) return `${unit.id} has nothing to say to ${target.id}`;
+    if (d !== 1) return `${target.id} is not next to ${action.to.x},${action.to.y}`;
+    return null;
+  }
   if (action.type === 'attack') {
     const w = attackWeaponOf(unit, data);
     if (!w) return `${unit.id} has no attack weapon`;
@@ -252,6 +177,12 @@ export function validateAction(state: BattleState, action: Action, data: GameDat
  * mutates `state`. Throws ActionError for an illegal action.
  */
 export function applyAction(state: BattleState, action: Action, data: GameData): ActionResult {
+  if (!state.started) {
+    // A battle nobody started (tests, the simulator) starts with its first action.
+    const begun = startBattle(state, data);
+    const r = applyAction(begun.state, action, data);
+    return { state: r.state, events: [...begun.events, ...r.events] };
+  }
   const err = validateAction(state, action, data);
   if (err !== null) throw new ActionError(err);
   const s = structuredClone(state);
@@ -277,10 +208,18 @@ export function applyAction(state: BattleState, action: Action, data: GameData):
       finishUnit(u, events);
       break;
     }
+    case 'talk': {
+      const u = getUnit(s, action.unitId);
+      moveUnit(s, u, action.to, data, events);
+      finishUnit(u, events);
+      events.push({ type: 'talked', unitId: u.id, targetId: action.targetId });
+      break;
+    }
     case 'endPhase':
       advancePhase(s, data, events);
       break;
   }
+  if (s.result === 'ongoing') runEvents(s, events.slice(), data, events);
   if (s.result === 'ongoing') {
     const r = checkOutcome(s);
     if (r !== 'ongoing') endBattle(s, r, events);
@@ -340,11 +279,6 @@ function heal(s: BattleState, u: Unit, t: Unit, data: GameData, events: BattleEv
   t.hp += amount;
   events.push({ type: 'unitHealed', unitId: t.id, sourceId: u.id, cause: 'staff', amount, hpAfter: t.hp });
   if (u.team === 'player') s.rng = grantXp(u, data.balance.xp.healXp, s.rng, data, events);
-}
-
-function endBattle(s: BattleState, result: 'victory' | 'defeat', events: BattleEvent[]): void {
-  s.result = result;
-  events.push({ type: 'battleEnded', result, fallenPlayerUnitIds: fallenPlayerUnitIds(s) });
 }
 
 /** Phase order: player, enemy, then ally if any allies live, then the next turn. */

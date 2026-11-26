@@ -265,7 +265,7 @@ describe('objectives', () => {
     const r = runAiPhase(applyAction(s, end, data).state, data);
     expect(r.state.result).toBe('defeat');
     expect(r.events[r.events.length - 1]).toEqual({ type: 'battleEnded', result: 'defeat', fallenPlayerUnitIds: ['p'] });
-    expect(battleSummary(r.state)).toEqual({ result: 'defeat', turns: 1, fallenPlayerUnitIds: ['p'], lostForGood: ['p'] });
+    expect(battleSummary(r.state)).toEqual({ result: 'defeat', turns: 1, fallenPlayerUnitIds: ['p'], lostForGood: ['p'], flags: {}, recruited: [] });
     const casual = { ...r.state, options: { ...r.state.options, permadeath: 'casual' as const } };
     expect(battleSummary(casual).lostForGood).toEqual([]);
   });

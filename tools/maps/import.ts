@@ -29,8 +29,13 @@ function main(): void {
     if (!source) throw new Error(`${f}: needs the terrain tileset (tools/maps/tiles.tsj) as an external tileset`);
     const tileset = JSON.parse(readFileSync(resolve(dirname(path), source), 'utf8')) as TiledTileset;
     const map = tmjToMap(tmj, tilesetTerrains(tileset), basename(f, '.tmj'));
+    // The map's events live in src/data/maps/<id>.events.json, which this never writes. Check the new map with
+    // them, so redrawing a map cannot strand an event on a unit or tile that is gone.
+    const events = gameData.maps[map.id]?.events;
     const errs = [
-      ...validateGameData({ ...gameData, maps: { ...gameData.maps, [map.id]: map } }).filter((e) => e.startsWith(`map ${map.id}:`)),
+      ...validateGameData({ ...gameData, maps: { ...gameData.maps, [map.id]: events ? { ...map, events } : map } }).filter((e) =>
+        e.startsWith(`map ${map.id}:`),
+      ),
       ...checkProps(map, propDefs as Record<string, PropDef>),
     ];
     if (errs.length > 0) {

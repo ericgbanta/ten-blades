@@ -9,17 +9,20 @@
 // - protect N: as survive, while the protected unit lives.
 
 import { livingUnits, samePos } from './grid';
-import type { BattleResult, BattleState, Objective, PartyUnit } from './types';
+import type { BattleEvent, BattleResult, BattleState, Flags, Objective, PartyUnit, Unit } from './types';
+
+/** A unit that fell in battle (not one that left the map). */
+const fell = (u: Unit): boolean => !u.alive && !u.left;
 
 /** Outcome right now, ignoring turn-count objectives (see `turnLimitReached`). */
 export function checkOutcome(state: BattleState): BattleResult {
   const players = livingUnits(state, 'player');
   if (players.length === 0) return 'defeat';
-  if (state.units.some((u) => u.team === 'player' && u.isLord && !u.alive)) return 'defeat';
+  if (state.units.some((u) => u.team === 'player' && u.isLord && fell(u))) return 'defeat';
   const obj = state.objective;
   if (obj.type === 'protect') {
     const target = state.units.find((u) => u.id === obj.unitId);
-    if (!target || !target.alive) return 'defeat';
+    if (!target || fell(target)) return 'defeat';
   }
   switch (obj.type) {
     case 'rout':
@@ -64,10 +67,14 @@ export function objectiveStatus(state: BattleState): ObjectiveStatus {
 }
 
 export interface PartyAfterBattle {
-  /** Living player units, in unit order. */
+  /** Living player units, in unit order. Units recruited during the battle are among them. */
   survivors: PartyUnit[];
   /** Fallen player units, in unit order. Whether they are gone for good is up to permadeath (see battleSummary). */
   fallen: PartyUnit[];
+  /** Player units an event took off the map, in unit order. They left alive; the chapter data decides if they stay. */
+  left: PartyUnit[];
+  /** Ids of units that joined the player team during the battle. */
+  recruited: string[];
 }
 
 /**
@@ -77,7 +84,7 @@ export interface PartyAfterBattle {
  * not. Current HP is not kept, since units start each map at full HP.
  */
 export function partyAfterBattle(state: BattleState): PartyAfterBattle {
-  const out: PartyAfterBattle = { survivors: [], fallen: [] };
+  const out: PartyAfterBattle = { survivors: [], fallen: [], left: [], recruited: [...state.recruited] };
   for (const u of state.units) {
     if (u.team !== 'player') continue;
     const m: PartyUnit = {
@@ -90,14 +97,20 @@ export function partyAfterBattle(state: BattleState): PartyAfterBattle {
       weaponId: u.weaponId,
       isLord: u.isLord,
     };
-    (u.alive ? out.survivors : out.fallen).push(m);
+    (u.alive ? out.survivors : u.left ? out.left : out.fallen).push(m);
   }
   return out;
 }
 
 /** Ids of player units that fell, in unit order. */
 export function fallenPlayerUnitIds(state: BattleState): string[] {
-  return state.units.filter((u) => u.team === 'player' && !u.alive).map((u) => u.id);
+  return state.units.filter((u) => u.team === 'player' && fell(u)).map((u) => u.id);
+}
+
+/** End the battle now with `result`. */
+export function endBattle(s: BattleState, result: 'victory' | 'defeat', events: BattleEvent[]): void {
+  s.result = result;
+  events.push({ type: 'battleEnded', result, fallenPlayerUnitIds: fallenPlayerUnitIds(s) });
 }
 
 export interface BattleSummary {
@@ -106,6 +119,10 @@ export interface BattleSummary {
   fallenPlayerUnitIds: string[];
   /** Fallen player units that are gone for good: all of them in classic, none in casual. */
   lostForGood: string[];
+  /** The story flags as the battle leaves them, for the campaign save. */
+  flags: Flags;
+  /** Units that joined the player team during the battle. */
+  recruited: string[];
 }
 
 /** What the campaign layer needs after a battle. */
@@ -116,5 +133,7 @@ export function battleSummary(state: BattleState): BattleSummary {
     turns: state.turn,
     fallenPlayerUnitIds: fallen,
     lostForGood: state.options.permadeath === 'classic' ? fallen : [],
+    flags: { ...state.flags },
+    recruited: [...state.recruited],
   };
 }

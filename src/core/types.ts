@@ -29,6 +29,11 @@ export type School = 'heavy' | 'swift' | 'arcane' | 'none';
 
 export type Team = 'player' | 'enemy' | 'ally';
 
+/** A story flag value. Flags live in the campaign save and, during a battle, in BattleState.flags. */
+export type FlagValue = boolean | number | string;
+
+export type Flags = Record<string, FlagValue>;
+
 export type Difficulty = 'normal' | 'hard' | 'lunatic';
 
 export type Permadeath = 'classic' | 'casual';
@@ -160,6 +165,8 @@ export interface UnitPlacement {
   ai?: AiSpec;
   isBoss?: boolean;
   isLord?: boolean;
+  /** Free labels that scripted events can match (`defeated` and `allDefeated` triggers). */
+  tags?: string[];
 }
 
 /** The MC's start tile. */
@@ -205,6 +212,97 @@ export interface MapData {
   reinforcements: ReinforcementWave[];
   /** Decorative props drawn over the tiles (see src/data/props.json). The rules ignore them. */
   props?: MapProp[];
+  /**
+   * Scripted events (src/core/events.ts). Kept in a sidecar file, src/data/maps/<id>.events.json, which
+   * src/data/index.ts merges in, so importing a map from Tiled never touches them (docs/MAPS.md).
+   */
+  events?: MapEvent[];
+}
+
+// ---------------------------------------------------------------------------
+// Scripted events (map data)
+// ---------------------------------------------------------------------------
+
+/** A rectangle of tiles: x, y is the top left, w and h the size in tiles. */
+export interface Region {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * A condition on the story. Shared by map events, dialogue `if` nodes and chapter data. An unset flag reads
+ * as false. `value` defaults to true.
+ */
+export type StoryCondition =
+  | { type: 'flag'; flag: string; value?: FlagValue }
+  | { type: 'permadeath'; mode: Permadeath }
+  | { type: 'difficulty'; difficulties: Difficulty[] };
+
+/** A condition an event checks when it would fire: a story condition, or whether a unit lives. */
+export type EventCondition =
+  | StoryCondition
+  /** The unit is on the map and alive. */
+  | { type: 'alive'; unitId: string }
+  /** The unit has fallen (not merely left the map). */
+  | { type: 'fallen'; unitId: string };
+
+/**
+ * What makes an event fire. Triggers are checked after every action (and once at battle start), against the
+ * events that action produced and the state after it.
+ */
+export type EventTrigger =
+  /** Once, when the battle starts (before the first player action). */
+  | { type: 'battleStart' }
+  /** At battle start, if the story flag has this value (default true). */
+  | { type: 'flag'; flag: string; value?: FlagValue }
+  /** At the start of a phase of a turn. `phase` defaults to player; turn 1's player phase is the battle start. */
+  | { type: 'phaseStart'; turn: number; phase?: Team }
+  /** A unit ends a move on one of the tiles. With neither unitId nor team, any player unit. */
+  | { type: 'enter'; unitId?: string; team?: Team; tiles?: Pos[]; area?: Region }
+  /** A unit falls. Narrow it by unit id, by tag, by team, and by who struck the blow (`byId`). */
+  | { type: 'defeated'; unitId?: string; tag?: string; team?: Team; byId?: string }
+  /** A living unit's HP is below `percent` of its max. */
+  | { type: 'hpBelow'; unitId: string; percent: number }
+  /** The `talk` action from unitId to targetId. */
+  | { type: 'talk'; unitId: string; targetId: string }
+  /** No enemy with the tag is left alive, and at least one has fallen. */
+  | { type: 'allDefeated'; tag: string };
+
+/** What an event does, in order. */
+export type EventEffect =
+  /** Ask the UI to play a dialogue scene (src/data/dialogue/<sceneId>.json). The core does not wait. */
+  | { type: 'scene'; sceneId: string }
+  /** Units arrive, like a reinforcement wave. A taken tile drops that unit. */
+  | { type: 'spawn'; units: UnitPlacement[] }
+  /** The unit leaves the map. Not a death: it is not counted as fallen. */
+  | { type: 'remove'; unitId: string }
+  /** The unit changes side. Joining the player team recruits it: it stays with the party after the battle. */
+  | { type: 'setTeam'; unitId: string; team: Team; ai?: AiSpec }
+  | { type: 'setAi'; unitId: string; ai: AiSpec }
+  | { type: 'setFlag'; flag: string; value: FlagValue }
+  | { type: 'objective'; objective: Objective }
+  | { type: 'endBattle'; result: 'victory' | 'defeat' }
+  /** Put a weapon in the unit's hand (the blade binding). */
+  | { type: 'giveWeapon'; unitId: string; weaponId: string }
+  | { type: 'heal'; unitId: string; amount: number }
+  /** Damage that leaves at least 1 HP unless `lethal`. */
+  | { type: 'damage'; unitId: string; amount: number; lethal?: boolean }
+  /** The unit cannot act this turn (it counts as having acted). */
+  | { type: 'lock'; unitId: string }
+  /** The unit can act again this phase. */
+  | { type: 'unlock'; unitId: string };
+
+export interface MapEvent {
+  /** Unique on the map. BattleState.firedEvents lists the ids that have fired. */
+  id: string;
+  trigger: EventTrigger;
+  /** All must hold when the trigger matches, or the event does not fire (and stays ready). */
+  conditions?: EventCondition[];
+  effects: EventEffect[];
+  /** Fire every time the trigger matches, not just once. Only for enter, defeated and talk triggers. */
+  repeatable?: boolean;
 }
 
 /** A decorative prop on a map tile. */
@@ -247,6 +345,8 @@ export interface BattleSetup {
   mc: { name: string; style: McStyle };
   /** Carried-over units. A lord here fills the MC slot. */
   party?: PartyUnit[];
+  /** The campaign's story flags, copied into the battle. */
+  flags?: Flags;
 }
 
 // ---------------------------------------------------------------------------
@@ -283,6 +383,10 @@ export interface Unit {
   isBoss: boolean;
   /** Defeat of a lord loses the battle. */
   isLord: boolean;
+  /** Labels from the map, for event triggers. */
+  tags: string[];
+  /** True once an event took the unit off the map. A unit that left also has `alive` false, but it did not fall. */
+  left: boolean;
 }
 
 export type BattleResult = 'ongoing' | 'victory' | 'defeat';
@@ -295,7 +399,7 @@ export interface BattleMap {
 }
 
 export interface BattleState {
-  version: 1;
+  version: 2;
   mapId: string;
   map: BattleMap;
   /** All units, including fallen ones (alive false). Order is stable. */
@@ -308,6 +412,14 @@ export interface BattleState {
   reinforcements: ReinforcementWave[];
   options: { difficulty: Difficulty; permadeath: Permadeath };
   result: BattleResult;
+  /** False until startBattle has run the battle start events (the first action also starts the battle). */
+  started: boolean;
+  /** Story flags: the campaign's, plus whatever events set. Returned to the campaign after a win. */
+  flags: Flags;
+  /** Ids of map events that have fired (repeatable ones are listed once). */
+  firedEvents: string[];
+  /** Ids of units that joined the player team during this battle, in order. */
+  recruited: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -342,8 +454,16 @@ export interface EndPhaseAction {
   type: 'endPhase';
 }
 
-// Later phases add item, talk and power actions here.
-export type Action = WaitAction | AttackAction | HealAction | EndPhaseAction;
+/** Move to `to` and talk to an adjacent unit. Needs a talk event on the map for the pair. */
+export interface TalkAction {
+  type: 'talk';
+  unitId: string;
+  to: Pos;
+  targetId: string;
+}
+
+// Later phases add item and power actions here.
+export type Action = WaitAction | AttackAction | HealAction | TalkAction | EndPhaseAction;
 
 // ---------------------------------------------------------------------------
 // Events (flat, in order, for the UI to animate)
@@ -371,7 +491,7 @@ export type BattleEvent =
       type: 'unitHealed';
       unitId: string;
       sourceId: string | null;
-      cause: 'staff' | 'terrain';
+      cause: 'staff' | 'terrain' | 'event';
       amount: number;
       hpAfter: number;
     }
@@ -379,7 +499,20 @@ export type BattleEvent =
   | { type: 'turnStarted'; turn: number }
   | { type: 'phaseChanged'; phase: Team; turn: number }
   | { type: 'reinforcementsArrived'; unitIds: string[] }
-  | { type: 'battleEnded'; result: 'victory' | 'defeat'; fallenPlayerUnitIds: string[] };
+  | { type: 'battleEnded'; result: 'victory' | 'defeat'; fallenPlayerUnitIds: string[] }
+  // Scripted events (src/core/events.ts)
+  | { type: 'talked'; unitId: string; targetId: string }
+  | { type: 'eventFired'; eventId: string }
+  /** Play this dialogue scene now. The core does not wait; the UI plays it, then goes on with the next event. */
+  | { type: 'sceneRequested'; sceneId: string; eventId: string }
+  | { type: 'unitLeft'; unitId: string }
+  | { type: 'unitTeamChanged'; unitId: string; from: Team; to: Team }
+  | { type: 'aiChanged'; unitId: string }
+  | { type: 'flagSet'; flag: string; value: FlagValue }
+  | { type: 'objectiveChanged'; objective: Objective }
+  | { type: 'weaponChanged'; unitId: string; weaponId: string }
+  | { type: 'unitDamaged'; unitId: string; amount: number; hpAfter: number }
+  | { type: 'unitLocked'; unitId: string; locked: boolean };
 
 export interface ActionResult {
   state: BattleState;

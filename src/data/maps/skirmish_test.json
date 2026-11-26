@@ -37,7 +37,8 @@
     {"kind": "unit", "id": "hunter_2", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 2, "pos": {"x": 12, "y": 10}, "ai": {"behavior": "charge"}},
     {"kind": "unit", "id": "inquisitor_1", "name": "Inquisitor", "classId": "inquisitor", "team": "enemy", "level": 2, "pos": {"x": 11, "y": 2}, "ai": {"behavior": "guard", "radius": 2}},
     {"kind": "unit", "id": "legionary_2", "name": "Legion Sergeant", "classId": "legionary", "team": "enemy", "level": 3, "pos": {"x": 11, "y": 4}, "ai": {"behavior": "guard", "radius": 1}},
-    {"kind": "unit", "id": "captain", "name": "Hunter-Captain", "classId": "hunter_captain", "team": "enemy", "level": 3, "pos": {"x": 10, "y": 1}, "isBoss": true}
+    {"kind": "unit", "id": "captain", "name": "Hunter-Captain", "classId": "hunter_captain", "team": "enemy", "level": 3, "pos": {"x": 10, "y": 1}, "isBoss": true},
+    {"kind": "unit", "id": "deserter", "name": "Deserter", "classId": "hunter", "team": "enemy", "level": 1, "pos": {"x": 8, "y": 13}, "ai": {"behavior": "guard"}, "tags": ["recruitable"]}
   ],
   "objective": {"type": "rout"},
   "reinforcements": [],

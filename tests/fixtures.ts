@@ -127,6 +127,7 @@ export interface UnitOpts {
   isBoss?: boolean;
   isLord?: boolean;
   name?: string;
+  tags?: string[];
 }
 
 /** A unit placement. Non-player units default to charge AI. */
@@ -137,6 +138,7 @@ export function place(id: string, classId: string, team: Team, x: number, y: num
   if (o.ai && team === 'player') p.ai = o.ai;
   if (o.isBoss !== undefined) p.isBoss = o.isBoss;
   if (o.isLord !== undefined) p.isLord = o.isLord;
+  if (o.tags !== undefined) p.tags = o.tags;
   return p;
 }
 
