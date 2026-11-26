@@ -4,8 +4,9 @@
 Usage:  python3 tools/art/pack.py <raw_dir> [names...]
 
 <raw_dir> holds the raw generated PNGs (see docs/ART_GENERATION.md). With no names every sheet found is
-packed; names limit it to those characters (for example `archer stranger`) or sheet groups (`tokens`).
-Needs numpy, scipy and Pillow. Writes src/art/battle, src/art/portraits, src/art/tokens, merges the entries
+packed; names limit it to those characters (for example `archer stranger`) or sheet groups (`tokens`, `tiles`,
+backdrops).
+Needs numpy, scipy and Pillow. Writes src/art/battle, portraits, tokens, tiles and backdrops, merges the entries
 into src/art/assets.json and writes tools/art/packed.json (a report of what was packed).
 """
 import json
@@ -43,6 +44,12 @@ PORTRAIT = 384                    # square portrait canvas
 PORTRAIT_MARGIN = 8
 TOKEN = 192                       # square token canvas
 TOKEN_MARGIN = 8
+TILE_ORDER = ['plain', 'road', 'forest', 'hill', 'fort', 'village', 'water', 'wall']   # 4x2 grid, reading order
+TILE_SETS = ['village']           # tiles-<set>.png; the first set found supplies tile.<terrainId>
+TILE_SIZE = 96                    # square tile canvas (the map draws it at about 46 CSS px, so 2x on a 2x screen)
+TILE_INSET = 4                    # source px dropped from every edge of a tile rectangle (removes edge fringe)
+BACKDROPS = ['village']           # backdrop-<name>.png
+BACKDROP_SIZE = (1152, 768)
 WEBP_QUALITY = 90
 
 
@@ -281,6 +288,57 @@ def pack_tokens(raw, sheet, ids, report, assets, single=False):
         report[f'token.{tid}'] = {**entry, 'bytes': nbytes}
 
 
+# ---- tiles and backdrops ----------------------------------------------------------------------------------------
+def runs(flag):
+    """[start, end) index runs where the 1-D boolean array is true."""
+    d = np.diff(np.concatenate([[0], flag.astype(np.int8), [0]]))
+    return list(zip(np.nonzero(d == 1)[0].tolist(), np.nonzero(d == -1)[0].tolist()))
+
+
+def pack_tiles(raw, tset, report, assets):
+    """Terrain tiles from tiles-<tset>.png: a 4x2 grid of square tiles on #00ff00 green with green gaps.
+
+    Tile rectangles are the runs of non-green columns and rows. Each is inset TILE_INSET px to drop edge fringe,
+    then resized to TILE_SIZE square and saved as an opaque WebP (the tiles are not keyed).
+    """
+    path = os.path.join(raw, f'tiles-{tset}.png')
+    if not os.path.exists(path):
+        return
+    im = np.asarray(Image.open(path).convert('RGB')).astype(np.float32) / 255
+    solid = (im[..., 1] - np.maximum(im[..., 0], im[..., 2])) < 0.3
+    cols = [r for r in runs(solid.mean(axis=0) > 0.3) if r[1] - r[0] > 40]
+    rows = [r for r in runs(solid.mean(axis=1) > 0.3) if r[1] - r[0] > 40]
+    if len(cols) != 4 or len(rows) != 2:
+        sys.exit(f'tiles-{tset}: expected a 4x2 grid, found {len(cols)}x{len(rows)}')
+    k = 0
+    for (y0, y1) in rows:
+        for (x0, x1) in cols:
+            tid = TILE_ORDER[k]
+            k += 1
+            crop = Image.open(path).convert('RGB').crop((x0 + TILE_INSET, y0 + TILE_INSET, x1 - TILE_INSET, y1 - TILE_INSET))
+            rel = f'tiles/{tid}.webp'
+            out = os.path.join(ART, rel)
+            os.makedirs(os.path.dirname(out), exist_ok=True)
+            crop.resize((TILE_SIZE, TILE_SIZE), Image.LANCZOS).save(out, 'WEBP', quality=WEBP_QUALITY, method=4)
+            entry = {'path': rel, 'width': TILE_SIZE, 'height': TILE_SIZE, 'bbox': [0, 0, TILE_SIZE, TILE_SIZE]}
+            assets[f'tile.{tid}'] = entry
+            report[f'tile.{tid}'] = {**entry, 'bytes': os.path.getsize(out), 'source': [x0, y0, x1 - x0, y1 - y0]}
+
+
+def pack_backdrop(raw, name, report, assets):
+    """A full-screen battle backdrop from backdrop-<name>.png, resized to BACKDROP_SIZE (opaque WebP)."""
+    path = os.path.join(raw, f'backdrop-{name}.png')
+    if not os.path.exists(path):
+        return
+    rel = f'backdrops/{name}.webp'
+    out = os.path.join(ART, rel)
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    Image.open(path).convert('RGB').resize(BACKDROP_SIZE, Image.LANCZOS).save(out, 'WEBP', quality=WEBP_QUALITY, method=4)
+    entry = {'path': rel, 'width': BACKDROP_SIZE[0], 'height': BACKDROP_SIZE[1], 'bbox': [0, 0, *BACKDROP_SIZE]}
+    assets[f'backdrop.{name}'] = entry
+    report[f'backdrop.{name}'] = {**entry, 'bytes': os.path.getsize(out)}
+
+
 # ---- main -------------------------------------------------------------------------------------------------------
 def main():
     if len(sys.argv) < 2:
@@ -315,6 +373,14 @@ def main():
         if want(cid, 'tokens'):
             print(f'token {cid}')
             pack_tokens(raw, cid, [cid], report, assets, single=True)
+    for tset in TILE_SETS:
+        if want(tset, 'tiles'):
+            print(f'tiles {tset}')
+            pack_tiles(raw, tset, report, assets)
+    for name in BACKDROPS:
+        if want(name, 'backdrops'):
+            print(f'backdrop {name}')
+            pack_backdrop(raw, name, report, assets)
     manifest['images'] = {k: assets[k] for k in sorted(assets)}
     with open(assets_path, 'w') as f:
         json.dump(manifest, f, indent=2, sort_keys=True)

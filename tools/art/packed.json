@@ -1,4 +1,16 @@
 {
+ "backdrop.village": {
+  "bbox": [
+   0,
+   0,
+   1152,
+   768
+  ],
+  "bytes": 59188,
+  "height": 768,
+  "path": "backdrops/village.webp",
+  "width": 1152
+ },
  "battle.adept.hit": {
   "anchorX": 192,
   "bbox": [
@@ -1294,6 +1306,150 @@
   "height": 384,
   "path": "portraits/stranger-smile.webp",
   "width": 384
+ },
+ "tile.forest": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 4040,
+  "height": 96,
+  "path": "tiles/forest.webp",
+  "source": [
+   783,
+   175,
+   334,
+   334
+  ],
+  "width": 96
+ },
+ "tile.fort": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 3870,
+  "height": 96,
+  "path": "tiles/fort.webp",
+  "source": [
+   56,
+   551,
+   335,
+   335
+  ],
+  "width": 96
+ },
+ "tile.hill": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 3556,
+  "height": 96,
+  "path": "tiles/hill.webp",
+  "source": [
+   1146,
+   175,
+   334,
+   334
+  ],
+  "width": 96
+ },
+ "tile.plain": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 2500,
+  "height": 96,
+  "path": "tiles/plain.webp",
+  "source": [
+   56,
+   175,
+   335,
+   334
+  ],
+  "width": 96
+ },
+ "tile.road": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 3358,
+  "height": 96,
+  "path": "tiles/road.webp",
+  "source": [
+   420,
+   175,
+   334,
+   334
+  ],
+  "width": 96
+ },
+ "tile.village": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 4710,
+  "height": 96,
+  "path": "tiles/village.webp",
+  "source": [
+   420,
+   551,
+   334,
+   335
+  ],
+  "width": 96
+ },
+ "tile.wall": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 3274,
+  "height": 96,
+  "path": "tiles/wall.webp",
+  "source": [
+   1146,
+   551,
+   334,
+   335
+  ],
+  "width": 96
+ },
+ "tile.water": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 1736,
+  "height": 96,
+  "path": "tiles/water.webp",
+  "source": [
+   783,
+   551,
+   334,
+   335
+  ],
+  "width": 96
  },
  "token.adept": {
   "bbox": [

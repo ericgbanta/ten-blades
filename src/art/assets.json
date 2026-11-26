@@ -1,5 +1,16 @@
 {
   "images": {
+    "backdrop.village": {
+      "bbox": [
+        0,
+        0,
+        1152,
+        768
+      ],
+      "height": 768,
+      "path": "backdrops/village.webp",
+      "width": 1152
+    },
     "battle.adept.hit": {
       "anchorX": 192,
       "bbox": [
@@ -935,6 +946,94 @@
       "height": 384,
       "path": "portraits/stranger-smile.webp",
       "width": 384
+    },
+    "tile.forest": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/forest.webp",
+      "width": 96
+    },
+    "tile.fort": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/fort.webp",
+      "width": 96
+    },
+    "tile.hill": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/hill.webp",
+      "width": 96
+    },
+    "tile.plain": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/plain.webp",
+      "width": 96
+    },
+    "tile.road": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/road.webp",
+      "width": 96
+    },
+    "tile.village": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/village.webp",
+      "width": 96
+    },
+    "tile.wall": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/wall.webp",
+      "width": 96
+    },
+    "tile.water": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/water.webp",
+      "width": 96
     },
     "token.adept": {
       "bbox": [
