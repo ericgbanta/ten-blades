@@ -56,13 +56,20 @@ export function ConfirmDialog(props: { text: string; yes: string; no: string; on
   );
 }
 
-export function EndScreen({ summary, state, onAgain }: { summary: BattleSummary; state: BattleState; onAgain: () => void }) {
+export interface EndButton {
+  label: string;
+  onTap: () => void;
+  primary?: boolean;
+}
+
+export function EndScreen(props: { summary: BattleSummary; state: BattleState; note?: string; buttons: EndButton[] }) {
+  const { summary, state } = props;
   const won = summary.result === 'victory';
   const fallen = summary.fallenPlayerUnitIds.map((id) => state.units.find((u) => u.id === id)?.name ?? id);
   return (
     <div class={`end-screen ${won ? 'won' : 'lost'}`} role="dialog" aria-modal="true" aria-labelledby="end-title">
       <h2 id="end-title">{won ? 'Victory' : 'Defeat'}</h2>
-      <p class="end-sub">{won ? 'The field is yours.' : 'The battle is lost.'}</p>
+      <p class="end-sub">{props.note ?? (won ? 'The field is yours.' : 'The battle is lost.')}</p>
       <dl class="end-stats">
         <div>
           <dt>Turns</dt>
@@ -74,12 +81,11 @@ export function EndScreen({ summary, state, onAgain }: { summary: BattleSummary;
         </div>
       </dl>
       <div class="btn-col">
-        <button type="button" class="btn primary" onClick={onAgain}>
-          Play again
-        </button>
-        <a class="btn" href="#/">
-          Title
-        </a>
+        {props.buttons.map((b) => (
+          <button key={b.label} type="button" class={`btn${b.primary ? ' primary' : ''}`} onClick={b.onTap}>
+            {b.label}
+          </button>
+        ))}
       </div>
     </div>
   );

@@ -1,65 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
-import type { Action, BattleState } from '../src/core';
+import type { Action } from '../src/core';
+import { idle, playByTaps, state, tapTile, trackErrors } from './helpers';
 
-// Fixed seed and setup so runs repeat exactly. `test=1` installs window.__tb.
-const URL = './?test=1&seed=7&style=vanguard&difficulty=normal#/battle';
-
-function trackErrors(page: Page): string[] {
-  const errors: string[] = [];
-  page.on('console', (m) => {
-    if (m.type() === 'error') errors.push(m.text());
-  });
-  page.on('pageerror', (e) => errors.push(e.message));
-  return errors;
-}
-
-async function idle(page: Page): Promise<void> {
-  await page.waitForFunction(() => !!window.__tb && window.__tb.tileToScreen(0, 0) !== null && !window.__tb.isBusy(), null, {
-    timeout: 60_000,
-  });
-}
-
-const state = (page: Page): Promise<BattleState> => page.evaluate(() => window.__tb!.getState());
-
-/** Pan the tile clear of the overlays, then tap its center. */
-async function tapTile(page: Page, x: number, y: number): Promise<void> {
-  const p = await page.evaluate(
-    ([tx, ty]) => {
-      window.__tb!.reveal(tx!, ty!);
-      return window.__tb!.tileToScreen(tx!, ty!);
-    },
-    [x, y],
-  );
-  expect(p).not.toBeNull();
-  await page.touchscreen.tap(p!.x, p!.y);
-  await settle(page);
-}
-
-/** Wait until the map has handled the last tap and any camera pan is over. */
-async function settle(page: Page): Promise<void> {
-  await expect.poll(() => page.evaluate(() => window.__tb!.settled()), { timeout: 5_000 }).toBe(true);
-}
+// A quick battle (`quick=1`, nothing saved) with a fixed seed and setup so runs
+// repeat exactly. `test=1` installs window.__tb.
+const URL = './?test=1&quick=1&seed=7&style=vanguard&difficulty=normal#/battle';
 
 async function start(page: Page): Promise<void> {
   await page.goto(URL);
-  await idle(page);
-}
-
-/** Play one player action by taps: select, move, then Wait or Attack with Confirm. */
-async function playByTaps(page: Page, action: Action): Promise<void> {
-  if (action.type === 'endPhase') return;
-  const s = await state(page);
-  const unit = s.units.find((u) => u.id === action.unitId)!;
-  await tapTile(page, unit.pos.x, unit.pos.y);
-  await tapTile(page, action.to.x, action.to.y);
-  if (action.type === 'wait') {
-    await page.getByRole('button', { name: 'Wait' }).tap();
-  } else {
-    const target = s.units.find((u) => u.id === action.targetId)!;
-    await page.getByRole('button', { name: action.type === 'attack' ? 'Attack' : 'Heal' }).tap();
-    await tapTile(page, target.pos.x, target.pos.y);
-    await page.getByRole('button', { name: 'Confirm' }).tap();
-  }
   await idle(page);
 }
 
@@ -150,7 +98,7 @@ test('plays the prologue to the victory screen by taps', async ({ page }) => {
   const end = page.getByRole('dialog');
   await expect(end).toContainText('Turns');
   await expect(end.getByRole('button', { name: 'Play again' })).toBeVisible();
-  await expect(end.getByRole('link', { name: 'Title' })).toBeVisible();
+  await expect(end.getByRole('button', { name: 'Title' })).toBeVisible();
 
   // Play again starts a fresh battle on the same seed.
   await end.getByRole('button', { name: 'Play again' }).tap();

@@ -20,6 +20,8 @@ export interface TestHook {
   settled(): Promise<boolean>;
   /** The charge AI's choice for a player unit, so a test can script a strategy and play it by taps. */
   suggest(unitId: string): Action;
+  /** Resolves once every queued save write has finished. */
+  saved(): Promise<boolean>;
 }
 
 declare global {
@@ -30,7 +32,12 @@ declare global {
 
 const CHARGE: AiState = { behavior: 'charge', guardTile: null, guardRadius: 0, active: false };
 
-export function installTestHook(c: BattleController, data: GameData, game: () => GameHandle | null): () => void {
+export function installTestHook(
+  c: BattleController,
+  data: GameData,
+  game: () => GameHandle | null,
+  flush: () => Promise<void>,
+): () => void {
   const at = (x: number, y: number): Pos => ({ x, y });
   window.__tb = {
     getState: () => c.view.state,
@@ -44,6 +51,7 @@ export function installTestHook(c: BattleController, data: GameData, game: () =>
     settled: () =>
       new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(game()?.cameraIdle() ?? false)))),
     suggest: (unitId) => planUnitAction(c.view.state, unitId, data, CHARGE),
+    saved: () => flush().then(() => true),
   };
   return () => {
     delete window.__tb;

@@ -1,10 +1,12 @@
-// The new game setup used until the character creator and mode pickers exist
-// (phases 3 and 4). URL overrides make test runs reproducible.
+// Launch options read from the URL. Campaign battles take their setup from the
+// save (src/save/campaign.ts); the quick battle (`quick=1`, for tests and
+// development) uses QUICK_BATTLE with the URL overrides. A `seed` in the URL
+// fixes the seed of every battle, campaign ones included.
 
 import type { BattleSetup, Difficulty, McStyle, Permadeath } from '../core';
 
-/** The hardcoded new game: the one place to change it. */
-export const NEW_GAME: BattleSetup = {
+/** The quick battle's setup, before URL overrides. */
+export const QUICK_BATTLE: BattleSetup = {
   difficulty: 'normal',
   permadeath: 'casual',
   mc: { name: 'Wanderer', style: 'vanguard' },
@@ -18,6 +20,8 @@ export interface LaunchOptions {
   seed: number | null;
   /** True when the URL asks for the test hook (`test=1`). */
   test: boolean;
+  /** True for a quick battle (`quick=1`): no slot, nothing saved. */
+  quick: boolean;
 }
 
 const STYLES: readonly McStyle[] = ['vanguard', 'duelist', 'spiritblade'];
@@ -40,12 +44,13 @@ export function parseLaunch(search: string, hash: string): LaunchOptions {
   const seed = seedText !== null && /^\d+$/.test(seedText) ? Number(seedText) >>> 0 : null;
   return {
     setup: {
-      difficulty: pick(params.get('difficulty'), DIFFICULTIES, NEW_GAME.difficulty),
-      permadeath: pick(params.get('mode'), PERMADEATH, NEW_GAME.permadeath),
-      mc: { name: NEW_GAME.mc.name, style: pick(params.get('style'), STYLES, NEW_GAME.mc.style) },
+      difficulty: pick(params.get('difficulty'), DIFFICULTIES, QUICK_BATTLE.difficulty),
+      permadeath: pick(params.get('mode'), PERMADEATH, QUICK_BATTLE.permadeath),
+      mc: { name: QUICK_BATTLE.mc.name, style: pick(params.get('style'), STYLES, QUICK_BATTLE.mc.style) },
     },
     seed,
     test: params.get('test') === '1',
+    quick: params.get('quick') === '1',
   };
 }
 

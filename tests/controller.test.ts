@@ -4,7 +4,7 @@ import { gameData } from '../src/data';
 import { BattleController } from '../src/battle/controller';
 import type { Overlay } from '../src/battle/selection';
 import type { Stage, Timing } from '../src/battle/stage';
-import { NEW_GAME } from '../src/battle/setup';
+import { QUICK_BATTLE } from '../src/battle/setup';
 import { fixtureData, makeBattle, patchUnit, place, pos } from './fixtures';
 
 class FakeStage implements Stage {
@@ -176,7 +176,7 @@ describe('BattleController', () => {
   });
 
   it('plays the real prologue through two turns on a fixed seed', async () => {
-    const state = createBattle(gameData.maps.prologue!, NEW_GAME, 7, gameData);
+    const state = createBattle(gameData.maps.prologue!, QUICK_BATTLE, 7, gameData);
     const { c } = setup(state, gameData);
     for (let turn = 1; turn <= 2; turn++) {
       c.requestEndTurn();

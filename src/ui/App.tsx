@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'preact/hooks';
 import { Title } from './Title';
 import { Battle } from './Battle';
+import { NewGame } from './menus/NewGame';
+import { LoadGame } from './menus/LoadGame';
+import { Settings } from './menus/Settings';
+import { ChapterComplete } from './menus/ChapterComplete';
 
 function currentRoute(): string {
   // A query after the route (`#/battle?seed=3`) carries test overrides, not a route.
@@ -14,5 +18,18 @@ export function App() {
     window.addEventListener('hashchange', onChange);
     return () => window.removeEventListener('hashchange', onChange);
   }, []);
-  return route === '/battle' ? <Battle /> : <Title />;
+  switch (route) {
+    case '/battle':
+      return <Battle />;
+    case '/new':
+      return <NewGame />;
+    case '/load':
+      return <LoadGame />;
+    case '/settings':
+      return <Settings />;
+    case '/complete':
+      return <ChapterComplete />;
+    default:
+      return <Title />;
+  }
 }

@@ -1,26 +1,122 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'preact/hooks';
-import { createBattle } from '../core';
-import { gameData } from '../data';
-import { BattleController, type BattleView, type Speed } from '../battle/controller';
+import { createBattle, type BattleSetup, type BattleState, type BattleSummary } from '../core';
+import { chapters, gameData } from '../data';
+import { BattleController, type BattleView, type CheckpointExtra, type Speed } from '../battle/controller';
+import { BattleSaver } from '../save/battleSaver';
+import { battleSetup, currentChapter } from '../save/campaign';
+import { loadPrefs, savePrefs } from '../save/prefs';
+import type { SaveStorage } from '../save/storage';
+import { finishRun, takeRun, now, storage, writes, type CampaignRun } from './saves';
 import { FIRST_MAP_ID, battleSeed, parseLaunch, type LaunchOptions } from '../battle/setup';
 import type { Insets } from '../game/camera';
 import type { GameHandle } from '../game/start';
 import { ActionMenu, ForecastPanel, HealPanel, TargetHint } from './battle/ActionPanels';
 import { BottomBar, TopBar } from './battle/Hud';
-import { ConfirmDialog, EndScreen, LevelUp, PhaseBanner } from './battle/Overlays';
+import { ConfirmDialog, EndScreen, LevelUp, PhaseBanner, type EndButton } from './battle/Overlays';
 import { UnitCard } from './battle/UnitCard';
 import { coveredInsets } from './battle/insets';
 import { installTestHook } from './battle/testHook';
 import './battle/battle.css';
 
-/** Kept across Play again within one visit. */
-let lastSpeed: Speed = 'normal';
-
-/** The battle route. "Play again" remounts a fresh run with a new seed (or the URL's). */
+/**
+ * The battle route. A campaign run (set by the title, new game or load screens)
+ * plays its chapter's map and saves as it goes. With `quick=1` in the URL it
+ * plays an unsaved quick battle from the URL overrides. Anything else goes back
+ * to the title (a page reload loses the run; Continue picks it up).
+ */
 export function Battle() {
   const launch = useMemo(() => parseLaunch(window.location.search, window.location.hash), []);
-  const [run, setRun] = useState(0);
-  return <BattleRun key={run} launch={launch} onAgain={() => setRun((r) => r + 1)} />;
+  // Taken once: going back to this route later must not replay a stale run.
+  const run = useMemo(() => takeRun(), []);
+  useEffect(() => {
+    if (!run && !launch.quick) window.location.replace('#/');
+  }, [run, launch]);
+  if (run) return <CampaignBattle run={run} launch={launch} />;
+  if (launch.quick) return <QuickBattle launch={launch} />;
+  return null;
+}
+
+function newBattle(setup: BattleSetup, mapId: string, launch: LaunchOptions): BattleState {
+  const map = gameData.maps[mapId];
+  if (!map) throw new Error(`Missing map ${mapId}`);
+  return createBattle(map, setup, battleSeed(launch, now()), gameData);
+}
+
+function QuickBattle({ launch }: { launch: LaunchOptions }) {
+  const [attempt, setAttempt] = useState(0);
+  const initial = useMemo(() => newBattle(launch.setup, FIRST_MAP_ID, launch), [launch, attempt]);
+  return (
+    <BattleRun
+      key={attempt}
+      initial={initial}
+      launch={launch}
+      quitText="Leave this battle? Quick battles are not saved."
+      endButtons={() => [
+        { label: 'Play again', primary: true, onTap: () => setAttempt((a) => a + 1) },
+        { label: 'Title', onTap: goTitle },
+      ]}
+    />
+  );
+}
+
+const goTitle = () => {
+  window.location.hash = '#/';
+};
+
+function CampaignBattle({ run, launch }: { run: CampaignRun; launch: LaunchOptions }) {
+  const [store, setStore] = useState<SaveStorage | null>(null);
+  useEffect(() => {
+    void storage().then(setStore);
+  }, []);
+  return store ? <CampaignAttempts run={run} launch={launch} store={store} /> : null;
+}
+
+/** One campaign map. Retry starts a fresh attempt from the campaign save with a new seed. */
+function CampaignAttempts({ run, launch, store }: { run: CampaignRun; launch: LaunchOptions; store: SaveStorage }) {
+  const [attempt, setAttempt] = useState(0);
+  const chapter = currentChapter(run.campaign, chapters);
+  const mapId = run.resume?.mapId ?? chapter?.mapId ?? FIRST_MAP_ID;
+  const { initial, saver } = useMemo(() => {
+    const resume = attempt === 0 ? run.resume : null;
+    const state = resume ? resume.battle : newBattle(battleSetup(run.campaign), mapId, launch);
+    return {
+      initial: state,
+      saver: new BattleSaver({ store, queue: writes, slot: run.slot, campaign: run.campaign, chapters, now }),
+    };
+  }, [run, attempt, mapId, launch, store]);
+  const mc = run.campaign.mc.name;
+  return (
+    <BattleRun
+      key={attempt}
+      initial={initial}
+      launch={launch}
+      showDanger={attempt === 0 ? (run.resume?.controller.showDanger ?? false) : false}
+      onCheckpoint={(state, extra) => saver.checkpoint(state, extra)}
+      quitText="Leave this battle? It stays suspended: pick it up with Continue on the title screen."
+      endNote={(summary, state) => {
+        if (summary.result === 'victory') return undefined;
+        const lord = state.units.find((u) => u.isLord && u.team === 'player');
+        return lord && !lord.alive ? `${mc} has fallen. The tale ends here.` : undefined;
+      }}
+      endButtons={(summary) =>
+        summary.result === 'victory'
+          ? [
+              {
+                label: 'Continue',
+                primary: true,
+                onTap: () => {
+                  finishRun(run.slot, saver.completed ?? run.campaign, chapter?.name ?? 'Chapter');
+                  window.location.hash = '#/complete';
+                },
+              },
+            ]
+          : [
+              { label: 'Retry', primary: true, onTap: () => setAttempt((a) => a + 1) },
+              { label: 'Title', onTap: goTitle },
+            ]
+      }
+    />
+  );
 }
 
 function useView(c: BattleController): BattleView {
@@ -33,13 +129,28 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-function BattleRun({ launch, onAgain }: { launch: LaunchOptions; onAgain: () => void }) {
-  const controller = useMemo(() => {
-    const map = gameData.maps[FIRST_MAP_ID];
-    if (!map) throw new Error(`Missing map ${FIRST_MAP_ID}`);
-    const state = createBattle(map, launch.setup, battleSeed(launch, Date.now()), gameData);
-    return new BattleController(state, gameData, { reducedMotion: prefersReducedMotion(), speed: lastSpeed });
-  }, [launch]);
+interface BattleRunProps {
+  initial: BattleState;
+  launch: LaunchOptions;
+  showDanger?: boolean;
+  onCheckpoint?: (state: BattleState, extra: CheckpointExtra) => void;
+  quitText: string;
+  endNote?: (summary: BattleSummary, state: BattleState) => string | undefined;
+  endButtons: (summary: BattleSummary) => EndButton[];
+}
+
+function BattleRun({ initial, launch, showDanger, onCheckpoint, quitText, endNote, endButtons }: BattleRunProps) {
+  const controller = useMemo(
+    () =>
+      new BattleController(initial, gameData, {
+        reducedMotion: prefersReducedMotion(),
+        speed: loadPrefs().speed,
+        showDanger,
+        onCheckpoint,
+      }),
+    // A run is one controller for its whole life; the other props are read once.
+    [initial],
+  );
   const view = useView(controller);
   const root = useRef<HTMLDivElement>(null);
   const host = useRef<HTMLDivElement>(null);
@@ -52,7 +163,7 @@ function BattleRun({ launch, onAgain }: { launch: LaunchOptions; onAgain: () => 
   // Mount Phaser (loaded lazily so the title stays light) and the test hook.
   useEffect(() => {
     let cancelled = false;
-    const removeHook = launch.test ? installTestHook(controller, gameData, () => game.current) : null;
+    const removeHook = launch.test ? installTestHook(controller, gameData, () => game.current, () => writes.idle()) : null;
     void import('../game/start').then(({ startGame }) => {
       if (cancelled || !host.current) return;
       game.current = startGame(host.current, controller.view.state, gameData, controller);
@@ -92,7 +203,7 @@ function BattleRun({ launch, onAgain }: { launch: LaunchOptions; onAgain: () => 
   }, []);
 
   const setSpeed = (s: Speed) => {
-    lastSpeed = s;
+    savePrefs({ ...loadPrefs(), speed: s });
     controller.setSpeed(s);
   };
 
@@ -119,7 +230,7 @@ function BattleRun({ launch, onAgain }: { launch: LaunchOptions; onAgain: () => 
       )}
       {quitting && (
         <ConfirmDialog
-          text="Leave this battle? It will not be saved."
+          text={quitText}
           yes="Leave"
           no="Stay"
           onYes={() => {
@@ -128,7 +239,7 @@ function BattleRun({ launch, onAgain }: { launch: LaunchOptions; onAgain: () => 
           onNo={() => setQuitting(false)}
         />
       )}
-      {ended && <EndScreen summary={ended} state={state} onAgain={onAgain} />}
+      {ended && <EndScreen summary={ended} state={state} note={endNote?.(ended, state)} buttons={endButtons(ended)} />}
     </div>
   );
 }
