@@ -9,7 +9,7 @@
 // - protect N: as survive, while the protected unit lives.
 
 import { livingUnits, samePos } from './grid';
-import type { BattleResult, BattleState } from './types';
+import type { BattleResult, BattleState, Objective, PartyUnit } from './types';
 
 /** Outcome right now, ignoring turn-count objectives (see `turnLimitReached`). */
 export function checkOutcome(state: BattleState): BattleResult {
@@ -42,6 +42,57 @@ export function checkOutcome(state: BattleState): BattleResult {
 export function turnLimitReached(state: BattleState, turn: number): boolean {
   const obj = state.objective;
   return (obj.type === 'survive' || obj.type === 'protect') && turn >= obj.turns;
+}
+
+export interface ObjectiveStatus {
+  type: Objective['type'];
+  /** The last turn for survive and protect (winning when its enemy phase ends), else null. */
+  turnLimit: number | null;
+  /** Turns still to play, the current one included (0 once the limit has passed), or null without a limit. */
+  turnsLeft: number | null;
+}
+
+/** The objective with its turn count worked out, for the HUD. */
+export function objectiveStatus(state: BattleState): ObjectiveStatus {
+  const obj = state.objective;
+  const turnLimit = obj.type === 'survive' || obj.type === 'protect' ? obj.turns : null;
+  return {
+    type: obj.type,
+    turnLimit,
+    turnsLeft: turnLimit === null ? null : Math.max(0, turnLimit - state.turn + 1),
+  };
+}
+
+export interface PartyAfterBattle {
+  /** Living player units, in unit order. */
+  survivors: PartyUnit[];
+  /** Fallen player units, in unit order. Whether they are gone for good is up to permadeath (see battleSummary). */
+  fallen: PartyUnit[];
+}
+
+/**
+ * Every player-team unit as a PartyUnit with its level, xp and max stats as they
+ * stand now, so the campaign can carry units to the next map. Guests placed on the
+ * player team by the map (such as the Stranger) are included; ally-team units are
+ * not. Current HP is not kept, since units start each map at full HP.
+ */
+export function partyAfterBattle(state: BattleState): PartyAfterBattle {
+  const out: PartyAfterBattle = { survivors: [], fallen: [] };
+  for (const u of state.units) {
+    if (u.team !== 'player') continue;
+    const m: PartyUnit = {
+      id: u.id,
+      name: u.name,
+      classId: u.classId,
+      level: u.level,
+      xp: u.xp,
+      stats: { ...u.stats },
+      weaponId: u.weaponId,
+      isLord: u.isLord,
+    };
+    (u.alive ? out.survivors : out.fallen).push(m);
+  }
+  return out;
 }
 
 /** Ids of player units that fell, in unit order. */

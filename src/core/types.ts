@@ -1,6 +1,9 @@
 // Shared types for the rules engine: game data (loaded from JSON), battle state,
 // actions and events. Everything in BattleState is plain JSON: no classes, Maps,
-// Sets, functions, undefined values or optional fields.
+// Sets, functions or undefined values. Its own fields are never optional. The one
+// place optional keys appear is `reinforcements`, which holds the map's wave
+// placements as written (UnitPlacement and AiSpec keys such as `weaponId`, `ai`,
+// `isBoss`, `tile` may be absent, never undefined); they become full Units on arrival.
 
 import type { RngState } from './rng';
 
@@ -292,7 +295,7 @@ export interface BattleState {
   phase: Team;
   rng: RngState;
   objective: Objective;
-  /** Waves not yet arrived, already filtered by difficulty. */
+  /** Waves not yet arrived, already filtered by difficulty. Placements are as in the map (optional keys may be absent). */
   reinforcements: ReinforcementWave[];
   options: { difficulty: Difficulty; permadeath: Permadeath };
   result: BattleResult;

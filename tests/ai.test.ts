@@ -39,16 +39,34 @@ describe('charge', () => {
     expect(planAiAction(s, data)).toEqual({ type: 'attack', unitId: 'e', to: pos(2, 0), targetId: 'p' });
   });
 
-  it('is deterministic', () => {
+  it('plans a fixed, pinned phase for a fixed state and seed', () => {
     const s = toEnemy(makeBattle(['......', '......', '......'], [
       place('p1', 'fighter', 'player', 0, 0, { isLord: true }),
       place('p2', 'rogue', 'player', 0, 2),
       place('e1', 'fighter', 'enemy', 5, 1),
       place('e2', 'mage', 'enemy', 5, 2),
-    ]));
-    const a = runAiPhase(s, data);
-    const b = runAiPhase(structuredClone(s), data);
-    expect(b).toEqual(a);
+    ], { seed: 1 }));
+    // e1 cannot reach anyone: it walks to the first tile one step short of a foe.
+    expect(planAiAction(s, data)).toEqual({ type: 'wait', unitId: 'e1', to: pos(2, 0) });
+    const s2 = applyAction(s, planAiAction(s, data)!, data).state;
+    // e2 (tome, range 1-2) hits the rogue from two tiles away, where the dagger cannot answer.
+    expect(planAiAction(s2, data)).toEqual({ type: 'attack', unitId: 'e2', to: pos(2, 2), targetId: 'p2' });
+    const r = runAiPhase(s, data);
+    expect(r.events.map((e) => e.type)).toEqual([
+      'unitMoved',
+      'unitActed',
+      'unitMoved',
+      'combatStarted',
+      'strike',
+      'combatEnded',
+      'xpGained',
+      'unitActed',
+      'turnStarted',
+      'phaseChanged',
+    ]);
+    expect(r.events).toContainEqual({ type: 'strike', attackerId: 'e2', defenderId: 'p2', hit: false, crit: false, damage: 0, hpAfter: 18 });
+    // A copy plays out identically.
+    expect(runAiPhase(structuredClone(s), data)).toEqual(r);
   });
 });
 

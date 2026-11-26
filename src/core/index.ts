@@ -33,7 +33,18 @@ export {
 } from './pathfinding';
 export { forecast, triangleEdge, resolveCombat, type CombatResolution, type StrikeResult } from './combat';
 export { combatXp, rollLevelUp, averageStats } from './leveling';
-export { checkOutcome, battleSummary, fallenPlayerUnitIds, type BattleSummary } from './objectives';
-export { createBattle, applyAction, validateAction, newMc, ActionError } from './battle';
+export {
+  checkOutcome,
+  battleSummary,
+  fallenPlayerUnitIds,
+  turnLimitReached,
+  objectiveStatus,
+  partyAfterBattle,
+  type BattleSummary,
+  type ObjectiveStatus,
+  type PartyAfterBattle,
+} from './objectives';
+export { ActionError } from './errors';
+export { createBattle, applyAction, validateAction, newMc } from './battle';
 export { planAiAction, planUnitAction, runAiPhase } from './ai';
 export { validateGameData } from './validate';
