@@ -1,0 +1,9 @@
+Use your built-in image generation tool to create ONE image and save it to ./out/icons-stats.png . Do not draw it with code, SVG or scripts. Landscape, 1536 x 1024.
+
+The attached image is the STYLE reference: match its inked black linework and flat two-tone shading. It is not the subject.
+
+SUBJECT: twelve UI icons in a grid of 4 columns and 3 rows with wide gaps. Each icon is a single bold emblem that fills its cell, drawn in bone-white and pale steel with black ink outlines and one flat grey shadow tone, readable at 24 pixels, all the same size and visual weight, no frames, no circles behind them, no text or letters. Row 1: a heart split by a crack (hit points); a clenched gauntlet fist (strength); an open eye inside a flame (magic); a hand holding a thin needle (skill). Row 2: a winged boot (speed); a four-leaf sprig with a coin (luck); a kite shield (defense); a warding rune stone (resistance). Row 3: two footprints (movement); a heavy hammer-like broad blade pointing down, with one small rust-orange accent (the Heavy school); a thin curved blade with motion lines, with one small teal accent (the Swift school); a blade wreathed in a ring of sparks, with one small violet accent (the Arcane school).
+
+BACKGROUND: perfectly flat pure green #00ff00, no green in the icons.
+
+STYLE (shared by every image in this set; match the first attached image closely): dark fantasy graphic novel. Confident hand-inked black linework of varying weight, flat cel shading with exactly two tones per color (a base and one hard-edged shadow shape), heavy solid black shadow areas, a muted desaturated palette of charcoal, bone, rust and steel blue with at most one small saturated accent color per character. No gradients, no soft airbrushing, no painted texture. Grim, grounded, serious tone. Entirely original designs; do not imitate any existing game, anime or artist.
