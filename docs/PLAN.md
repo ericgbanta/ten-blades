@@ -93,7 +93,8 @@ DracoQuest's redesign took 61 generations in a day and needed one top-up. Nothin
 | 3 Saves and modes | Done (see `docs/SAVES.md`) |
 | 3.5 Map and UI pass | Done (see `docs/MAPS.md` and `docs/UI_NOTES.md`). Known leftovers: the top row can sit under the header while the unit card is open, thin weapon icons are faint at small sizes, and the forecast panel is 28 px taller than before. |
 | 4 Story layer | Done (see `docs/STORY.md`). The character creator (MC art layers, recolor and compositing, the look in save version 2), scripted map events with talk to recruit and story flags, the dialogue player, the chapter flow from `chapters.json` (save version 3), the prologue's story as a first draft, and draft intros for chapters 1 to 3. Known leftovers: the chapter 1 to 3 backdrops do not exist yet (plain fallback), and a battle suspended before version 3 plays on without the events that would already have fired. |
-| 5 to 9 | Not started |
+| 5 Battle scenes and powers | Done (see `docs/UI_NOTES.md`, Battle scenes, and `docs/CORE_API.md`, Powers). Side-view scenes from the four poses with code-drawn effects, Full, Fast or Off and tap to skip; the Resolve gauge, Echo, Devour and Scatter with the cut-in, aiming and forecasts (save version 4, battle state version 3); four backdrops packed. To confirm with Eric: Echo's fallback when there is nothing to echo, and the power numbers. Known leftovers: Scatter's three targets overlap in portrait, and a new pair's first scene can drop one frame on a slow phone. |
+| 6 to 9 | Not started |
 
 ## Questions for Eric
 

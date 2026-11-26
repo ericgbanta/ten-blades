@@ -27,7 +27,7 @@ One JSON object per slot.
 
 | Field | Meaning |
 | --- | --- |
-| `version` | The save version, 3 now. |
+| `version` | The save version, 4 now. |
 | `kind` | Always `campaign`. |
 | `createdAt`, `updatedAt` | Epoch milliseconds, passed in by the UI. `updatedAt` is the "last played" time on the load screen. It changes when the campaign is written: at new game and after each won chapter. |
 | `settings` | `difficulty` (`normal`, `hard`, `lunatic`) and `permadeath` (`classic`, `casual`), chosen at new game and fixed after. |
@@ -38,6 +38,7 @@ One JSON object per slot.
 | `progress` | `current`: the chapter being played, or null once the story so far is finished. `completed`: chapter ids finished (outro played), in order. `stage`: `intro`, `battle` or `outro` (version 3). `scenes`: the scenes of this stage still to play, the first being the one in progress, or null until the stage begins and the chapter data picks them (version 3). |
 | `flags` | Story flags: a record of string keys to `true`/`false`, numbers or text. Set by scene choices and by map events (a won battle hands its flags back). An unset flag reads as false. |
 | `gold`, `shards` | Counters, 0 for now. |
+| `blades` | The legendary blades the party has held, by blade id (`src/data/blades.json`), each `{ tier }`: 1 (Dormant) for now; phase 6 adds awakening. A blade goes on record when a party member holds it after a chapter's after rules (`withBlades` in `campaign.ts`, called by the flow), and keeps its tier. Version 4. |
 
 ## Suspend save
 
@@ -59,7 +60,7 @@ There is one suspend slot. It holds the battle in progress, written whenever the
 
 - The shape: every field present, no unknown fields, the right types, whole numbers in range.
 - Ids against game data: classes, weapons, maps, terrain and chapter ids, every field of `mc.look` against `src/data/looks.json` (`lookProblem` in `src/art/mc/look.ts`), fired event ids against the map's events, recruits against the battle's units, and scene ids against the dialogue scenes when the context lists them (`SaveContext.sceneIds`; the app always passes them).
-- Invariants: unit ids unique, at most one lord and none among the fallen, the current chapter not already completed, a living unit with HP from 1 to its max and a fallen one at 0, positions on the map, enemy and ally units with an AI, the battle's map size matching the map data.
+- Invariants: unit ids unique, at most one lord and none among the fallen, the current chapter not already completed, a living unit with HP from 1 to its max and a fallen one at 0, positions on the map, enemy and ally units with an AI, the battle's map size matching the map data, blade ids and tiers against `blades.json`, a gauge from 0 to `balance.resolve.max`, and power log entries naming known powers, units and tiles.
 
 `readCampaign` and `readSuspend` run `migrate` first and wrap any error in a plain sentence for the player. Storage also validates every save before writing it, so a bad object never reaches the disk.
 
@@ -80,8 +81,9 @@ Steps so far:
 | --- | --- | --- |
 | 1 | 2 | `mc.look` added. Version 1 saves predate the creator, so they get the default look from `looks.json`. A suspend save gets it in its nested `campaign`; the battle state is untouched. |
 | 2 | 3 | The story layer. `progress` gets `stage` and `scenes`: a campaign that had finished the story so far (current null) goes back to the outro of the last chapter it won, so the outro plays and its party changes apply (the Stranger leaves, the MC gets the Widow's Hush); any other campaign starts its chapter at the intro; scenes are null, picked when the stage begins. A suspend save's campaign is in its battle (`stage` battle, no scenes) and its controller owes no scenes. The battle state goes to version 2: `started` true, no flags, fired events or recruits, every unit with no tags and not left. A battle suspended before the update therefore plays on without the events that would have fired before its turn. |
+| 3 | 4 | Blade powers. The campaign gets `blades`: every blade a party member holds, at tier 1. A suspended battle state goes to version 3: `powerLog` empty, every unit `devourStacks` 0 and `resolve` at `balance.resolve.start` when it holds a blade, else 0. The step reads the shipped `weapons.json` and `balance.json` for that. |
 
-`tests/save-migrate.test.ts` loads `tests/fixtures/save-v1.json`, `suspend-v1.json`, `save-v2.json` and `suspend-v2.json` through `readCampaign` and `readSuspend` and checks each step's changes, loads `tests/fixtures/save-v3.json` as it is, checks that no step changes its input, and runs a pretend chain to prove the pipeline. `tests/save-code.test.ts` also imports a save code made from a version 1 save.
+`tests/save-migrate.test.ts` loads `tests/fixtures/save-v1.json`, `suspend-v1.json`, `save-v2.json` and `suspend-v2.json` through `readCampaign` and `readSuspend` and checks each step's changes, loads `save-v3.json` and `suspend-v3.json` and checks step 3 (blades on record, gauges and an empty power log), loads `tests/fixtures/save-v4.json` as it is, checks that no step changes its input, and runs a pretend chain to prove the pipeline. `tests/save-code.test.ts` also imports a save code made from a version 1 save.
 
 ## Storage
 
@@ -138,4 +140,4 @@ In Settings, Export picks a slot and shows the code with a Copy button; Import t
 
 ## Preferences
 
-The default animation speed lives in `localStorage` under `ten-blades.prefs`, read and written through `prefs.ts`, which ignores any storage error. The speed button in battle also updates it.
+The default animation speed and the battle scene setting (`sceneMode`: `full`, `fast` or `off`, null until chosen) live in `localStorage` under `ten-blades.prefs`, read and written through `prefs.ts`, which ignores any storage error. The Speed and Scenes buttons in battle and Settings update them. `sceneModeOf` gives Off under `prefers-reduced-motion` while the player has not chosen.

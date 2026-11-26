@@ -107,7 +107,7 @@ Units the plot needs elsewhere leave through `after.leave`. Recruits from talkin
 
 Flags: `stranger_fell` (true if she fell in battle), `prologue_promise` (true if the MC promised to carry the blade north, false if they said nothing). After the outro the Stranger leaves the party and the MC's weapon becomes `widows_hush_<style>`.
 
-Chapters 1 to 3 have draft intros (`ch1_intro`, `ch2_intro`, `ch3_intro`) and no maps yet. Their backdrops (`forest`, `camp`, `city`) do not exist yet and fall back to the plain backdrop.
+Chapters 1 to 3 have draft intros (`ch1_intro`, `ch2_intro`, `ch3_intro`) and no maps yet. Their backdrops are `forest`, `camp` and `town` (packed in phase 5).
 
 The skirmish test map has one event: the MC can talk to the deserter, who plays `skirmish_recruit`, joins, and sets `skirmish_deserter_joined`.
 

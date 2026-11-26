@@ -58,7 +58,7 @@ The raw sheets expected, by name:
 | `tiles-village2.png` | 4x2 variant tiles: plain (bare earth), plain (flowers), forest (pines and log), forest (pines and dead tree), hill (ridge), water (reeds), village (cottage with woodpile), village (barn). |
 | `tiles-connect.png` | 4x2 flat connector tiles seen from straight above: road straight (east to west), road crossroads, wall straight, wall junction with pillar, shore edge (bank along the top), shore corner (bank in the top left), wooden bridge (east to west), ford. |
 | `props-village.png` | 4x3 cut-out props with a small contact shadow: fence, cart, barrels, rubble; banner, well, haystack, dead tree; campfire, signpost, gravestones, wheel. |
-| `backdrop-<name>.png` | One full-screen battle backdrop. Name so far: `village`. |
+| `backdrop-<name>.png` | One full-screen battle backdrop. Names so far: `village`, `forest`, `ruin`, `town`, `camp` (`BACKDROPS` in `pack.py`). |
 
 How it works. Keying: the amount by which green exceeds red and blue says how much of a pixel is background, edge pixels are unmixed from the green (so no fringe or halo, and the anti-aliased edge stays), and enclosed pockets that reach strong green anywhere are keyed too (between an arm and the body, hair gaps). A pale yellow-green glow never reaches that level, so lantern light survives. Splitting: each connected piece goes to the grid cell that holds most of it, so a long weapon, a flying arrow or a smoke wisp stays with its character; specks under 40 px are dropped and reported. Specks and straddling pieces are printed as the script runs.
 
@@ -163,5 +163,8 @@ Manifest ids: `mc.<body>.bust`, `mc.<body>.face.<eyes>.<expr>`, `mc.<body>.scar.
 | Props 1 (`props-village`) | 1 | Twelve props. Usable first try. |
 | UI kit 1 | 1 | `ui-kit.png`: panel frame, dark and crimson button plates, ribbon, medallion ring, divider. All used; the frame was rebuilt for 9-slice (see UI kit and icons below). |
 | Icon sheets (stats and schools, items) | 2 | `icons-stats.png` and `icons-items.png`, twelve icons each. All usable first try. |
+| Backdrops and the stone tileset (`backdrop-forest`, `backdrop-ruin`, `backdrop-town`, `backdrop-camp`, `tiles-stone`) | 5 | All usable first try. The four backdrops are packed as `backdrop.forest`, `backdrop.ruin`, `backdrop.town` and `backdrop.camp` (about 280 KB); maps name theirs with the `backdrop` field and dialogue scenes by id. `tiles-stone.png` is not packed yet: phase 7 packs it with the chapter maps. |
 
-Not made yet: other tilesets and backdrops.
+The battle scenes draw each backdrop scaled to cover the scene's band with its row at 86 percent of the height on the fighters' ground line (`BACKDROP_GROUND` in `src/game/fightLayout.ts`), which lands their feet on the dirt or flagstones of all five.
+
+Not made yet: other tilesets.
