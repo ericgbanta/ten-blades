@@ -62,8 +62,10 @@ export async function settle(page: Page): Promise<void> {
   await expect.poll(() => page.evaluate(() => window.__tb!.settled()), { timeout: 5_000 }).toBe(true);
 }
 
-/** Pan the tile clear of the overlays, then tap its center. */
+/** Pan the tile clear of the overlays, then tap its center. The camera settles first: a panel that just changed
+ * size (the dock going from the menu to an aiming hint) can still move the view. */
 export async function tapTile(page: Page, x: number, y: number): Promise<void> {
+  await settle(page);
   const p = await page.evaluate(
     ([tx, ty]) => {
       window.__tb!.reveal(tx!, ty!);

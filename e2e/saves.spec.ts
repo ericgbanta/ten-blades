@@ -145,30 +145,34 @@ test('winning the prologue plays the outro with its choice, then saves the flag 
   await expect(page.getByRole('dialog', { name: 'Scene' })).toHaveAttribute('data-scene', 'prologue_binding');
   expect(await readScene(page)).toContain('There you are.');
 
-  await expect(page.getByRole('heading', { name: 'Chapter complete' })).toBeVisible();
-  await expect(page.getByText('To be continued')).toBeVisible();
-  const party = page.getByRole('list', { name: 'Your party' });
-  await expect(party).toContainText('Ash');
-  await expect(party).toContainText("Widow's Hush");
-  await expect(party).not.toContainText('Stranger');
-  await expect.poll(async () => (await page.evaluate(readSlot, 1)).progress).toMatchObject({ current: 'chapter1' });
+  // The army makes camp before chapter 1 (chapters.json campAfter), and the camp is saved on arrival.
+  await expect(page).toHaveURL(/#\/camp$/);
+  await expect(page.getByRole('heading', { name: 'Camp' })).toBeVisible();
+  await expect(page.getByText('Next: Chapter 1')).toBeVisible();
+  await expect.poll(async () => (await page.evaluate(readSlot, 1)).progress).toMatchObject({ current: 'chapter1', stage: 'camp' });
   const slot = await page.evaluate(readSlot, 1);
   expect(slot.flags).toMatchObject({ prologue_promise: true });
   expect(slot.party.map((u) => [u.id, u.weaponId])).toEqual([['mc', 'widows_hush_vanguard']]);
-  expect(slot.progress).toEqual({ current: 'chapter1', completed: ['prologue'], stage: 'intro', scenes: null });
-  await page.getByRole('link', { name: 'Title' }).tap();
+  expect(slot.progress).toEqual({ current: 'chapter1', completed: ['prologue'], stage: 'camp', scenes: null });
+  // The prologue paid out (gold at least, shards for the map).
+  expect(slot.gold).toBeGreaterThanOrEqual(500);
+  expect(slot.shards).toBeGreaterThanOrEqual(1);
+  await page.getByRole('button', { name: 'Title', exact: true }).tap();
+  await page.getByRole('dialog').getByRole('button', { name: 'Title' }).tap();
 
-  // The suspend save is gone and the slot has moved on to chapter 1, which has no map yet.
-  await expect(page.getByRole('link', { name: 'New game' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Continue/ })).toHaveCount(0);
+  // The suspend save is gone; Continue and Load game both land in camp.
+  await expect(page.getByRole('button', { name: /Continue/ })).toContainText('Ash · Chapter 1 · Camp');
   await page.getByRole('link', { name: 'Load game' }).tap();
   await page.getByRole('button', { name: /^Slot 1: Ash/ }).tap();
-  await expect(page.getByRole('dialog')).toContainText('finished the story so far');
+  await expect(page).toHaveURL(/#\/camp$/);
+  await expect(page.getByRole('heading', { name: 'Camp' })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
 interface SlotSave {
   version: number;
+  gold: number;
+  shards: number;
   flags: Record<string, unknown>;
   party: { id: string; weaponId: string | null }[];
   progress: unknown;

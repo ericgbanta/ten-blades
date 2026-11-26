@@ -10,7 +10,7 @@
  "tilewidth": 96,
  "tileheight": 96,
  "nextlayerid": 4,
- "nextobjectid": 18,
+ "nextobjectid": 17,
  "properties": [
   {
    "name": "id",
@@ -262,7 +262,7 @@
       {
        "name": "level",
        "type": "int",
-       "value": 2
+       "value": 3
       }
      ]
     },
@@ -296,7 +296,7 @@
       {
        "name": "level",
        "type": "int",
-       "value": 2
+       "value": 3
       }
      ]
     },
@@ -380,8 +380,8 @@
     },
     {
      "id": 9,
-     "x": 720,
-     "y": 336,
+     "x": 816,
+     "y": 240,
      "width": 0,
      "height": 0,
      "rotation": 0,
@@ -413,7 +413,12 @@
       {
        "name": "ai",
        "type": "string",
-       "value": "hold"
+       "value": "guard"
+      },
+      {
+       "name": "radius",
+       "type": "int",
+       "value": 2
       }
      ]
     },
@@ -458,45 +463,6 @@
     },
     {
      "id": 11,
-     "x": 1008,
-     "y": 528,
-     "width": 0,
-     "height": 0,
-     "rotation": 0,
-     "visible": true,
-     "point": true,
-     "name": "Deserter",
-     "type": "unit",
-     "properties": [
-      {
-       "name": "id",
-       "type": "string",
-       "value": "deserter_5"
-      },
-      {
-       "name": "classId",
-       "type": "string",
-       "value": "hunter"
-      },
-      {
-       "name": "team",
-       "type": "string",
-       "value": "enemy"
-      },
-      {
-       "name": "level",
-       "type": "int",
-       "value": 1
-      },
-      {
-       "name": "ai",
-       "type": "string",
-       "value": "charge"
-      }
-     ]
-    },
-    {
-     "id": 12,
      "x": 912,
      "y": 144,
      "width": 0,
@@ -557,7 +523,7 @@
    "draworder": "topdown",
    "objects": [
     {
-     "id": 13,
+     "id": 12,
      "name": "campfire",
      "type": "campfire",
      "x": 816,
@@ -569,7 +535,7 @@
      "point": true
     },
     {
-     "id": 14,
+     "id": 13,
      "name": "banner",
      "type": "banner",
      "x": 1008,
@@ -581,7 +547,7 @@
      "point": true
     },
     {
-     "id": 15,
+     "id": 14,
      "name": "dead_tree",
      "type": "dead_tree",
      "x": 528,
@@ -593,7 +559,7 @@
      "point": true
     },
     {
-     "id": 16,
+     "id": 15,
      "name": "graves",
      "type": "graves",
      "x": 624,
@@ -605,7 +571,7 @@
      "point": true
     },
     {
-     "id": 17,
+     "id": 16,
      "name": "signpost",
      "type": "signpost",
      "x": 48,

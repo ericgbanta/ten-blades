@@ -19,7 +19,7 @@
         ],
         "drops": [{"unitId": "deserter_6", "item": "healing_salve"}]
       },
-      "scaling": {"baseLevel": 1, "offset": 0, "min": 1, "max": 20},
+      "scaling": {"baseLevel": 1, "offset": -1, "min": 1, "max": 20},
       "deploy": {"max": 4},
       "lore": "skirmish_ridge_lore"
     }
