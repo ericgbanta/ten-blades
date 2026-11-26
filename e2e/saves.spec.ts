@@ -136,7 +136,7 @@ test('winning the prologue plays the outro with its choice, then saves the flag 
   // The outro: read to the choice, promise, then read on through the binding.
   await expect(page).toHaveURL(/#\/story$/);
   const before = await readScene(page);
-  expect(before[0]).toContain('The last hunter runs for the trees');
+  expect(before[0]).toContain('The last of the hunters falls');
   await expect(page.locator('.dlg-choice')).toHaveCount(2);
   for (const b of await page.locator('.dlg-choice').all()) expect((await b.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   await page.getByRole('button', { name: /carry it north/ }).tap();

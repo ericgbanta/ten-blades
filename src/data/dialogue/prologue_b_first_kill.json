@@ -2,7 +2,7 @@
   "id": "prologue_b_first_kill",
   "battle": true,
   "lines": [
-    { "speaker": "narrator", "text": "The hunter drops without a sound. The Stranger's sword hums, low, like a held breath." },
+    { "speaker": "narrator", "text": "Her foe falls without a sound. The Stranger's sword hums, low, like a held breath." },
     { "speaker": "mc", "text": "Your sword. Did it just..." },
     { "speaker": "stranger", "expr": "angry", "text": "Eyes on the field. Not on my sword." }
   ]

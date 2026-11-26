@@ -3,7 +3,7 @@
   "backdrop": "village",
   "lines": [
     { "fx": "fadeIn" },
-    { "speaker": "narrator", "text": "The last hunter runs for the trees and does not come back. Smoke drifts over {village}." },
+    { "speaker": "narrator", "text": "The last of the hunters falls. Smoke drifts over {village}, and no door opens." },
     { "enter": "stranger", "side": "right", "expr": "hurt" },
     { "speaker": "mc", "side": "left", "expr": "hurt", "text": "It's over. Let me see the wound." },
     { "speaker": "stranger", "expr": "hurt", "text": "Leave it. It was over before I reached your gate." },

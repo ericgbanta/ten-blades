@@ -3,7 +3,7 @@
   "backdrop": "village",
   "lines": [
     { "fx": "fadeIn" },
-    { "speaker": "narrator", "text": "The last hunter runs for the trees. By the time {mc} reaches the Stranger, she is cold." },
+    { "speaker": "narrator", "text": "The last of the hunters falls. By the time {mc} reaches the Stranger, she is cold." },
     { "speaker": "mc", "side": "left", "expr": "hurt", "text": "I never even learned your name." },
     { "speaker": "narrator", "text": "Her hand is still closed around the hilt, as if she meant to fight on." },
     {
