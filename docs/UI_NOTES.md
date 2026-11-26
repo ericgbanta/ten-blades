@@ -20,6 +20,8 @@ How the battle screen is put together (phase 2). The rules live in `src/core`; e
 | `src/ui/mc/McPicture.tsx` | Canvas elements that show a composed MC portrait, face crop, token or pose. |
 | `src/ui/DevMc.tsx` | The hidden MC art check page, `#/dev/mc`. |
 | `src/ui/battle/*` | Preact overlays: top bar, bottom bar, unit card, action menu, forecast, heal preview, phase banner, level-up, dialogs, end screen, and the test hook. |
+| `src/ui/tokens.css`, `src/ui/kit.css`, `src/ui/styles.css` | The design tokens and fonts, the shared kit (plates, frames, ribbon, divider, medallion, icons, HP bars), and the base page styles. See Look and the UI kit below. |
+| `src/ui/kit.tsx`, `src/ui/artMap.ts` | Hands the kit images to CSS, the `Icon` and `Medallion` components, and the lookups from stats, schools, weapon kinds and units to their art. |
 
 ## Selection state machine
 
@@ -83,7 +85,72 @@ The ground is planned per cell by `planGround` in `src/game/groundPlan.ts` (pure
 - The HP bar and the lord star (top left) and boss crown (top right) live in a second container at depth 25, above every token, which `MapScene.update` keeps on its token. A unit below never covers them with its head.
 - The camera allows a 0.3 tile strip above the map, so heads on the top row can be panned into view.
 
-## New game flow and the creator
+## Look and the UI kit
+
+The UI matches the art: inked iron, bone and tarnished gold on near-black, crimson for the main action and the enemy. Everything is drawn from a few tokens and seven small kit images, so screens do not carry their own colors or sizes.
+
+### Tokens
+
+`src/ui/tokens.css` holds every value as a custom property on `:root`, and every screen uses them.
+
+| Group | Tokens | Notes |
+| --- | --- | --- |
+| Surfaces | `--c-void`, `--c-bg`, `--c-panel`, `--c-panel-hi`, `--c-inset`, `--c-line`, `--c-iron`, `--c-iron-hi` | `--c-panel` is the center color of the frame art. |
+| Text | `--c-bone`, `--c-bone-dim`, `--c-muted`, `--c-gold`, `--c-gold-dim` | On the panel: bone 13.9:1, dim 9.1:1, muted 6.1:1, gold 8.5:1. On the crimson plate: bone 8.8:1, dim 5.7:1, gold 5.4:1; muted text is never put on crimson. |
+| Accents | `--c-crimson`, `--c-crimson-hi`, `--c-crimson-deep`, `--c-rust`, `--c-steel` | |
+| Game colors | `--c-player`, `--c-enemy`, `--c-ally`, `--c-hp`, `--c-hp-low`, `--c-hp-crit`, `--c-hp-track`, `--c-good`, `--c-bad`, `--c-heavy`, `--c-swift`, `--c-arcane` | Teams, HP bar tones, triangle arrows and school colors. |
+| Type | `--font-title`, `--font-display`, `--font-body`, `--fs-xs` to `--fs-xl` | See Fonts. |
+| Space and shape | `--sp-1` to `--sp-5` (4 to 24 px), `--r-1`, `--r-2`, `--r-pill`, `--tap` (44 px), `--frame-w`, `--plate-w` | `--frame-w` and `--plate-w` are how wide the frame and plate art draw. |
+| Depth | `--shadow-panel`, `--shadow-text`, `--z-hud`, `--z-banner`, `--z-dialog`, `--z-end` | Shadows go on small boxes only, never a blur over the map. |
+| Safe areas | `--safe-t`, `--safe-r`, `--safe-b`, `--safe-l` | `env(safe-area-inset-*)`. |
+
+### Fonts
+
+Self-hosted from `@fontsource` packages (latin subset, woff2 only, declared in `tokens.css` so only the files used are bundled):
+
+- Pirata One for the title logo only (8.9 KB).
+- Cinzel 700 for headings, buttons, names, tabs and labels (15.2 KB). It is all capitals, so it is not used for typed text.
+- Alegreya 400, 700 and 400 italic for body text and numbers (70.4 KB). It reads well at 13 to 16 px. Its default figures are old style, so the page sets `font-variant-numeric: lining-nums`, and stat blocks use the `.num` class (lining and tabular).
+
+About 95 KB in all, loaded with `font-display: swap`. Names in other scripts fall back to the system font.
+
+### The kit
+
+`installKit()` (called once in `App.tsx`) reads the kit entries from the manifest and sets `--kit-<name>` (the image URL) and `--kit-<name>-slice` (its 9-slice numbers) on the root, and adds the `kit` class. The CSS uses the art only under `.kit` and the variables; without them each piece is a plain CSS border and fill, so missing art never breaks a screen.
+
+| Piece | Manifest id | Used as |
+| --- | --- | --- |
+| Panel frame | `ui.frame` | `.framed`: `border-image` 9-slice, edges repeat (`round`), center filled. Dialogs, slot cards, the level-up card, the end screen stats, the creator preview. The top bar, the dock and the menu header use the same frame with `border-image-outset`, so only one straight edge shows: an iron rail along the map. |
+| Dark plate, crimson plate | `ui.button`, `ui.button_primary` | Every `.btn`, choice, option and creator tab. Crimson for the main action and the chosen option. 9-slice, stretched. |
+| Ribbon | `ui.ribbon` | `.ribbon`: the phase banner and the menu screen titles. The forked ends stay put and the middle stretches. The art is crimson (the enemy phase); the player and ally banners tint it with a hue rotation on that small element only. |
+| Medallion | `ui.medallion` | The ring over round portraits (`Medallion`); `hole` in its entry sets how far in the portrait circle sits. A thin team-colored ring inside shows the side. |
+| Divider | `ui.divider` | The sword ornament in the middle of `.divider`, with CSS gold lines either side. |
+| Emblem | `ui.emblem` | The ten-blade star on the title and the end screen. |
+| Backdrop | `backdrop.village` | Behind the title screen, darkened by gradients. |
+
+### Icons
+
+Icons are `icon.<name>` (96 px WebP, shown at 14 to 22 CSS px through `Icon`). An icon is decorative unless it is given a label; stat cells put the stat name next to the icon as text. A missing icon draws a disc with the first letter.
+
+| Icons | Names |
+| --- | --- |
+| Stats | `hp`, `str`, `mag`, `skl`, `spd`, `lck`, `def`, `res`, `mov` |
+| Schools | `heavy`, `swift`, `arcane` (`none` has no icon) |
+| Items | `greatsword`, `axe`, `lance`, `sabre`, `dagger`, `bow`, `tome`, `talisman`, `staff`, `shard`, `coins`, `tenblade` |
+
+Weapon kinds map to icons in `WEAPON_ICON` (`src/ui/artMap.ts`): greatsword, axe, lance, bow, tome, talisman and dagger to their own icon, katana to `sabre`, staff and spiritstaff to `staff`, and legendary to `tenblade` (the blades are the ten). A kind not in the map falls back by school (heavy greatsword, swift sabre, arcane tome, none staff). Other choices: the forecast labels use `str` for damage, `skl` for hit and `shard` for crit; the objective line uses `tenblade` for rout and boss maps, `def` for survive and protect, `mov` for escape; terrain bonuses use `def`, `res`, `spd` (avoid) and `hp` (healing).
+
+Portraits: `portraitId(unit)` looks up `portrait.<sheet>.neutral` by unit id for named characters, then by class (`wanderer` is the Stranger, `hunter_captain` the captain, and the generic classes their own sheet). The main character has none: the medallion shows the composed face. `tests/ui-art.test.ts` checks every weapon in the data and every class against the manifest.
+
+### Screens
+
+- Battle top bar: Quit, turn and a phase tag in the team color, the objective with its icon, and Speed. Bottom bar: the terrain line with bonus icons, Danger and End turn.
+- Unit card: medallion, name and tags, school with the triangle hint (beats and weak to, from `balance.json`), class, level and XP beside the HP bar, a 4 by 2 stat grid (icon, name, value), and the weapon row (weapon icon, name, Mt, Hit, Crit, Rng). The dock is 178 px tall with it at 375 x 667, the same as before the kit.
+- Forecast: the two sides around a center column of labels (HP, Dmg, Hit, Crit), each side with its medallion, weapon and school icons and the triangle arrow. HP bars show the predicted loss as a hatched segment that pulses (steady under reduced motion). "No counter" replaces the defender's numbers when it cannot strike back. The dock is about 243 px tall with it (215 before) for the portraits and the label column.
+- Level-up card: all nine stats with icons and new values, the ones that rose marked with the gain.
+- Menus: the menu header carries the screen title on the ribbon, sections are headed in gold capitals between two thin rules, choices and options are plates (crimson when chosen), and step dots are diamonds.
+
+
 
 Steps: choose a slot, your path (permadeath and difficulty), your hero (name and pronouns), your look (the creator, which ends with Begin). The state and step rules are pure functions in `src/ui/menus/newGameDraft.ts`; `tests/new-game.test.ts` covers them.
 

@@ -1,3 +1,5 @@
+// The shared styles go first, so every screen's own CSS comes after the tokens and the kit.
+import './styles.css';
 import { useEffect, useState } from 'preact/hooks';
 import { Title } from './Title';
 import { Battle } from './Battle';
@@ -6,6 +8,9 @@ import { LoadGame } from './menus/LoadGame';
 import { Settings } from './menus/Settings';
 import { ChapterComplete } from './menus/ChapterComplete';
 import { DevMc } from './DevMc';
+import { installKit } from './kit';
+
+installKit();
 
 function currentRoute(): string {
   // A query after the route (`#/battle?seed=3`) carries test overrides, not a route.

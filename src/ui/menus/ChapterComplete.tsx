@@ -19,7 +19,7 @@ export function ChapterComplete() {
       <p class="chapter-kicker">{name}</p>
       <h1 class="chapter-title">Chapter complete</h1>
       <p class="tagline">Saved to slot {slot}.</p>
-      <ul class="roster" aria-label="Your party">
+      <ul class="roster framed" aria-label="Your party">
         {campaign.party.map((u) => (
           <li key={u.id}>
             <span>{u.name}</span>
