@@ -10,7 +10,7 @@ How Ten Blades keeps progress: the save shape, the versioning rule, the storage 
 | `src/save/validate.ts` | Strict runtime checks for a campaign save, a suspend save and a battle state. |
 | `src/save/migrate.ts` | The migration pipeline and the `MIGRATIONS` table. |
 | `src/save/load.ts` | `readCampaign` and `readSuspend`: migrate, then validate. |
-| `src/save/campaign.ts` | New campaign, battle setup for the current chapter, permadeath, a won battle (on to the outro), building a suspend save. |
+| `src/save/campaign.ts` | New campaign, battle setup for the next map (the deployment and the blades' tiers), permadeath with wounded bearers, a won chapter battle (rewards, on to the outro) or skirmish (rewards, the win counted), building a suspend save. |
 | `src/story/flow.ts` | The chapter flow over the campaign's progress: intro scenes, battle, outro scenes, the chapter's after rules, the next chapter. See `docs/STORY.md`. |
 | `src/save/battleSaver.ts` | Turns the battle controller's checkpoints into save writes for one attempt at a map. |
 | `src/save/queue.ts` | `SaveQueue`: runs writes one at a time in the background and coalesces suspend writes. |
@@ -19,7 +19,8 @@ How Ten Blades keeps progress: the save shape, the versioning rule, the storage 
 | `src/save/code.ts` | Save codes for export and import. |
 | `src/save/prefs.ts` | Small UI preferences in `localStorage` (animation speed). Not part of any save. |
 | `src/data/chapters.json` | The campaign script: chapters, their scenes, maps and after rules (`docs/STORY.md`). |
-| `src/ui/saves.ts` | The app's storage instance, write queue and the campaign run the battle route plays. |
+| `src/ui/saves.ts` | The app's storage instance, write queue, the campaign run the battle route plays and the camp session (the campaign the camp screens show, saved on every change). |
+| `src/camp/*` | The camp's rules over the campaign save (`docs/CAMP.md`). |
 
 ## Campaign save
 
@@ -27,18 +28,24 @@ One JSON object per slot.
 
 | Field | Meaning |
 | --- | --- |
-| `version` | The save version, 4 now. |
+| `version` | The save version, 5 now. |
 | `kind` | Always `campaign`. |
 | `createdAt`, `updatedAt` | Epoch milliseconds, passed in by the UI. `updatedAt` is the "last played" time on the load screen. It changes when the campaign is written: at new game and after each won chapter. |
 | `settings` | `difficulty` (`normal`, `hard`, `lunatic`) and `permadeath` (`classic`, `casual`), chosen at new game and fixed after. |
 | `mc` | `name` (1 to 16 characters, any script, no control characters), `pronouns` (`he`, `she`, `they`), `style` (`vanguard`, `duelist`, `spiritblade`) and `look`. |
 | `mc.look` | The creator's choices: `body`, `skin`, `hairStyle`, `hairColor`, `eyes`, `scar` (or `none`) and `accent`, each an id from `src/data/looks.json`. Added in version 2. |
-| `party` | `PartyUnit[]` carried into the next map, in unit order, as built by `partyAfterBattle`. Empty before the prologue, when the MC is built from `mc`. When not empty it holds exactly one lord (the MC). |
+| `party` | `PartyUnit[]`, the company in roster order (the order units take a map's party slots). Empty before the prologue, when the MC is built from `mc`. When not empty it holds exactly one lord (the MC). Each unit has an `inventory` (version 5): weapon and item ids, at most `balance.inventory.slots`, holding its `weaponId`. |
 | `fallen` | `PartyUnit[]` lost for good in Classic mode. Never the MC. |
-| `progress` | `current`: the chapter being played, or null once the story so far is finished. `completed`: chapter ids finished (outro played), in order. `stage`: `intro`, `battle` or `outro` (version 3). `scenes`: the scenes of this stage still to play, the first being the one in progress, or null until the stage begins and the chapter data picks them (version 3). |
+| `progress` | `current`: the chapter being played (in camp: the next one), or null once the story so far is finished. `completed`: chapter ids finished (outro played), in order. `stage`: `camp` (version 5), `intro`, `battle` or `outro` (version 3). `scenes`: the scenes of this stage still to play, the first being the one in progress, or null until the stage begins and the chapter data picks them (version 3). |
 | `flags` | Story flags: a record of string keys to `true`/`false`, numbers or text. Set by scene choices and by map events (a won battle hands its flags back). An unset flag reads as false. |
-| `gold`, `shards` | Counters, 0 for now. |
-| `blades` | The legendary blades the party has held, by blade id (`src/data/blades.json`), each `{ tier }`: 1 (Dormant) for now; phase 6 adds awakening. A blade goes on record when a party member holds it after a chapter's after rules (`withBlades` in `campaign.ts`, called by the flow), and keeps its tier. Version 4. |
+| `gold`, `shards` | Gold and Blade Shards, earned on won maps and spent in camp. |
+| `blades` | The legendary blades the party has held, by blade id (`src/data/blades.json`), each `{ tier }`: 1 Dormant, 2 Awakened, 3 Unbound (the forge raises it). A blade goes on record when a party member holds it after a chapter's after rules (`withBlades` in `campaign.ts`, called by the flow), and keeps its tier. Version 4. |
+| `convoy` | Weapon and item ids no one carries (version 5). |
+| `benched` | Party unit ids kept in camp for the next deployment (version 5). |
+| `wounded` | Unit id to the act it fell in, for plot-critical bearers who retreated wounded in Classic (version 5). They cannot deploy during that act; the flow drops the entries when a new act begins. |
+| `skirmishWins` | Side skirmishes won, by the chapter they were won in, for the per-chapter cap (version 5). |
+
+The number of Unbound blades is kept as the story flag `unbound_blades` (and can be counted from `blades`), so chapter conditions can read it.
 
 ## Suspend save
 
@@ -53,6 +60,7 @@ There is one suspend slot. It holds the battle in progress, written whenever the
 | `mapId` | The map being played. Must match `battle.mapId`. |
 | `battle` | The whole `BattleState`, RNG state included. Its options must match `campaign.settings`. |
 | `controller` | Small controller state a resume keeps: `showDanger`, and `scenes`, the mid-battle scenes from the last player action (or the battle start) that had not finished playing (version 3). The selection is never kept. |
+| `skirmish` | The side skirmish being played (an id in `skirmishes.json`), or null for the chapter's story map (version 5). A resumed skirmish is completed as a skirmish and returns to camp. |
 
 ## Validation
 
@@ -60,7 +68,7 @@ There is one suspend slot. It holds the battle in progress, written whenever the
 
 - The shape: every field present, no unknown fields, the right types, whole numbers in range.
 - Ids against game data: classes, weapons, maps, terrain and chapter ids, every field of `mc.look` against `src/data/looks.json` (`lookProblem` in `src/art/mc/look.ts`), fired event ids against the map's events, recruits against the battle's units, and scene ids against the dialogue scenes when the context lists them (`SaveContext.sceneIds`; the app always passes them).
-- Invariants: unit ids unique, at most one lord and none among the fallen, the current chapter not already completed, a living unit with HP from 1 to its max and a fallen one at 0, positions on the map, enemy and ally units with an AI, the battle's map size matching the map data, blade ids and tiers against `blades.json`, a gauge from 0 to `balance.resolve.max`, and power log entries naming known powers, units and tiles.
+- Invariants: unit ids unique, at most one lord and none among the fallen, the current chapter not already completed, a living unit with HP from 1 to its max and a fallen one at 0, positions on the map, enemy and ally units with an AI, the battle's map size matching the map data, blade ids and tiers against `blades.json` (in the campaign and in `bladeTiers`), a gauge from 0 to `balance.resolve.max`, power log entries naming known powers, units and tiles, inventories (known weapons at a valid forge rank or items, no more than the slots, the equipped weapon in it), convoy entries, statuses, bench and wounded ids in the party, skirmish counts by known chapters, and a suspended skirmish against the skirmish ids when the context lists them (`SaveContext.skirmishIds`; the app always passes them).
 
 `readCampaign` and `readSuspend` run `migrate` first and wrap any error in a plain sentence for the player. Storage also validates every save before writing it, so a bad object never reaches the disk.
 
@@ -82,8 +90,9 @@ Steps so far:
 | 1 | 2 | `mc.look` added. Version 1 saves predate the creator, so they get the default look from `looks.json`. A suspend save gets it in its nested `campaign`; the battle state is untouched. |
 | 2 | 3 | The story layer. `progress` gets `stage` and `scenes`: a campaign that had finished the story so far (current null) goes back to the outro of the last chapter it won, so the outro plays and its party changes apply (the Stranger leaves, the MC gets the Widow's Hush); any other campaign starts its chapter at the intro; scenes are null, picked when the stage begins. A suspend save's campaign is in its battle (`stage` battle, no scenes) and its controller owes no scenes. The battle state goes to version 2: `started` true, no flags, fired events or recruits, every unit with no tags and not left. A battle suspended before the update therefore plays on without the events that would have fired before its turn. |
 | 3 | 4 | Blade powers. The campaign gets `blades`: every blade a party member holds, at tier 1. A suspended battle state goes to version 3: `powerLog` empty, every unit `devourStacks` 0 and `resolve` at `balance.resolve.start` when it holds a blade, else 0. The step reads the shipped `weapons.json` and `balance.json` for that. |
+| 4 | 5 | Camp. Every party and fallen unit gets an `inventory` holding its weapon; the campaign gets an empty `convoy`, `benched`, `wounded` and `skirmishWins`. A campaign between chapters (stage `intro` with scenes null, a chapter completed, a current chapter) goes to stage `camp`. A suspend save gets `skirmish` null; its battle state goes to version 4: every unit's `inventory` holds its weapon, `statuses` is empty, and `bladeTiers` comes from the campaign's blades. |
 
-`tests/save-migrate.test.ts` loads `tests/fixtures/save-v1.json`, `suspend-v1.json`, `save-v2.json` and `suspend-v2.json` through `readCampaign` and `readSuspend` and checks each step's changes, loads `save-v3.json` and `suspend-v3.json` and checks step 3 (blades on record, gauges and an empty power log), loads `tests/fixtures/save-v4.json` as it is, checks that no step changes its input, and runs a pretend chain to prove the pipeline. `tests/save-code.test.ts` also imports a save code made from a version 1 save.
+`tests/save-migrate.test.ts` loads `tests/fixtures/save-v1.json`, `suspend-v1.json`, `save-v2.json` and `suspend-v2.json` through `readCampaign` and `readSuspend` and checks each step's changes, loads `save-v3.json` and `suspend-v3.json` and checks step 3 (blades on record, gauges and an empty power log), loads `save-v4.json` and `suspend-v4.json` and checks step 4 (inventories, the empty camp fields, camp between chapters, the battle's inventories, statuses and tiers, and that the migrated battle plays on), loads `tests/fixtures/save-v5.json` as it is, checks that no step changes its input, and runs a pretend chain to prove the pipeline. The checks for steps 1 to 3 read through to version 4 by taking step 4's additions off again, so they keep checking what they were written for. `tests/save-code.test.ts` also imports a save code made from a version 1 save.
 
 ## Storage
 
@@ -119,7 +128,7 @@ The enemy and ally phases are not saved step by step. A checkpoint taken just af
 
 When the battle ends, `BattleSaver` writes the final state to the suspend slot first, then:
 
-- on victory, applies the result to the campaign (`completeChapter`: party, permadeath, flags, on to the outro) and writes it to its slot, then clears the suspend save;
+- on victory, applies the result to the campaign (`completeChapter`: party, permadeath, flags, rewards, on to the outro; or, for a skirmish, `completeSkirmish`: party, permadeath, flags, rewards, the win counted, still in camp) and writes it to its slot, then clears the suspend save;
 - on defeat, clears the suspend save and leaves the slot as it was.
 
 If the tab closes between those writes, the suspend slot holds a finished battle; Continue shows its end screen and finishes the same writes.
@@ -130,7 +139,7 @@ The battle route takes its run once (`takeRun`), so going back to it in the brow
 
 ## Story position
 
-Between battles the campaign save is the only record. The story route writes the slot each time a scene finishes: the scene leaves the head of `progress.scenes`, and the flags its choices set are merged in, in one write. Closing the tab during a scene therefore replays that scene from its first line, with its choices still to make. When the last outro scene finishes, the chapter's after rules apply and the next chapter begins, in the same write. See `docs/STORY.md`.
+Between battles the campaign save is the only record. In camp, entering saves the slot and so does every change made there (a purchase, an awakening, the bench). The story route writes the slot each time a scene finishes: the scene leaves the head of `progress.scenes`, and the flags its choices set are merged in, in one write. Closing the tab during a scene therefore replays that scene from its first line, with its choices still to make. When the last outro scene finishes, the chapter's after rules apply and the next chapter begins, in the same write. See `docs/STORY.md`.
 
 ## Save codes
 

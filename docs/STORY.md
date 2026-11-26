@@ -80,13 +80,19 @@ The current names are placeholders: empire "Ardent Empire", emperor "Emperor Hal
 | `after` | Changes once the outro has played: a list of `{ "when"?, "leave"?: [unit ids], "join"?: [{ id, name, classId, level, weaponId? }], "mcWeapon"?: { "vanguard": ..., "duelist": ..., "spiritblade": ... } }`. Every entry whose conditions hold applies, in order. The MC never leaves. |
 | `next` | The next chapter's id, or null at the end of the story so far. |
 | `draft` | True while the chapter is a stub. |
+| `act` | The act the chapter belongs to (1 to 3). Wounded bearers sit out the rest of their act; the forge's requirements can ask for an act. |
+| `campAfter` | Optional: after this chapter the army makes camp before the next one. `{ unlocks?, talk?, backdrop? }`: the facilities this camp opens (`forge`, `merchant`, `barracks`, `warmap`; once open they stay open), the campfire scenes it adds (`[{ scene, title?, when?, flag? }]`; `title` is the name in the camp's list), and the camp's backdrop (default `camp`). |
+| `skirmishes` | Optional: `{ ids, cap }`, the side skirmishes on the war map while this is the next chapter, and how many may be won here. |
+| `deploy` | Optional: `{ max?, required? }`, who may deploy on the chapter's map (`docs/CAMP.md`). |
+| `plotCritical` | Optional: unit ids the plot still needs here. In Classic, such a unit that falls retreats badly wounded instead of dying, and sits out the rest of the act. |
 
-The flow (`src/story/flow.ts`) walks a chapter through `intro`, `battle` and `outro`, with the position in the campaign save (`progress.stage` and `progress.scenes`, see `docs/SAVES.md`):
+The flow (`src/story/flow.ts`) walks a chapter through `camp` (when the chapter before has `campAfter`), `intro`, `battle` and `outro`, with the position in the campaign save (`progress.stage` and `progress.scenes`, see `docs/SAVES.md`):
 
 1. A new chapter's stage begins: the variant is picked and its scenes stored.
 2. Each finished scene is removed from the front, and its choice flags merged into the save, in one write.
 3. When the intro runs out, the battle plays (its map from `mapId`). The campaign's flags go into the battle and come back on a win, with the party (recruits included, units that left alive kept, permadeath applied).
-4. When the outro runs out, the after rules apply, the chapter is marked complete and the next one begins.
+4. When the outro runs out, the after rules apply, the chapter is marked complete and the next one begins: in camp if the chapter has `campAfter`, else at its intro. Moving into a new act clears the wounded list.
+5. In camp the campaign rests (stage `camp`) until the war map starts the chapter (March, after the deploy step), which begins its intro. Camp works even while the next chapter has no map; the war map then shows it as coming soon.
 
 Units the plot needs elsewhere leave through `after.leave`. Recruits from talking come in through the battle itself; `after.join` is for units that join between battles.
 
@@ -105,11 +111,22 @@ Units the plot needs elsewhere leave through `after.leave`. Recruits from talkin
 | `prologue_outro_fell` | Instead of the above in Classic when `stranger_fell` is set. Has the choice. |
 | `prologue_binding` | After either: the sword binds to the MC, its first whisper, the MC decides to run. |
 
-Flags: `stranger_fell` (true if she fell in battle), `prologue_promise` (true if the MC promised to carry the blade north, false if they said nothing). After the outro the Stranger leaves the party and the MC's weapon becomes `widows_hush_<style>`.
+Flags: `stranger_fell` (true if she fell in battle), `prologue_promise` (true if the MC promised to carry the blade north, false if they said nothing). After the outro the Stranger leaves the party and the MC's weapon becomes `widows_hush_<style>` (the starting weapon goes to the convoy). Then the army makes camp before Chapter 1: the prologue's `campAfter` opens all four facilities for now (the design opens the merchant and the forge after Chapter 2; phase 7 moves them there) and offers the first campfire scene.
 
 Chapters 1 to 3 have draft intros (`ch1_intro`, `ch2_intro`, `ch3_intro`) and no maps yet. Their backdrops are `forest`, `camp` and `town` (packed in phase 5).
 
 The skirmish test map has one event: the MC can talk to the deserter, who plays `skirmish_recruit`, joins, and sets `skirmish_deserter_joined`.
+
+## Camp scenes
+
+Scenes that play in camp are standalone scenes (they may have choices). Reading one sets its flag (`read_<scene>` unless the talk entry names one), with any flags its choices set, in one write.
+
+| Scene | Where |
+| --- | --- |
+| `camp_first_night` | Campfire talk at the first camp (after the prologue): the MC and the blade's voice. Draft. |
+| `skirmish_ridge_lore` | Before the first attempt at the Ashfall Ridge skirmish: a cairn about the original blade. Sets `read_skirmish_ridge_lore`. Draft. |
+
+Other flags the camp keeps: `unbound_blades` (a number: how many blades have reached their last tier, for endings).
 
 ## How to add a scene
 

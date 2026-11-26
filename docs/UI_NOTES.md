@@ -21,6 +21,7 @@ How the battle screen is put together (phase 2). The rules live in `src/core`; e
 | `src/ui/Battle.tsx` | The battle route: plays the campaign run (new, loaded or resumed) or a quick battle, builds the controller, mounts Phaser, renders the overlays, measures them for the camera. |
 | `src/ui/Title.tsx`, `src/ui/menus/*` | Title (Continue, New game, Load game, Settings), the new game flow and creator, load game, settings and the chapter complete screen. |
 | `src/ui/Story.tsx` | The story route, `#/story`: plays the campaign's intro or outro scenes one after another and saves after each (see `docs/STORY.md`). |
+| `src/ui/camp/*` | The camp route, `#/camp` and its sub-routes: hub, forge, merchant, barracks, war map, deploy step and campfire talk (see Camp below and `docs/CAMP.md`). |
 | `src/ui/dialogue/Dialogue.tsx`, `dialogue.css` | The dialogue player, used by the story route and over the battle map. See Dialogue below. |
 | `src/ui/mc/McPicture.tsx` | Canvas elements that show a composed MC portrait, face crop, token or pose. |
 | `src/ui/DevMc.tsx` | The hidden MC art check page, `#/dev/mc`. |
@@ -36,13 +37,14 @@ How the battle screen is put together (phase 2). The rules live in `src/core`; e
 - `inspect`: looking at a unit that cannot take orders (an enemy, an ally, or a player unit that has acted). Enemies show their move tiles in blue and their threat beyond them in red.
 - `unit`: a ready player unit, showing its move tiles (blue), strike tiles beyond them (red) and, for staff users, heal tiles (green).
 - `menu`: the unit previews on a tile and the action menu is open.
-- `target`: choosing whom to attack or heal; valid targets pulse.
+- `target`: choosing whom to attack or heal; valid targets pulse. With the power mode it may carry `powerId`, the second of two powers.
 - `confirm`: the forecast or heal preview is open, waiting for Confirm.
-- `powerConfirm`: the power forecast for an aim (a target or a direction), waiting for Confirm.
+- `powerConfirm`: the power forecast for an aim (a target or a direction), waiting for Confirm (with `powerId` for a second power).
+- `items`: the unit's inventory, from the menu.
 
 `tapTile` and `runCommand` move between them. Taps: a ready unit selects it; any other unit inspects it; a reachable tile (the unit's own included) opens the menu there; tapping another reachable tile from the menu moves the preview; anything else steps back one level or clears the selection. Commands: Attack and Heal go to `target`, Back steps back, Cancel returns to `unit`, and Wait or Confirm return an `Action`. Every question goes through core queries (`moveTiles`, `attackTargets`, `healTargets`, `forecast`, `healAmount`, ...), and a committed action is checked with `validateAction` first.
 
-The menu only offers what is valid from the previewed tile: Attack when `attackTargets` is not empty, Heal when `healTargets` is not empty, Talk when `talkTargets` is not empty, then Wait and Cancel. Talk goes to `target` with the talk mode ("Tap someone to talk to."), and tapping a talk target sends the talk action at once: there is no forecast to confirm (`tapTileAction`).
+The menu only offers what is valid from the previewed tile: Attack when `attackTargets` is not empty, Heal when `healTargets` is not empty, Talk when `talkTargets` is not empty, Items when the unit carries an item or a second weapon, then Wait and Cancel. Talk goes to `target` with the talk mode ("Tap someone to talk to."), and tapping a talk target sends the talk action at once: there is no forecast to confirm (`tapTileAction`).
 
 ## Controller and playback queue
 
@@ -196,7 +198,21 @@ With `test=1` in the URL (`?test=1&seed=7#/battle`), `window.__tb` offers:
 
 URL overrides (query or after the hash route): `seed=N` fixes the seed of every battle, campaign ones included; without it each battle seeds from the clock. `quick=1` on the battle route (`?test=1&quick=1&seed=7#/battle`) plays an unsaved quick battle, which also takes `style=vanguard|duelist|spiritblade`, `difficulty=normal|hard|lunatic`, `mode=classic|casual`, `map=<id>` (any map in `gameData.maps`; an unknown id plays the first chapter's map) and `scenes=1` (show mid-battle scenes; quick battles skip them otherwise). Without `quick=1` and without a campaign run (for example after a page reload), the battle route goes back to the title, where Continue resumes the suspended battle.
 
+`window.__camp` (also `test=1`) is the camp's hook: `campaign()`, `grant(gold, shards)`, `setFlag(flag, value)`, `lock(facilities)` and `saved()` (`docs/CAMP.md`). `e2e/camp.spec.ts` plays the camp loop with it from a prepared save, and saves screenshots when `SHOTS=<dir>` is set.
+
 `e2e/battle.spec.ts` uses the hook on a quick battle to play a turn by taps (select, move, wait, end turn, forecast, attack, enemy phase) and to play the whole prologue to the victory screen. `e2e/story.spec.ts` covers the intro, skipping, mid-battle scenes over the map, resuming in the middle of a scene and talking to recruit; `e2e/saves.spec.ts` plays the prologue through its outro and choice. The e2e helper `idle` skips any mid-battle scene that comes up unless told to stop at it.
+
+## Camp
+
+`#/camp` is the hub; `#/camp/forge`, `#/camp/merchant`, `#/camp/barracks` (and `#/camp/barracks/<unit>`), `#/camp/warmap`, `#/camp/deploy/<story or skirmish id>` and `#/camp/talk/<scene>` are its screens. They read the camp session (`src/ui/saves.ts`), which the flow sets when it reaches camp; every rule is in `src/camp` and each accepted change is saved to the slot at once. Without a session (a reload) the route goes to the title, whose Continue lands back in camp.
+
+- Hub: the camp backdrop (the latest camp's, darkened at the top and fading into the page), Title and Save top left, the gold and shard chips top right, the Camp ribbon with "Next: Chapter 1 · Hunted", and the company either side of a small campfire drawn in CSS (the flame flickers unless reduced motion). Below, the four facilities as 2 by 2 plates (icon, name, a line of what is waiting; a locked plate is dimmed and says when it opens), then By the fire: campfire scenes with a New tag until read. In landscape the scene takes the left 44 percent and the facilities scroll on the right, each plate with its icon to the left.
+- Facility screens use the menu screen frame (ribbon title, back to Camp) with the purse as two compact chips in the header, so it stays in view.
+- Forge: tabs Blades and Weapons. A blade card shows the bearer's medallion, the name, three tier diamonds and the tier name, its powers, the next tier (new power, stat boost, the blood price in crimson, the shard cost and the condition with a check or cross), Awaken (a confirm first), and later tiers as locked lines. Weapons lists each generic weapon the company owns, its holder and what the next rank does (Mt 5 to 6), with the gold to forge it.
+- Merchant: tabs Buy and Sell. Buy picks who it is for (each party member with free slots, or the convoy), then Weapons and Items as rows with the price; a ring per party member shows who can wield each weapon (green when they can). A tapped row opens: its numbers, the comparison with the chosen member's weapon (green up, red down) and Buy for N. Sell lists each member's inventory and the convoy with the price paid; blades say Keep and the weapon in hand cannot be sold.
+- Barracks: the roster as framed cards (medallion, name, Lord, blade tier, Wounded and Stays in camp tags, class, level, HP and weapon) with up and down buttons; the convoy in a line; The fallen in Classic. A unit's sheet: medallion, class and level, XP bar, tags, the stats it grows best in, Keep in camp or Send to battle, a 3 by 3 stat grid, its blade, its inventory (Equip, Store; a blade shows Bound) and the convoy (Take), with Previous and Next.
+- War map: a vertical route of round nodes joined by a gold line: done chapters with a check, the next one a crimson diamond with March (or "Coming soon" in a dashed box while its map is missing) and its side skirmishes beside it as framed cards (blurb, pay, bonus, "2 of 3 left this chapter", Lore tag, Fight), later chapters dimmed.
+- Deploy: the map's name, "N of M deploying" and, for a skirmish, the foes' level and the map's own allies; each unit's row with its status (Must go, Deploying, Stays in camp, Wounded, No room), Stay or Send, and a move up button; then Begin (a story chapter: its intro) or To battle (a skirmish: its lore scene the first time).
 
 ## Dialogue
 
@@ -213,11 +229,19 @@ URL overrides (query or after the hash route): `seed=N` fixes the seed of every 
 
 The story route keys each scene by its id and the number of scenes left, saves after each, then goes to the battle, the next scene or the chapter complete screen. Title shows Continue for a suspended battle, or else for the campaign played last when it has a scene or a battle to play ("Name · Prologue · Story"). The chapter complete screen lists each unit's weapon and says "To be continued" when the next chapter has no map.
 
+## Items in the battle UI
+
+Items opens a panel listing the inventory: each weapon with Equip (Equipped for the one in hand; disabled with the reason when the class cannot wield it) and each item with Use (disabled with the reason, such as "not wounded"). Use sends the item action from the previewed tile (`use:<index>`), which ends the unit's turn. Equip is free (`equip:<index>`): the controller applies it at once without playback or a stage sync (the token stays on its previewed tile), checkpoints it, and the menu comes back on the same tile, so the next forecast uses the new weapon. Back returns to the menu. With four or more orders in a row, the order buttons drop their icons so every word fits at 375 px.
+
 ## Powers in the battle UI
 
-The action menu lists Power for every bearer whose blade has a built power (`powerOption` in `selection.ts`). It is a full-width plate under Attack, Wait and Cancel with the power's name (an Echo shows what it would re-cast, "Echo: Devour") and the gauge; when it cannot fire it is disabled and says why ("Resolve 70/100", or "No target in reach"). Power goes to `target` with the power mode: a unit-aimed power pulses its targets and shows "Devour: tap a red target."; a line power shows every valid line in red and a pad of four direction buttons (only valid ones enabled), and a tap on any tile of a valid line picks that direction. Then `powerConfirm` shows the power forecast: a fighting power reuses the combat forecast table, Scatter lists each target in the line with HP before and after, damage, hit and crit; notes under it give Devour's heal and kill bonus, Echo's repeat strike, or "No counters". Back steps back to aiming.
+The action menu lists Power for every bearer whose blade has a built power (`powerOptions` in `selection.ts`; an Awakened blade has two, shown side by side, the second sent as `power:<id>`). It is a full-width plate under Attack, Wait and Cancel with the power's name (an Echo shows what it would re-cast, "Echo: Devour") and the gauge; when it cannot fire it is disabled and says why ("Resolve 70/100", or "No target in reach"). Power goes to `target` with the power mode: a unit-aimed power pulses its targets and shows "Devour: tap a red target."; a line power shows every valid line in red and a pad of four direction buttons (only valid ones enabled), and a tap on any tile of a valid line picks that direction. Then `powerConfirm` shows the power forecast: a fighting power reuses the combat forecast table, Scatter lists each target in the line with HP before and after, damage, hit and crit; notes under it give Devour's heal and kill bonus, Echo's repeat strike, or "No counters". Back steps back to aiming.
 
-The unit card of a bearer shows a line with the power's name (or "sealed" for one not built) and the Resolve gauge. Bearer tokens carry a thin gold Resolve strip under the HP bar, bright with a pale rim when full.
+The unit card of a bearer shows a line with the powers' names (or "sealed" for one not built) and the Resolve gauge, and Silenced or Pinned tags for statuses. Bearer tokens carry a thin gold Resolve strip under the HP bar, bright with a pale rim when full. The power forecast adds notes for a status (on a hit, or hit or miss), Cleave's splash (its targets listed under the fight) and the blood price.
+
+An Awakened bearer glows: a breathing pale ring around its medallion (steady under reduced motion) on the unit card, forecast, battle scene HUD and every camp screen; a pale halo and ring under its map token's base; and a cold glow along each of its strikes in the battle scene. Pin throws a needle like Scatter's.
+
+The victory screen shows the spoils under the turn count: gold and Blade Shards earned, each bonus objective met (a check and its pay) or missed (a cross, its pay struck through), and drops to the convoy. It scrolls when it does not fit.
 
 ## Battle scenes
 

@@ -15,7 +15,7 @@ The core is pure. Every function takes the state and data as arguments and retur
 
 | Field | Meaning |
 | --- | --- |
-| `version` | 3 (version 1 had no story fields, version 2 no powers; the save migration adds them). |
+| `version` | 4 (version 1 had no story fields, version 2 no powers, version 3 no inventories, statuses or blade tiers; the save migration adds them). |
 | `mapId` | Id of the map in `gameData.maps`. |
 | `map` | `width`, `height` and `terrain`, a flat row-major list of terrain ids (`terrain[y * width + x]`). |
 | `units` | Every unit, fallen ones included (`alive: false`). Order never changes, except that reinforcements are appended. |
@@ -30,8 +30,9 @@ The core is pure. Every function takes the state and data as arguments and retur
 | `firedEvents` | Ids of the map events that have fired. |
 | `recruited` | Ids of units that joined the player team during the battle, in order. |
 | `powerLog` | Every power used this battle, in order: `powerId` (the power that took effect; an echo is logged as what it re-cast), `bearerId`, `at` (the bearer's tile), `turn`, and `witnesses` (Echo bearers within their echo range of `at`). Echo reads it. |
+| `bladeTiers` | Each blade's tier (1 Dormant, 2 Awakened, 3 Unbound) from the campaign, by blade id. A blade not listed is at tier 1. |
 
-A `Unit` has `id`, `name`, `classId`, `team`, `level`, `xp`, `stats` (max stats, so `stats.hp` is max HP), `hp` (current), `weaponId`, `pos`, `acted`, `alive`, `ai` (null for player units), `isBoss`, `isLord`, `tags` (labels from the map for event triggers), `left`, `resolve` (the Resolve gauge, see Powers) and `devourStacks` (kills that count for Devour's attack bonus). A unit an event took off the map has `alive` false and `left` true: every query treats it as gone, but it did not fall, so it is never among the fallen and keeps its HP. Look up class and weapon details in `gameData.classes` and `gameData.weapons`.
+A `Unit` has `id`, `name`, `classId`, `team`, `level`, `xp`, `stats` (max stats, so `stats.hp` is max HP), `hp` (current), `weaponId`, `pos`, `acted`, `alive`, `ai` (null for player units), `isBoss`, `isLord`, `tags` (labels from the map for event triggers), `left`, `resolve` (the Resolve gauge, see Powers) `devourStacks` (kills that count for Devour's attack bonus), `inventory` (weapon and item ids, the equipped weapon among them; see Items) and `statuses` (`{ kind, by, turn }`: `silence` or `pin`, the team that put it on and the turn; see Statuses). A unit an event took off the map has `alive` false and `left` true: every query treats it as gone, but it did not fall, so it is never among the fallen and keeps its HP. Look up class and weapon details in `gameData.classes` and `gameData.weapons`.
 
 Positions are `{ x, y }`, with x the column and y the row, and (0, 0) at the top left. Distances are Manhattan.
 
@@ -44,6 +45,10 @@ Positions are `{ x, y }`, with x the column and y the row, and (0, 0) at the top
 - `mc`: `{ name, style }`, where style is `vanguard`, `duelist` or `spiritblade`. Used to build the MC (id `mc`) when the party has no lord.
 - `party` (optional): carried-over units. A lord fills the map's MC slot, and the others fill its party slots in order. `partyAfterBattle` (below) builds this list from a finished battle.
 - `flags` (optional): the campaign's story flags, copied into `state.flags`.
+- `bladeTiers` (optional): each blade's tier, copied into `state.bladeTiers`.
+- `enemyLevelShift` (optional, default 0): levels added to every enemy placement and wave (never below 1), for a skirmish scaled to the party (`docs/CAMP.md`). Units an event spawns are not shifted.
+
+A party unit carries its own `inventory`; a unit from a placement carries its weapon and the placement's optional `items`. The new main character carries their starting weapon, or the weapon the map's MC slot gives their style.
 
 Enemy stats are clamped to `balance.statCaps` after difficulty scaling.
 
@@ -60,7 +65,9 @@ Pass one to `applyAction(state, action, data)`. It returns `{ state, events }` a
 | `{ type: 'wait', unitId, to }` | Move to `to` (it can be the current tile) and end the unit's turn. |
 | `{ type: 'attack', unitId, to, targetId }` | Move to `to`, then fight `targetId`. |
 | `{ type: 'heal', unitId, to, targetId }` | Move to `to`, then heal a wounded friend with a staff. |
-| `{ type: 'power', unitId, to, targetId? , dir? }` | Move to `to`, then fire the unit's blade power: aimed at `targetId` (Devour, Echo's fallback, an echoed Devour) or along `dir` (`up`, `right`, `down`, `left`: Scatter, an echoed Scatter). Exactly one of the two. Uses the unit's action. See Powers. |
+| `{ type: 'power', unitId, to, targetId? , dir?, powerId? }` | Move to `to`, then fire one of the unit's blade powers (`powerId`, default the blade's first): aimed at `targetId` (Devour, Hush, Cleave, Pin, Echo's fallback, an echoed one) or along `dir` (`up`, `right`, `down`, `left`: Scatter, an echoed Scatter). Exactly one of the two. Uses the unit's action. See Powers. |
+| `{ type: 'item', unitId, to, itemIndex }` | Move to `to`, then use the item at `itemIndex` of the unit's inventory on itself: it heals up to its `heal` and adds its `resolve` to a bearer's gauge, and is used up. It must do something (a wounded unit, or a bearer whose gauge is not full). Uses the unit's action. |
+| `{ type: 'equip', unitId, itemIndex }` | Equip the weapon at `itemIndex`. Free: no move, and the unit can still act this phase (the next forecast uses the weapon). The class must be able to wield it, and it must not be the weapon already in hand. |
 | `{ type: 'talk', unitId, to, targetId }` | Move to `to`, then talk to `targetId`. Legal when the map has a ready talk event from `unitId` to `targetId` and the target stands next to `to`. Uses the unit's action and fires the event. |
 | `{ type: 'endPhase' }` | End the current phase. |
 
@@ -100,8 +107,11 @@ Events come back in order. Play them one after another.
 | `powerEnded` | `powerId`, `bearerId` |
 | `resolveChanged` | `unitId`, `amount` (negative when spent), `resolveAfter` |
 | `devourStack` | `unitId`, `stacks`, `attackBonus` |
+| `itemUsed` | `unitId`, `itemId` (its `unitHealed` with cause `item` and its `resolveChanged` follow) |
+| `statusApplied` | `unitId`, `status`, `byId` |
+| `statusCleared` | `unitId`, `status` (it wore off as a phase began) |
 
-`unitHealed` has the cause `event` for an event's heal and `power` for Devour's.
+`unitHealed` has the cause `event` for an event's heal, `power` for Devour's and `item` for an item's. `unitDamaged` has `cause: 'bloodPrice'` for an Awakened blade's price (it comes right after `powerEnded`). `powerUsed`'s summary also carries `statuses` (each status put on a target) and `bloodPrice` (HP the bearer paid).
 
 A power that fights (Devour, Echo's fallback, an echoed Devour) emits the usual `combatStarted`, `strike`s and `combatEnded` between `powerUsed` and `powerEnded`; Scatter emits one `strike` per target and no `combatStarted`.
 
@@ -120,6 +130,8 @@ All are pure and cheap enough to call on every tap.
 - `unitThreatTiles(state, unitId, data)` and `threatTiles(state, data, team = 'enemy')`: tiles an enemy unit, or all of them, can attack this turn. Guard units only count from their guard area.
 - `forecast(state, attackerId, defenderId, from, data)`: the fight preview. `attacker` and `counter` each give `hp`, `attack`, `damage` per hit, `hit` %, `crit` %, `strikes` (2 means a double) and `triangle` (`advantage`, `disadvantage` or `neutral`). `counter` is null when the defender cannot strike back, and `defenderTriangle` still gives its triangle edge. Resolution uses exactly these numbers. On an invalid pairing (an unknown unit, an attacker with no attack weapon, `from` off the map, or the defender out of range from `from`) it throws `ActionError`, so only call it for ids from `attackTargets`.
 - `getUnit`, `unitAt`, `livingUnits`, `terrainAt`, `distance`, `areHostile`.
+- `weaponDef(id, data)`: the weapon an inventory id names, with its forge rank applied (`iron_katana+1`: +`balance.weaponRanks.might` might and +`hit` hit per rank, " +1" on the name), or null. Use it instead of `data.weapons[id]` for any id that may be forged. `parseWeaponId`, `rankedWeaponId`, `itemDef`, `isWeaponId`, `classCanWield`, `isBound` (a legendary weapon: it never leaves its bearer) and `inventoryWith` are in `src/core/items.ts`.
+- `hasStatus(unit, kind)` and `moveBudget(unit)` (0 while pinned).
 - `healAmount(state, healerId, targetId, data)`: HP a staff heal would restore now. `healRange(state, unitId, data)`: every tile a staff user could heal after moving (the green overlay).
 - `checkOutcome(state)` and `battleSummary(state)`.
 - `objectiveStatus(state)`: `{ type, turnLimit, turnsLeft }`. For `survive` and `protect`, `turnLimit` is the objective's last turn and `turnsLeft` counts the turns still to play, the current one included (so 1 on the last turn, 0 once it has passed). Both are null for other objectives.
@@ -140,9 +152,27 @@ Resolve (`balance.resolve`): bearers start a battle (or arrive) at `start` (20) 
 | Scatter (Thousand Needles) | Pick a direction: every hostile unit within `length` 4 tiles in a straight line from the bearer takes one strike at `damagePercent` 70 of normal damage (hit and crit rolled as usual, crits included). The line passes friends and terrain, stops at the map edge, and no one counters. XP is summed over the targets and capped at `xp.maxPerAction`. |
 | Echo (Widow's Hush) | Re-casts the last other power used within `range` 3 tiles of the bearer (it witnessed it, see `powerLog`), from the bearer's tile with the bearer's weapon and stats, aimed the way that power aims. It never echoes its own use or an echo. With nothing to echo, the fallback: an attack on a foe at a distance in `fallback.range` (adjacent), then the bearer's strike rings once more at `fallback.damagePercent` 50 of its damage, rolled at the same hit rate, no crit, no counter. The fallback is a design addition so the MC always has a power; Eric to confirm. Echo always costs its own price. |
 
+Two powers: a blade's tiers (`tiers` in `blades.json`) may each add a `power`; at its tier in `state.bladeTiers` the bearer has the Dormant power and each power its tiers up to that one add (`bearerPowers`, `powerIds(state, unitId)`). Every power query below takes an optional last argument `powerId` (default the first power). Both powers share the gauge, each at its own cost.
+
+| Power (Awakened) | Effect (numbers in `blades.json`) |
+| --- | --- |
+| Hush (Widow's Hush, `strike`) | One strike at a hostile unit within `range` [1, 1] (its own reach) at `damagePercent` 100, no counter. Then the target is silenced (`status` silence; `onHit` false: hit or miss). |
+| Cleave (Gravemaw, `cleave`) | An attack in weapon range with `bonusMight` 2, counters as usual. If the bearer still stands, each other hostile unit next to it takes one strike at `splashPercent` 50 of normal damage, crit 0, no counter, in tile order (up, right, down, left). |
+| Pin (Thousand Needles, `strike`) | One strike within [1, 3] at 60 percent, no counter; on a hit (`onHit` true) the target is pinned. |
+
+The blood price: from the tier on that names `bloodPrice` (2 at Awakened), each power the bearer fires costs it that much HP after the power, never below 1 (`bloodPriceOf`). `powerForecast` gives it as `bloodPrice`, along with `status` and `statusOnHit`. For Cleave, `targets` lists the main target and then the splash targets.
+
 Queries: `powerPlan(state, unitId)` (what the power would do now: `powerId`, `bladePowerId`, `name` such as "Echo: Devour", `effect`, `echoOf`, `fallback`, `aim` `unit` or `line`, `cost`, or null for a unit with no built power), `powerBlock` (why it cannot fire at all: no power, no attack weapon, or "Resolve 40/100"), `powerTargets(state, unitId, from)` and `powerDirections(state, unitId, from)` (valid aims from a tile), `canUsePower`, `lineTiles(state, from, dir, length)`, `echoSource`, and `powerForecast(state, unitId, from, aim)`: the plan, the tiles covered, each target's `side` numbers, the whole `combat` forecast for a fighting power, Echo's `echoStrike` and Devour's `healMax`. Resolution rolls exactly these numbers. `forecastWith` is `forecast` with an attack bonus, and `strikeSide` gives one strike's numbers at any distance. `validateAction` explains a bad power action ("Resolve 20/100", "Scatter needs a direction", "No enemy in the line up", "g is not a target of Devour").
 
-`validateGameData` checks blades (school, power, tiers counting up from 1), powers (cost, effect numbers), blade weapons (known blade, legendary, not a staff) and the Resolve numbers.
+`validateGameData` checks blades (school, power, tiers counting up from 1, each tier's power, shards, requirement, stat boost and blood price), powers (cost, effect numbers, statuses), blade weapons (known blade, legendary, not a staff), prices, items, and the Resolve, inventory, forge rank and AI item numbers.
+
+## Statuses
+
+`src/core/status.ts`. Silenced: the unit cannot counter-attack (the forecast's `counter` is null) and cannot fire a power (`powerBlock` says "Silenced"). Pinned: the unit cannot move (`moveBudget` 0, so its move and threat tiles shrink to its own tile); it can still attack from where it stands. A status wears off when the inflicting team's next phase begins after the turn it was put on (a `statusCleared` event), so a player's Hush or Pin lasts through the enemy phase; anything two turns old also goes. A unit already under a status gets the newer one.
+
+## Items
+
+`src/core/items.ts` and `docs/CAMP.md`. An inventory holds weapon ids and item ids (`items.json`), at most `balance.inventory.slots`. A weapon id may carry a forge rank as `+N`. Equipping and using items are the `equip` and `item` actions above; `giveWeapon` events add the weapon to the inventory (replacing the one in hand when every slot is full) and equip it.
 
 ## Objectives
 
@@ -203,7 +233,7 @@ Player phase, then enemy phase, then an ally phase if any allies are alive, then
 
 ## Enemy AI
 
-`planAiAction(state, data)` returns the next action of the current AI phase, `endPhase` when every unit of that team has acted, or null during the player phase or after the battle. No behavior ever attacks for zero expected damage (hit 0 or damage 0). Behaviors: `charge` attacks the best target it can reach, or else walks toward the nearest hostile it can hurt (if it can hurt nobody, toward the nearest hostile lord, without attacking); "nearest" is the true movement cost to reach a tile beside the target, `hold` waits until a hostile is in reach or it gets attacked and then charges for the rest of the battle, and `guard` only acts from tiles within its radius of its guard tile. Bosses guard their own tile with radius 0 unless the map says otherwise. Staff users heal the most wounded friend they can reach. An enemy or ally bearer whose power is ready scores every power use from the tiles its behavior allows (a fight like an attack plus Devour's expected heal and Echo's repeat strike; Scatter as the sum over its targets) and fires it when it scores at least `balance.resolve.aiMargin` (2) above its best attack. Player units planned by the simulator never fire powers. The AI is deterministic.
+`planAiAction(state, data)` returns the next action of the current AI phase, `endPhase` when every unit of that team has acted, or null during the player phase or after the battle. No behavior ever attacks for zero expected damage (hit 0 or damage 0). Behaviors: `charge` attacks the best target it can reach, or else walks toward the nearest hostile it can hurt (if it can hurt nobody, toward the nearest hostile lord, without attacking); "nearest" is the true movement cost to reach a tile beside the target, `hold` waits until a hostile is in reach or it gets attacked and then charges for the rest of the battle, and `guard` only acts from tiles within its radius of its guard tile. Bosses guard their own tile with radius 0 unless the map says otherwise. Staff users heal the most wounded friend they can reach. An enemy or ally bearer whose power is ready scores every use of each of its powers from the tiles its behavior allows (a fight like an attack plus Devour's expected heal, Echo's repeat strike and Cleave's splash; Scatter, Hush and Pin as the sum over their targets; plus `balance.ai.statusValue` for each status weighted by its chance to land, minus the blood price) and fires the best when it scores at least `balance.resolve.aiMargin` (2) above its best attack. Before anything else, an enemy or ally below `balance.ai.itemBelowPercent` of its max HP drinks the first healing item it carries where it stands. Player units planned by the simulator never fire powers or use items. The AI is deterministic.
 
 `runAiPhase(state, data)` plays every AI phase until the player phase or the end, for tests and the simulator.
 
@@ -237,7 +267,7 @@ for (let a = planAiAction(state, gameData); a; a = planAiAction(state, gameData)
 
 ## Data
 
-`gameData` (from `src/data/index.ts`) bundles `balance.json`, `terrain.json`, `classes.json`, `weapons.json` and the maps (`prologue`, and `skirmish_test`, a 14 by 18 map only the quick battle URL reaches), each with its events from `<id>.events.json`. Every balance number is in `balance.json`, including the hit roll mode (`1rn` or `2rn`). Terrain move costs are given per movement type, so new movement types only need new keys. A weapon with `heal` above 0 is a staff: it heals and never attacks or counters. `validateGameData(gameData)` checks every cross reference, that the balance divisors (`combat.hitLckDiv`, `combat.critSklDiv`, `xp.hitDiv`, `xp.perLevel`) are above 0, and the objective rules above. A unit test runs it, and another checks that every foot-passable tile on every map can be reached from the MC slot.
+`gameData` (from `src/data/index.ts`) bundles `balance.json`, `terrain.json`, `classes.json`, `weapons.json`, `items.json`, `blades.json` and the maps (`prologue`; `skirmish_ridge`, the first side skirmish; and `skirmish_test`, a 14 by 18 map only the quick battle URL reaches), each with its events from `<id>.events.json`. The camp's content (`economy.json`, `skirmishes.json`) is `campContent`, beside it. Every balance number is in `balance.json`, including the hit roll mode (`1rn` or `2rn`). Terrain move costs are given per movement type, so new movement types only need new keys. A weapon with `heal` above 0 is a staff: it heals and never attacks or counters. `validateGameData(gameData)` checks every cross reference, that the balance divisors (`combat.hitLckDiv`, `combat.critSklDiv`, `xp.hitDiv`, `xp.perLevel`) are above 0, and the objective rules above. A unit test runs it, and another checks that every foot-passable tile on every map can be reached from the MC slot.
 
 ### Terrain
 
@@ -256,7 +286,7 @@ The numbers live in `terrain.json`; this table is a summary. `tests/crossings.te
 
 ### Map files
 
-A map in `src/data/maps/<id>.json` has `id`, `name`, `width`, `height`, `tiles` (one string per row) with a `legend` from tile character to terrain id, `placements`, `objective`, `reinforcements`, and an optional `props` list of `{ id, x, y }`. A unit placement may carry `tags`. The MC slot may carry `weapons` (by combat style) for an MC the battle creates. A map may name a `backdrop` for its battle scenes. The map's events live beside it in `src/data/maps/<id>.events.json` (a list of events), which `src/data/index.ts` merges in as `events`. Props are decorative: the rules ignore them. `validateGameData` only checks that each prop has a plain id, sits on the map and does not share a tile with another prop; which prop suits which terrain, and that no tall prop stands on a unit's start tile, is checked by `checkProps` in `tools/maps/tiled.ts` (used by the Tiled import and by `tests/maps-tiled.test.ts`) against `src/data/props.json`. Maps are drawn in Tiled and imported with `npm run maps`; see `docs/MAPS.md`.
+A map in `src/data/maps/<id>.json` has `id`, `name`, `width`, `height`, `tiles` (one string per row) with a `legend` from tile character to terrain id, `placements`, `objective`, `reinforcements`, and an optional `props` list of `{ id, x, y }`. A unit placement may carry `tags` and `items` (item ids it carries besides its weapon). The MC slot may carry `weapons` (by combat style) for an MC the battle creates. A map may name a `backdrop` for its battle scenes. The map's events live beside it in `src/data/maps/<id>.events.json` (a list of events), which `src/data/index.ts` merges in as `events`. Props are decorative: the rules ignore them. `validateGameData` only checks that each prop has a plain id, sits on the map and does not share a tile with another prop; which prop suits which terrain, and that no tall prop stands on a unit's start tile, is checked by `checkProps` in `tools/maps/tiled.ts` (used by the Tiled import and by `tests/maps-tiled.test.ts`) against `src/data/props.json`. Maps are drawn in Tiled and imported with `npm run maps`; see `docs/MAPS.md`.
 
 ## Errors
 
