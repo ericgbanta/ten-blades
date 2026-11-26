@@ -56,6 +56,8 @@ export class MapScene extends Phaser.Scene implements Stage {
   private walkIds = new Map<string, number>();
   private highlights!: Phaser.GameObjects.Graphics;
   private targetMarks!: Phaser.GameObjects.Graphics;
+  /** The escape tiles of an escape objective, under the highlights. */
+  private goalMarks!: Phaser.GameObjects.Graphics;
   private gestures: GestureTracker;
   private cssInsets: Insets = NO_INSETS;
   private cameraTouched = false;
@@ -89,6 +91,8 @@ export class MapScene extends Phaser.Scene implements Stage {
     const s = this.lastState;
     const classIds = new Set(s.units.map((u) => u.classId));
     for (const w of s.reinforcements) for (const u of w.units) classIds.add(u.classId);
+    // Units a scripted event can bring in (a recruit who drops in mid-battle) need their tokens too.
+    for (const ev of this.gameData.maps[s.mapId]?.events ?? []) for (const fx of ev.effects) if (fx.type === 'spawn') for (const u of fx.units) classIds.add(u.classId);
     const ids = groundKeys(this.groundInput())
       .concat([...classIds].map((c) => `token.${c}`))
       .concat([...new Set(this.mapProps().map((p) => `prop.${p.id}`))]);
@@ -104,6 +108,8 @@ export class MapScene extends Phaser.Scene implements Stage {
     const cam = this.cameras.main;
     cam.setOrigin(0, 0);
     this.drawMap(s);
+    this.goalMarks = this.add.graphics().setDepth(2);
+    this.drawGoal(s);
     this.highlights = this.add.graphics().setDepth(5);
     this.targetMarks = this.add.graphics().setDepth(6);
     this.tweens.add({ targets: this.targetMarks, alpha: 0.45, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -139,6 +145,26 @@ export class MapScene extends Phaser.Scene implements Stage {
     for (let x = 0; x <= s.map.width; x++) grid.lineBetween(x * TILE, 0, x * TILE, s.map.height * TILE);
     for (let y = 0; y <= s.map.height; y++) grid.lineBetween(0, y * TILE, s.map.width * TILE, y * TILE);
     this.drawProps();
+  }
+
+  /** Mark the escape tiles: a gold frame and a chevron pointing on, so the way out reads at a glance. */
+  private drawGoal(s: BattleState): void {
+    const g = this.goalMarks;
+    if (!g) return;
+    g.clear();
+    if (s.objective.type !== 'escape') return;
+    for (const p of s.objective.tiles) {
+      const x = p.x * TILE;
+      const y = p.y * TILE;
+      g.fillStyle(HIGHLIGHT.cursor, 0.2);
+      g.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+      g.lineStyle(3, HIGHLIGHT.cursor, 0.9);
+      g.strokeRect(x + 5, y + 5, TILE - 10, TILE - 10);
+      g.lineStyle(5, 0x0c0a0f, 0.6);
+      g.strokePoints([new Phaser.Math.Vector2(x + TILE * 0.32, y + TILE * 0.58), new Phaser.Math.Vector2(x + TILE * 0.5, y + TILE * 0.4), new Phaser.Math.Vector2(x + TILE * 0.68, y + TILE * 0.58)]);
+      g.lineStyle(3, HIGHLIGHT.cursor, 1);
+      g.strokePoints([new Phaser.Math.Vector2(x + TILE * 0.32, y + TILE * 0.58), new Phaser.Math.Vector2(x + TILE * 0.5, y + TILE * 0.4), new Phaser.Math.Vector2(x + TILE * 0.68, y + TILE * 0.58)]);
+    }
   }
 
   /** Props stand on the lower middle of their tile, depth sorted with the units: a unit on the row behind (above)
@@ -390,6 +416,7 @@ export class MapScene extends Phaser.Scene implements Stage {
 
   sync(state: BattleState): void {
     this.lastState = state;
+    this.drawGoal(state);
     for (const u of state.units) {
       const t = this.tokenFor(u);
       this.tweens.killTweensOf(t);
@@ -599,6 +626,9 @@ export class MapScene extends Phaser.Scene implements Stage {
         tok.setVisible(false);
         return;
       }
+      case 'objectiveChanged':
+        this.drawGoal(state);
+        return;
       case 'unitTeamChanged': {
         const tok = this.tokens.get(ev.unitId);
         if (!tok) return;
