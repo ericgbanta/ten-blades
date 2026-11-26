@@ -76,6 +76,27 @@ Tiles and backdrops are not keyed. `pack_tiles` finds the tile rectangles from t
 
 Ids in the manifest: `battle.<id>.<pose>`, `portrait.<id>.<expr>`, `token.<classId>`, `tile.<terrainId>` and `backdrop.<name>`. Battle and portrait ids use the sheet id (stranger, gravemaw, captain, soldier, and so on). Tokens use the class id the map asks for: the Stranger is `token.wanderer`, the Hunter-Captain is `token.hunter_captain`, and Gravemaw's bearer, who has no class yet, is `token.gravemaw_bearer`. Each entry holds `path` (relative to `src/art`), `width`, `height` and `bbox` ([x, y, w, h] of the visible art); battle entries add `groundY`, `anchorX` and `scale`. `imageUrl(id)` gives the bundled URL and `imageMeta(id)` the entry. `src/art/manifest.ts` bundles every `.webp` under `src/art` with `import.meta.glob`, so new folders need no change there. `tests/art-manifest.test.ts` checks every entry's file exists and ids are well formed.
 
+## UI kit and icons
+
+`python3 tools/art/pack_ui.py <raw_dir> [kit] [icons]` packs the UI kit and the two icon sheets. It imports keying, splitting, resizing and saving from `pack.py`, merges only `ui.*` and `icon.*` entries into `src/art/assets.json`, and writes its report to `tools/art/packed-ui.json`. It takes a few seconds.
+
+| Raw file | Contents |
+| --- | --- |
+| `ui-kit.png` | 3 x 2: panel frame, dark button plate, crimson button plate; ribbon, medallion ring (green center), divider. |
+| `icons-stats.png` | 4 x 3: hp, str, mag, skl; spd, lck, def, res; mov, heavy, swift, arcane. |
+| `icons-items.png` | 4 x 3: greatsword, axe, lance, sabre; dagger, bow, tome, talisman; staff, shard, coins, tenblade. |
+
+Packing notes:
+
+- Icons are cropped tight and fitted to 96 x 96 with a 2 px margin, so the emblem stays as large as it can at 20 CSS px. They were checked at 16, 20, 24 and 28 px on the panel color: the stat and school icons read at 16 to 20, the thin diagonal weapons (sabre, lance, dagger, bow, staff) need 20 to 22, so the UI shows weapons at 20 or more. Smaller files were not crisper, since the browser downsamples the 96 px file well.
+- The generated frame's edges each carry a rivet in the middle, so they could not stretch or repeat. `pack_ui.py` rebuilds the frame: the four 72 px corners are kept, each edge is made from one clean stretch of that side (between the corner plate and the rivet, source px 80 to 170) followed by its mirror image so it repeats without a seam, and the center is filled with the frame's own center color. It is scaled to 0.6 (194 px square, slice 43) and drawn about 15 px wide.
+- The plates are kept as generated (scaled to 0.5, 216 x 74, slice 20 28 20 28) and stretch; their corners and gold line sit inside the slices.
+- The ribbon keeps 77 px forked ends and stretches the middle (`slice` 0 77 0 77).
+- The medallion is centered on a 192 px canvas and its entry records `hole` [cx, cy, r] for the portrait circle.
+- The divider is scaled to 48 px tall, and the ten-blade star is also written at 192 px as `ui.emblem`.
+
+Entries are the usual `path`, `width`, `height` and `bbox`; 9-slice entries add `slice` ([top, right, bottom, left] in image px, as `border-image-slice` takes it) and `repeat`, the frame adds `center` (its fill color). The set is 31 files, about 152 KB.
+
 ## The main character
 
 The MC is built from layers, recolored at runtime to the look the player picks in the creator. The build is `tools/art/mc_build.py`; the runtime is `src/art/mc`.
@@ -118,4 +139,7 @@ Manifest ids: `mc.<body>.bust`, `mc.<body>.face.<eyes>.<expr>`, `mc.<body>.scar.
 | MC test (Lean body: base, faces, two hairs sheets, chibis, side hair, vanguard poses) | 6 | All usable first try. Judged good enough to build the full set. |
 | MC full set (eye shapes, hairs 5 to 8, scars, chibi styles and hairs, duelist and spiritblade poses, the whole Broad body, side hairs 5 to 8) | 22 | All usable first try. 28 MC generations in total. Built by `tools/art/mc_build.py` into 651 files, about 2.2 MB. |
 
-Not made yet: other tilesets and backdrops, icons.
+| UI kit 1 | 1 | `ui-kit.png`: panel frame, dark and crimson button plates, ribbon, medallion ring, divider. All used; the frame was rebuilt for 9-slice (see UI kit and icons below). |
+| Icon sheets (stats and schools, items) | 2 | `icons-stats.png` and `icons-items.png`, twelve icons each. All usable first try. |
+
+Not made yet: other tilesets and backdrops.
