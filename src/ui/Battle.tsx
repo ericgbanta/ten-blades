@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'preact/hooks';
 import { createBattle, type BattleSetup, type BattleState, type BattleSummary } from '../core';
+import { composeMcToken } from '../art/mc/compose';
+import { DEFAULT_LOOK, type McLook } from '../art/mc/look';
 import { chapters, gameData } from '../data';
 import { BattleController, type BattleView, type CheckpointExtra, type Speed } from '../battle/controller';
 import { BattleSaver } from '../save/battleSaver';
@@ -50,6 +52,7 @@ function QuickBattle({ launch }: { launch: LaunchOptions }) {
       key={attempt}
       initial={initial}
       launch={launch}
+      look={DEFAULT_LOOK}
       quitText="Leave this battle? Quick battles are not saved."
       endButtons={() => [
         { label: 'Play again', primary: true, onTap: () => setAttempt((a) => a + 1) },
@@ -90,6 +93,7 @@ function CampaignAttempts({ run, launch, store }: { run: CampaignRun; launch: La
       key={attempt}
       initial={initial}
       launch={launch}
+      look={run.campaign.mc.look}
       showDanger={attempt === 0 ? (run.resume?.controller.showDanger ?? false) : false}
       onCheckpoint={(state, extra) => saver.checkpoint(state, extra)}
       quitText="Leave this battle? It stays suspended: pick it up with Continue on the title screen."
@@ -132,6 +136,8 @@ function prefersReducedMotion(): boolean {
 interface BattleRunProps {
   initial: BattleState;
   launch: LaunchOptions;
+  /** The main character's look, for their map token and unit card. */
+  look: McLook;
   showDanger?: boolean;
   onCheckpoint?: (state: BattleState, extra: CheckpointExtra) => void;
   quitText: string;
@@ -139,7 +145,7 @@ interface BattleRunProps {
   endButtons: (summary: BattleSummary) => EndButton[];
 }
 
-function BattleRun({ initial, launch, showDanger, onCheckpoint, quitText, endNote, endButtons }: BattleRunProps) {
+function BattleRun({ initial, launch, look, showDanger, onCheckpoint, quitText, endNote, endButtons }: BattleRunProps) {
   const controller = useMemo(
     () =>
       new BattleController(initial, gameData, {
@@ -160,13 +166,16 @@ function BattleRun({ initial, launch, showDanger, onCheckpoint, quitText, endNot
   const insets = useRef<Insets>({ top: 0, right: 0, bottom: 0, left: 0 });
   const [quitting, setQuitting] = useState(false);
 
-  // Mount Phaser (loaded lazily so the title stays light) and the test hook.
+  // Mount Phaser (loaded lazily so the title stays light) and the test hook. The main character's token is
+  // composed from their look first; if that fails the map shows the placeholder.
   useEffect(() => {
     let cancelled = false;
     const removeHook = launch.test ? installTestHook(controller, gameData, () => game.current, () => writes.idle()) : null;
-    void import('../game/start').then(({ startGame }) => {
+    const lord = controller.view.state.units.find((u) => u.isLord && u.team === 'player');
+    const token = lord ? composeMcToken(look, lord.classId).then(copyCanvas, () => null) : Promise.resolve(null);
+    void Promise.all([import('../game/start'), token]).then(([{ startGame }, mcToken]) => {
       if (cancelled || !host.current) return;
-      game.current = startGame(host.current, controller.view.state, gameData, controller);
+      game.current = startGame(host.current, controller.view.state, gameData, controller, { mcToken });
       game.current.setInsets(insets.current);
     });
     return () => {
@@ -215,7 +224,7 @@ function BattleRun({ initial, launch, showDanger, onCheckpoint, quitText, endNot
         <TopBar view={view} onSpeed={setSpeed} onQuit={() => setQuitting(true)} />
       </div>
       <div class="dock" ref={dock}>
-        {levelUp ? <LevelUp popup={levelUp} onClose={() => controller.dismissPopup()} /> : <DockPanel view={view} controller={controller} />}
+        {levelUp ? <LevelUp popup={levelUp} onClose={() => controller.dismissPopup()} /> : <DockPanel view={view} controller={controller} look={look} />}
         <BottomBar view={view} data={gameData} onDanger={() => controller.toggleDanger()} onEndTurn={() => controller.requestEndTurn()} />
       </div>
       {banner && <PhaseBanner phase={banner.phase} turn={banner.turn} />}
@@ -244,7 +253,16 @@ function BattleRun({ initial, launch, showDanger, onCheckpoint, quitText, endNot
   );
 }
 
-function DockPanel({ view, controller }: { view: BattleView; controller: BattleController }) {
+/** Phaser keeps the canvas it is given; it gets its own copy of the shared composed one. */
+function copyCanvas(src: HTMLCanvasElement): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = src.width;
+  c.height = src.height;
+  c.getContext('2d')!.drawImage(src, 0, 0);
+  return c;
+}
+
+function DockPanel({ view, controller, look }: { view: BattleView; controller: BattleController; look: McLook }) {
   if (view.busy) return null;
   const { state, selection: sel } = view;
   const unit = (id: string) => state.units.find((u) => u.id === id)!;
@@ -255,6 +273,6 @@ function DockPanel({ view, controller }: { view: BattleView; controller: BattleC
   }
   if (sel.kind === 'menu') return <ActionMenu unit={unit(sel.unitId)} options={view.menu} run={run} />;
   if (sel.kind === 'target') return <TargetHint mode={sel.mode} run={run} />;
-  if (sel.kind === 'unit' || sel.kind === 'inspect') return <UnitCard unit={unit(sel.unitId)} data={gameData} />;
+  if (sel.kind === 'unit' || sel.kind === 'inspect') return <UnitCard unit={unit(sel.unitId)} data={gameData} look={look} />;
   return null;
 }

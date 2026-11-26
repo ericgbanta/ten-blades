@@ -535,10 +535,257 @@
   color: var(--menu-gold);
 }
 
+/* Character creator */
+
+.creator {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* The preview stays in view under the header while the options scroll. */
+.creator-preview {
+  position: sticky;
+  top: calc(61px + env(safe-area-inset-top));
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 14px;
+  margin: -6px -16px 0;
+  padding: 6px 16px 10px;
+  background: linear-gradient(#170f15 0%, #170f15 88%, rgba(23, 15, 21, 0));
+  border-bottom: 1px solid var(--menu-line);
+}
+
+.creator-portrait {
+  padding: 0;
+  border: 1px solid var(--menu-line);
+  border-radius: 8px;
+  background: radial-gradient(ellipse at 50% 35%, #3a2630 0%, #1a1218 70%);
+  line-height: 0;
+  cursor: pointer;
+}
+
+.creator-portrait:focus-visible,
+.creator-tab:focus-visible,
+.opt:focus-visible,
+.swatch:focus-visible {
+  outline: 2px solid var(--menu-gold);
+  outline-offset: 2px;
+}
+
+.creator-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.creator-token {
+  border-radius: 8px;
+  background: radial-gradient(ellipse at 50% 80%, #2c3a4a 0%, #161219 70%);
+}
+
+.menu-screen .btn.creator-random {
+  padding: 0 14px;
+  font-size: 0.95rem;
+}
+
+.creator-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.creator-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.creator-tab {
+  min-height: 44px;
+  border: 1px solid var(--menu-line);
+  border-radius: 6px;
+  background: var(--menu-panel);
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.creator-tab.on {
+  border-color: #d0505a;
+  background: #2c1218;
+  color: var(--ink);
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+
+.creator-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.opts {
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.opts legend {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--menu-gold);
+}
+
+.opts-value {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.opt-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.opt {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 1px solid var(--menu-line);
+  border-radius: 6px;
+  background: var(--menu-panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.opt.on {
+  border-color: #d0505a;
+  background: #2c1218;
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swatch {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 2px solid #0c0a0f;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #5a4250;
+}
+
+.swatch.on {
+  box-shadow:
+    0 0 0 2px var(--menu-gold),
+    0 0 0 4px #0c0a0f;
+}
+
+/* The MC art check page (#/dev/mc) */
+
+.menu-screen.wide .menu-body {
+  max-width: 900px;
+}
+
+.devmc-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.devmc-head .menu-lead {
+  flex: 1 1 220px;
+  font-size: 0.9rem;
+}
+
+.devmc-h {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--menu-gold);
+}
+
+.devmc-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.devmc-row figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--menu-line);
+  border-radius: 6px;
+  background: #1a1218;
+}
+
+.devmc-row figcaption {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 /* Landscape phones: two columns for long lists, less vertical padding. */
 @media (orientation: landscape) and (max-height: 540px) {
   .menu-body {
     max-width: 760px;
+  }
+
+  /* The creator: preview on the left, options on the right. */
+  .menu-screen.wide .menu-body {
+    max-width: 860px;
+  }
+
+  .creator {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 16px;
+  }
+
+  .creator-preview {
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+  }
+
+  .creator-side {
+    flex-direction: row;
+  }
+
+  .creator-token {
+    width: 64px !important;
+    height: 64px !important;
   }
 
   .choices-list {

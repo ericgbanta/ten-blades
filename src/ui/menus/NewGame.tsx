@@ -1,71 +1,34 @@
-// The new game flow: pick a slot, pick the modes, make the main character, begin.
-// Steps are a list so phase 4 can add the look creator as its own step (or grow
-// HeroStep) without touching the others.
+// The new game flow: pick a slot, pick the modes, name the main character, then
+// make their look and combat style in the creator, and begin. The state and the
+// step rules are in newGameDraft.ts; the creator is Creator.tsx.
 
 import type { JSX } from 'preact';
 import { useState } from 'preact/hooks';
 import { chapters } from '../../data';
 import { newCampaign } from '../../save/campaign';
-import {
-  DIFFICULTIES,
-  MC_NAME_MAX,
-  MC_STYLES,
-  PERMADEATH_MODES,
-  PRONOUNS,
-  type CampaignSettings,
-  type McProfile,
-  type SlotId,
-} from '../../save/format';
-import { checkName } from '../../save/validate';
-import { ShapeError } from '../../save/shape';
+import { DIFFICULTIES, MC_NAME_MAX, PERMADEATH_MODES, PRONOUNS, type CampaignSettings, type McProfile, type SlotId } from '../../save/format';
 import { now, startRun, writes } from '../saves';
 import { Choices, Confirm, Screen, SlotCard, goTo, useSaves, type SavesView } from './Screen';
-import { DIFFICULTY_TEXT, PERMADEATH_TEXT, PRONOUN_TEXT, STYLE_TEXT, styleSchool } from './copy';
+import { DIFFICULTY_TEXT, PERMADEATH_TEXT, PRONOUN_TEXT } from './copy';
+import { Creator } from './Creator';
+import { DEFAULT_DRAFT, STEP_INFO, stepProblem, withMc, type NewGameDraft, type StepId } from './newGameDraft';
 
-export interface NewGameDraft {
-  slot: SlotId | null;
-  settings: CampaignSettings;
-  mc: McProfile;
-}
-
-const DEFAULT_DRAFT: NewGameDraft = {
-  slot: null,
-  settings: { permadeath: 'classic', difficulty: 'normal' },
-  mc: { name: '', pronouns: 'they', style: 'vanguard' },
-};
+export type { NewGameDraft };
 
 interface StepProps {
   draft: NewGameDraft;
   saves: SavesView;
   update: (patch: Partial<NewGameDraft>) => void;
+  set: (next: (d: NewGameDraft) => NewGameDraft) => void;
   next: () => void;
 }
 
-interface Step {
-  id: string;
-  title: string;
-  /** Label of the button that leaves this step. Null when the step moves on by itself. */
-  nextLabel: string | null;
-  /** Why the step cannot move on yet, or null. */
-  blocked?: (d: NewGameDraft) => string | null;
-  View: (p: StepProps) => JSX.Element;
-}
-
-function nameProblem(d: NewGameDraft): string | null {
-  try {
-    checkName(d.mc.name, '');
-    return null;
-  } catch (e) {
-    if (e instanceof ShapeError) return `Give your hero a name (up to ${MC_NAME_MAX} characters).`;
-    throw e;
-  }
-}
-
-export const NEW_GAME_STEPS: readonly Step[] = [
-  { id: 'slot', title: 'Choose a slot', nextLabel: null, View: SlotStep },
-  { id: 'mode', title: 'Your path', nextLabel: 'Next', View: ModeStep },
-  { id: 'hero', title: 'Your hero', nextLabel: 'Begin', blocked: nameProblem, View: HeroStep },
-];
+const VIEWS: Record<StepId, (p: StepProps) => JSX.Element> = {
+  slot: SlotStep,
+  mode: ModeStep,
+  hero: HeroStep,
+  look: ({ draft, set }) => <Creator draft={draft} set={set} />,
+};
 
 export function NewGame() {
   const { saves } = useSaves();
@@ -73,11 +36,13 @@ export function NewGame() {
   const [draft, setDraft] = useState<NewGameDraft>(DEFAULT_DRAFT);
   const [problem, setProblem] = useState<string | null>(null);
   const [confirmSuspend, setConfirmSuspend] = useState(false);
-  const step = NEW_GAME_STEPS[index]!;
-  const update = (patch: Partial<NewGameDraft>) => {
+  const step = STEP_INFO[index]!;
+  const View = VIEWS[step.id];
+  const set = (f: (d: NewGameDraft) => NewGameDraft) => {
     setProblem(null);
-    setDraft((d) => ({ ...d, ...patch }));
+    setDraft(f);
   };
+  const update = (patch: Partial<NewGameDraft>) => set((d) => ({ ...d, ...patch }));
 
   const begin = async () => {
     if (!saves || draft.slot === null) return;
@@ -90,12 +55,12 @@ export function NewGame() {
   };
 
   const next = () => {
-    const why = step.blocked?.(draft) ?? null;
+    const why = stepProblem(step.id, draft);
     if (why) {
       setProblem(why);
       return;
     }
-    if (index < NEW_GAME_STEPS.length - 1) {
+    if (index < STEP_INFO.length - 1) {
       setIndex(index + 1);
       return;
     }
@@ -105,13 +70,13 @@ export function NewGame() {
 
   const back = index === 0 ? goTo('#/') : () => setIndex(index - 1);
   return (
-    <Screen title={step.title} back={back} backLabel={index === 0 ? 'Title' : 'Back'}>
-      <p class="menu-steps" aria-label={`Step ${index + 1} of ${NEW_GAME_STEPS.length}`}>
-        {NEW_GAME_STEPS.map((s, i) => (
+    <Screen title={step.title} back={back} backLabel={index === 0 ? 'Title' : 'Back'} wide={step.id === 'look'}>
+      <p class="menu-steps" aria-label={`Step ${index + 1} of ${STEP_INFO.length}`}>
+        {STEP_INFO.map((s, i) => (
           <span key={s.id} class={`menu-step${i === index ? ' on' : ''}${i < index ? ' done' : ''}`} />
         ))}
       </p>
-      {saves ? <step.View draft={draft} saves={saves} update={update} next={next} /> : <p class="muted">Reading saves...</p>}
+      {saves ? <View draft={draft} saves={saves} update={update} set={set} next={next} /> : <p class="muted">Reading saves...</p>}
       {problem && (
         <p class="menu-error" role="alert">
           {problem}
@@ -200,9 +165,9 @@ function ModeStep({ draft, update }: StepProps) {
   );
 }
 
-/** Name, pronouns and combat style. Phase 4 adds the look (body, skin, hair, face, marking, accent). */
-function HeroStep({ draft, update }: StepProps) {
-  const set = (patch: Partial<McProfile>) => update({ mc: { ...draft.mc, ...patch } });
+/** Name and pronouns. The look and the combat style come next, in the creator. */
+function HeroStep({ draft, set }: StepProps) {
+  const setMc = (patch: Partial<McProfile>) => set((d) => withMc(d, patch));
   return (
     <>
       <label class="field">
@@ -216,7 +181,7 @@ function HeroStep({ draft, update }: StepProps) {
           autocapitalize="words"
           spellcheck={false}
           placeholder="Your name"
-          onInput={(e) => set({ name: (e.currentTarget as HTMLInputElement).value })}
+          onInput={(e) => setMc({ name: (e.currentTarget as HTMLInputElement).value })}
         />
       </label>
       <Choices
@@ -224,14 +189,9 @@ function HeroStep({ draft, update }: StepProps) {
         compact
         value={draft.mc.pronouns}
         options={PRONOUNS.map((p) => ({ value: p, name: PRONOUN_TEXT[p] }))}
-        onChange={(pronouns) => set({ pronouns })}
+        onChange={(pronouns) => setMc({ pronouns })}
       />
-      <Choices
-        label="Combat style"
-        value={draft.mc.style}
-        options={MC_STYLES.map((s) => ({ value: s, name: STYLE_TEXT[s].name, tag: styleSchool(s), line: STYLE_TEXT[s].feel }))}
-        onChange={(style) => set({ style })}
-      />
+      <p class="menu-note">Next you choose how your hero looks and fights.</p>
     </>
   );
 }

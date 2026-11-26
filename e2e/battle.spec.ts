@@ -102,6 +102,8 @@ test('plays the prologue to the victory screen by taps', async ({ page }) => {
 
   // Play again starts a fresh battle on the same seed.
   await end.getByRole('button', { name: 'Play again' }).tap();
+  // The old battle's hook can answer until the new battle has mounted, so wait for the fresh state.
+  await expect.poll(() => page.evaluate(() => window.__tb?.getState().turn ?? null)).toBe(1);
   await idle(page);
   const fresh = await state(page);
   expect(fresh.turn).toBe(1);

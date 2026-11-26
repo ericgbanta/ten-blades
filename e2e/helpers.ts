@@ -65,6 +65,8 @@ export interface NewGameChoices {
   style?: 'Vanguard' | 'Duelist' | 'Spiritblade';
   permadeath?: 'Classic' | 'Casual';
   difficulty?: 'Normal' | 'Hard' | 'Lunatic';
+  /** Creator picks: [tab, radio name] pairs, tapped in order (for example ['Hair', 'Ponytail']). */
+  look?: [string, string][];
 }
 
 /** From the title screen, through the new game flow, into the prologue. */
@@ -78,7 +80,16 @@ export async function newGame(page: Page, c: NewGameChoices): Promise<void> {
   await page.getByRole('button', { name: 'Next' }).tap();
   await expect(page.getByRole('heading', { name: 'Your hero' })).toBeVisible();
   await page.getByRole('textbox', { name: 'Name' }).fill(c.name);
-  if (c.style) await page.getByRole('radio', { name: new RegExp(`^${c.style}`) }).tap();
+  await page.getByRole('button', { name: 'Next' }).tap();
+  await expect(page.getByRole('heading', { name: 'Your look' })).toBeVisible();
+  for (const [tab, option] of c.look ?? []) {
+    await page.getByRole('tab', { name: tab }).tap();
+    await page.getByRole('radio', { name: option, exact: true }).tap();
+  }
+  if (c.style) {
+    await page.getByRole('tab', { name: 'Style' }).tap();
+    await page.getByRole('radio', { name: new RegExp(`^${c.style}`) }).tap();
+  }
   await page.getByRole('button', { name: 'Begin' }).tap();
   await expect(page).toHaveURL(/#\/battle$/);
   await idle(page);

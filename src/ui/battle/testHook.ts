@@ -22,6 +22,8 @@ export interface TestHook {
   suggest(unitId: string): Action;
   /** Resolves once every queued save write has finished. */
   saved(): Promise<boolean>;
+  /** The texture key a unit's map token shows (`token.mc` for the composed main character), or null. */
+  tokenTexture(unitId: string): string | null;
 }
 
 declare global {
@@ -52,6 +54,7 @@ export function installTestHook(
       new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(game()?.cameraIdle() ?? false)))),
     suggest: (unitId) => planUnitAction(c.view.state, unitId, data, CHARGE),
     saved: () => flush().then(() => true),
+    tokenTexture: (unitId) => game()?.tokenTexture(unitId) ?? null,
   };
   return () => {
     delete window.__tb;

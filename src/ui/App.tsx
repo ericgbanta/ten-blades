@@ -5,6 +5,7 @@ import { NewGame } from './menus/NewGame';
 import { LoadGame } from './menus/LoadGame';
 import { Settings } from './menus/Settings';
 import { ChapterComplete } from './menus/ChapterComplete';
+import { DevMc } from './DevMc';
 
 function currentRoute(): string {
   // A query after the route (`#/battle?seed=3`) carries test overrides, not a route.
@@ -29,6 +30,8 @@ export function App() {
       return <Settings />;
     case '/complete':
       return <ChapterComplete />;
+    case '/dev/mc':
+      return <DevMc />;
     default:
       return <Title />;
   }

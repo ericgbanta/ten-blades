@@ -209,6 +209,27 @@
   font-size: 0.85rem;
 }
 
+/* The main character's card shows their face beside the name and HP. */
+.unit-card.with-face {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  column-gap: 10px;
+  row-gap: 6px;
+  align-items: center;
+}
+
+.unit-card.with-face > .unit-face {
+  grid-row: 1 / span 2;
+  border: 1px solid #3e2c38;
+  border-radius: 6px;
+  background: #1c141e;
+}
+
+.unit-card.with-face > .stats,
+.unit-card.with-face > .weapon {
+  grid-column: 1 / -1;
+}
+
 .tag {
   margin-left: 6px;
   padding: 0 6px;

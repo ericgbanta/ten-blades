@@ -93,6 +93,11 @@ export class UnitToken extends Phaser.GameObjects.Container {
   /** HP shown by the bar, tweened toward the real value. */
   shownHp: number;
 
+  /** Texture key of the art this token shows, or null for the placeholder. */
+  get textureKey(): string | null {
+    return this.look.texture;
+  }
+
   constructor(
     scene: Phaser.Scene,
     private readonly look: TokenLook,

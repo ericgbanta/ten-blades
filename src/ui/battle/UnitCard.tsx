@@ -1,4 +1,6 @@
 import type { GameData, Unit } from '../../core';
+import type { McLook } from '../../art/mc/look';
+import { McFace } from '../mc/McPicture';
 import { SCHOOL_LABEL, STAT_LABEL } from './text';
 
 const SHOWN = ['str', 'mag', 'skl', 'spd', 'lck', 'def', 'res', 'mov'] as const;
@@ -13,12 +15,14 @@ export function HpBar({ hp, max }: { hp: number; max: number }) {
   );
 }
 
-/** Compact sheet for any unit: name, class, level, HP, stats and weapon. */
-export function UnitCard({ unit, data }: { unit: Unit; data: GameData }) {
+/** Compact sheet for any unit: name, class, level, HP, stats and weapon. The main character shows their face. */
+export function UnitCard({ unit, data, look }: { unit: Unit; data: GameData; look?: McLook }) {
   const cls = data.classes[unit.classId];
   const w = unit.weaponId ? data.weapons[unit.weaponId] : undefined;
+  const face = look && unit.isLord && unit.team === 'player';
   return (
-    <section class={`panel unit-card team-${unit.team}`} aria-label={`${unit.name} details`}>
+    <section class={`panel unit-card team-${unit.team}${face ? ' with-face' : ''}`} aria-label={`${unit.name} details`}>
+      {face && <McFace look={look} size={52} label={`${unit.name}'s portrait`} class="unit-face" />}
       <header class="unit-head">
         <strong class="unit-name">
           {unit.name}

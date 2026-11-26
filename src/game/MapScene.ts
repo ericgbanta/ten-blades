@@ -29,6 +29,9 @@ const REVEAL_MARGIN_CSS = 12;
 /** Tiles of free space above the map, for the heads of units on its top row. */
 const HEADROOM = 0.3;
 
+/** Texture key of the main character's token, composed at runtime from their look (see src/art/mc). */
+export const MC_TOKEN_KEY = 'token.mc';
+
 const tileCenter = (p: Pos): { x: number; y: number } => ({ x: (p.x + 0.5) * TILE, y: (p.y + 0.5) * TILE });
 
 export class MapScene extends Phaser.Scene implements Stage {
@@ -49,6 +52,8 @@ export class MapScene extends Phaser.Scene implements Stage {
     private readonly gameData: GameData,
     private readonly input0: SceneInput,
     private readonly dpr: number,
+    /** The composed token of the main character, or null to use the class token or placeholder. */
+    private readonly mcToken: HTMLCanvasElement | null = null,
   ) {
     super('map');
     this.lastState = initial;
@@ -72,6 +77,7 @@ export class MapScene extends Phaser.Scene implements Stage {
 
   create(): void {
     const s = this.lastState;
+    if (this.mcToken && !this.textures.exists(MC_TOKEN_KEY)) this.textures.addCanvas(MC_TOKEN_KEY, this.mcToken);
     const cam = this.cameras.main;
     cam.setOrigin(0, 0);
     this.drawMap(s);
@@ -274,7 +280,7 @@ export class MapScene extends Phaser.Scene implements Stage {
     if (!t) {
       const cls = this.gameData.classes[u.classId];
       const weapon = u.weaponId ? this.gameData.weapons[u.weaponId] : undefined;
-      const key = `token.${u.classId}`;
+      const key = u.isLord && u.team === 'player' && this.textures.exists(MC_TOKEN_KEY) ? MC_TOKEN_KEY : `token.${u.classId}`;
       t = new UnitToken(
         this,
         {
@@ -295,6 +301,11 @@ export class MapScene extends Phaser.Scene implements Stage {
       this.tokens.set(u.id, t);
     }
     return t;
+  }
+
+  /** The texture a unit's token shows (null for a placeholder or no token yet). For the test hook. */
+  tokenTexture(unitId: string): string | null {
+    return this.tokens.get(unitId)?.textureKey ?? null;
   }
 
   update(): void {

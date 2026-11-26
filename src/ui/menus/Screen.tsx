@@ -9,9 +9,9 @@ import { settledStorage } from '../saves';
 import { formatTime, slotLine } from './copy';
 import './menus.css';
 
-export function Screen(props: { title: string; back?: () => void; backLabel?: string; children: ComponentChildren }) {
+export function Screen(props: { title: string; back?: () => void; backLabel?: string; wide?: boolean; children: ComponentChildren }) {
   return (
-    <div class="menu-screen">
+    <div class={`menu-screen${props.wide ? ' wide' : ''}`}>
       <header class="menu-head">
         {props.back ? (
           <button type="button" class="btn quiet menu-back" onClick={props.back}>
