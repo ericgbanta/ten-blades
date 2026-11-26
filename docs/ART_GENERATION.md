@@ -54,6 +54,8 @@ The raw sheets expected, by name:
 | `expr-<id>.png` | 2x2 bust expressions: neutral, angry, hurt, smile. For stranger, gravemaw, captain. |
 | `busts-militia.png`, `busts-imperial.png` | 2x2 neutral busts: soldier, ranger, adept, medic; legionary, hunter, inquisitor, archer. |
 | `tokens-named.png`, `tokens-militia.png`, `tokens-imperial.png` | One row of chibi map tokens: stranger, gravemaw, captain; the four militia; the four imperial. |
+| `tiles-<set>.png` | A 4x2 grid of square terrain tiles on `#00ff00` green with green gaps, in order plain, road, forest, hill, fort, village, water, wall. Set so far: `village`. |
+| `backdrop-<name>.png` | One full-screen battle backdrop. Name so far: `village`. |
 
 How it works. Keying: the amount by which green exceeds red and blue says how much of a pixel is background, edge pixels are unmixed from the green (so no fringe or halo, and the anti-aliased edge stays), and enclosed pockets that reach strong green anywhere are keyed too (between an arm and the body, hair gaps). A pale yellow-green glow never reaches that level, so lantern light survives. Splitting: each connected piece goes to the grid cell that holds most of it, so a long weapon, a flying arrow or a smoke wisp stays with its character; specks under 40 px are dropped and reported. Specks and straddling pieces are printed as the script runs.
 
@@ -65,7 +67,14 @@ Output layout and size rules:
 | `src/art/portraits/` | `<id>-<expr>.webp`; generic units only `<id>-neutral.webp` | 384 x 384, bust cropped tight, bottom aligned and centered, one scale per character. |
 | `src/art/tokens/` | `<classId>.webp` | 192 x 192, bottom centered with an 8 px margin. Reads at 48 px on a 2x or 3x screen. |
 
-Ids in the manifest: `battle.<id>.<pose>`, `portrait.<id>.<expr>` and `token.<classId>`. Battle and portrait ids use the sheet id (stranger, gravemaw, captain, soldier, and so on). Tokens use the class id the map asks for: the Stranger is `token.wanderer`, the Hunter-Captain is `token.hunter_captain`, and Gravemaw's bearer, who has no class yet, is `token.gravemaw_bearer`. Each entry holds `path` (relative to `src/art`), `width`, `height` and `bbox` ([x, y, w, h] of the visible art); battle entries add `groundY`, `anchorX` and `scale`. `imageUrl(id)` gives the bundled URL and `imageMeta(id)` the entry. `src/art/manifest.ts` bundles every `.webp` under `src/art` with `import.meta.glob`, so new folders need no change there. `tests/art-manifest.test.ts` checks every entry's file exists and ids are well formed.
+Tiles and backdrops are not keyed. `pack_tiles` finds the tile rectangles from the runs of non-green columns and rows (it stops if it does not find 4 by 2), insets each by 4 px to drop edge fringe, and resizes to 96 x 96 WebP; the map draws a tile at about 46 CSS px, so 96 is 2x on a 2x screen. `pack_backdrop` resizes to 1152 x 768. Run `python3 tools/art/pack.py <raw_dir> tiles backdrops` (or `village` for one set).
+
+| Folder | Files | Canvas |
+| --- | --- | --- |
+| `src/art/tiles/` | `<terrainId>.webp`, one per id in `src/data/terrain.json` | 96 x 96, opaque |
+| `src/art/backdrops/` | `<name>.webp` | 1152 x 768, opaque |
+
+Ids in the manifest: `battle.<id>.<pose>`, `portrait.<id>.<expr>`, `token.<classId>`, `tile.<terrainId>` and `backdrop.<name>`. Battle and portrait ids use the sheet id (stranger, gravemaw, captain, soldier, and so on). Tokens use the class id the map asks for: the Stranger is `token.wanderer`, the Hunter-Captain is `token.hunter_captain`, and Gravemaw's bearer, who has no class yet, is `token.gravemaw_bearer`. Each entry holds `path` (relative to `src/art`), `width`, `height` and `bbox` ([x, y, w, h] of the visible art); battle entries add `groundY`, `anchorX` and `scale`. `imageUrl(id)` gives the bundled URL and `imageMeta(id)` the entry. `src/art/manifest.ts` bundles every `.webp` under `src/art` with `import.meta.glob`, so new folders need no change there. `tests/art-manifest.test.ts` checks every entry's file exists and ids are well formed.
 
 ## What exists
 
@@ -76,4 +85,7 @@ Ids in the manifest: `battle.<id>.<pose>`, `portrait.<id>.<expr>` and `token.<cl
 | Thief rework (sheet 1), pose sheets (11), expression sheets (3), generic bust sheets (2), token sheets (3) | 20 | All usable first try. Packed by `tools/art/pack.py` into 75 WebP files (44 battle poses, 20 portraits, 11 tokens), about 1.5 MB. |
 | Thief and Adept follow-up | 7 | The thief's expressions, poses and token from the reworked sheet. The Adept redone as a fair-haired young man with spectacles (sheet, poses, bust, token), because the first one looked like the Ranger and the Stranger. The thief is packed shorter than the adults (`IDLE_HEIGHT` in `pack.py`). All usable first try. |
 
-Not made yet: MC layers, tilesets, backdrops, icons.
+| Village tileset 1 | 1 | The eight terrain tiles (`tile.plain` to `tile.wall`). Usable first try. |
+| Village battle backdrop 1 | 1 | `backdrop.village`, kept in the manifest for the later battle scene phase. Usable first try. |
+
+Not made yet: MC layers, tokens for the MC's three style classes, other tilesets and backdrops, icons.

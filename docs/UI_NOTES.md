@@ -11,7 +11,7 @@ How the battle screen is put together (phase 2). The rules live in `src/core`; e
 | `src/battle/controller.ts` | `BattleController`: owns the `BattleState`, the selection and the event playback queue. Plain TypeScript, no DOM or Phaser. |
 | `src/battle/stage.ts` | The `Stage` interface the controller draws through. |
 | `src/game/MapScene.ts` | The Phaser scene. Implements `Stage`: terrain, highlights, tokens, camera, touch input and the in-map animations. |
-| `src/game/token.ts`, `terrainArt.ts`, `palette.ts` | Placeholder tokens and tiles drawn in code. |
+| `src/game/token.ts`, `terrainArt.ts`, `palette.ts` | Unit tokens, placeholder tiles drawn in code, and the colors. See Tokens below. |
 | `src/game/camera.ts`, `gestures.ts` | Pure camera math (clamp, zoom around a point, reveal a tile) and the tap, pan and pinch tracker. |
 | `src/game/start.ts` | Boots Phaser and returns a small `GameHandle`. |
 | `src/ui/Battle.tsx` | The battle route: plays the campaign run (new, loaded or resumed) or a quick battle, builds the controller, mounts Phaser, renders the overlays, measures them for the camera. |
@@ -55,6 +55,14 @@ Timing: every animation length goes through `Timing.ms(base)`, scaled by the spe
 - The overlays report the screen area they cover (`coveredInsets`); the camera clamps to the uncovered area and pans the selected tile into it when panels open. In landscape the dock becomes a column on the right.
 - Art: tiles use texture `tile.<terrainId>` and tokens `token.<classId>` when `src/art/assets.json` lists them; otherwise they are drawn in code. Adding an image to the manifest needs no code change.
 - The previewed move walks the real token to the tile; Cancel snaps it home. When the action is confirmed, a token already standing on the destination skips the walk.
+
+## Tokens
+
+- Every unit stands on a flat team-colored base at its feet: player blue, enemy crimson, ally green (`TEAM_COLORS` in `palette.ts`), grey once the unit has acted. Team is read from the base, never from the sprite.
+- A class with `token.<classId>` art is drawn about a tile tall, so its head may reach about a quarter of a tile into the tile above. Lower rows draw over upper rows (depth is 10 plus row times 0.01). The sprite gets a thin light outline, baked once per texture into a canvas texture (`<key>#outline`) so it works under WebGL and the canvas renderer, and a white silhouette (`<key>#flash`) for the hit flash.
+- A class with no art (the MC's three style classes for now) shows a team-colored disc (a shield for enemies) with its initial and a school pip, standing on the same base.
+- The HP bar and the lord star (top left) and boss crown (top right) live in a second container at depth 25, above every token, which `MapScene.update` keeps on its token. A unit below never covers them with its head.
+- The camera allows a 0.3 tile strip above the map, so heads on the top row can be panned into view.
 
 ## Test hook
 
