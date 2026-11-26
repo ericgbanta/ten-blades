@@ -6,7 +6,7 @@ import { gameData } from '../src/data';
 
 const images = JSON.parse(readFileSync(join(__dirname, '..', 'src', 'art', 'assets.json'), 'utf8')).images as Record<string, unknown>;
 const has = (k: string) => k in images;
-const CHARS: Record<string, string> = { '.': 'plain', '=': 'road', '#': 'wall', '~': 'water', B: 'bridge', f: 'ford', T: 'fort', F: 'forest', V: 'village' };
+const CHARS: Record<string, string> = { '.': 'plain', '=': 'road', '#': 'wall', '~': 'water', B: 'bridge', f: 'ford', T: 'fort', F: 'forest', V: 'village', c: 'canal', ',': 'cobble', G: 'gate', X: 'building' };
 
 function grid(rows: string[], mapId = 'test'): GroundInput {
   return { mapId, width: rows[0]!.length, height: rows.length, terrain: rows.join('').split('').map((c) => CHARS[c]!) };
@@ -110,6 +110,20 @@ describe('variants', () => {
       }
     }
     expect(new Set(v).size).toBe(3);
+  });
+});
+
+describe('town pieces', () => {
+  it('walls join gates and houses', () => {
+    expect(links(grid(['#G#']), 0, 0)).toBe(E | W);
+    expect(links(grid([',,,', 'X#X', ',,,']), 1, 1)).toBe(E | W);
+  });
+  it('a bridge over a canal is the canal tile with the planks turned north to south; over a river it keeps its banks', () => {
+    const g = grid([',,,', 'cBc', ',,,']);
+    expect(keys(planGround(g, has)[4]!.ops)).toEqual(['canal@0', 'bridge.deck@1']);
+    const river = grid(['...', '~B~', '...']);
+    expect(keys(planGround(river, has)[4]!.ops)[0]).toBe('water@0');
+    expect(groundKeys(g)).toContain('tile.canal');
   });
 });
 

@@ -16,6 +16,14 @@ export const TERRAIN_CHARS: Record<string, string> = {
   fort: 'T',
   bridge: 'B',
   ford: 'f',
+  cobble: ',',
+  flagstone: '_',
+  building: 'X',
+  stall: 'S',
+  rubble: 'r',
+  canal: 'c',
+  gate: 'G',
+  crates: 'C',
 };
 
 /** Size of a tile in the Tiled files (the packed tile size, so the tileset image is drawn 1:1). */

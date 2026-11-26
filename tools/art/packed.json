@@ -1806,6 +1806,96 @@
   "path": "tiles/bridge.webp",
   "width": 96
  },
+ "tile.building": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 3988,
+  "height": 96,
+  "path": "tiles/building.webp",
+  "source": [
+   783,
+   175,
+   334,
+   334
+  ],
+  "width": 96
+ },
+ "tile.canal": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 2278,
+  "height": 96,
+  "path": "tiles/canal.webp",
+  "source": [
+   420,
+   550,
+   334,
+   334
+  ],
+  "width": 96
+ },
+ "tile.cobble": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 4692,
+  "height": 96,
+  "path": "tiles/cobble.webp",
+  "source": [
+   56,
+   175,
+   335,
+   334
+  ],
+  "width": 96
+ },
+ "tile.crates": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 4592,
+  "height": 96,
+  "path": "tiles/crates.webp",
+  "source": [
+   1146,
+   550,
+   335,
+   334
+  ],
+  "width": 96
+ },
+ "tile.flagstone": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 3576,
+  "height": 96,
+  "path": "tiles/flagstone.webp",
+  "source": [
+   420,
+   175,
+   334,
+   334
+  ],
+  "width": 96
+ },
  "tile.ford": {
   "bbox": [
    0,
@@ -1875,6 +1965,24 @@
    551,
    335,
    335
+  ],
+  "width": 96
+ },
+ "tile.gate": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 4690,
+  "height": 96,
+  "path": "tiles/gate.webp",
+  "source": [
+   783,
+   550,
+   334,
+   334
   ],
   "width": 96
  },
@@ -1992,6 +2100,24 @@
   "path": "tiles/road-straight.webp",
   "width": 96
  },
+ "tile.rubble": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 4434,
+  "height": 96,
+  "path": "tiles/rubble.webp",
+  "source": [
+   56,
+   550,
+   335,
+   334
+  ],
+  "width": 96
+ },
  "tile.shore.corner": {
   "bbox": [
    0,
@@ -2014,6 +2140,24 @@
   "bytes": 1832,
   "height": 96,
   "path": "tiles/shore-edge.webp",
+  "width": 96
+ },
+ "tile.stall": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 4616,
+  "height": 96,
+  "path": "tiles/stall.webp",
+  "source": [
+   1146,
+   175,
+   335,
+   334
+  ],
   "width": 96
  },
  "tile.village": {

@@ -45,7 +45,11 @@ PORTRAIT_MARGIN = 8
 TOKEN = 192                       # square token canvas
 TOKEN_MARGIN = 8
 TILE_ORDER = ['plain', 'road', 'forest', 'hill', 'fort', 'village', 'water', 'wall']   # 4x2 grid, reading order
-TILE_SETS = ['village']           # tiles-<set>.png; the first set found supplies tile.<terrainId>
+# tiles-<set>.png and the terrain id of each of its 4x2 tiles in reading order. Each set supplies tile.<terrainId>.
+TILE_SETS = {
+    'village': TILE_ORDER,
+    'stone': ['cobble', 'flagstone', 'building', 'stall', 'rubble', 'canal', 'gate', 'crates'],
+}
 TILE_SIZE = 96                    # square tile canvas (the map draws it at about 46 CSS px, so 2x on a 2x screen)
 TILE_INSET = 4                    # source px dropped from every edge of a tile rectangle (removes edge fringe)
 BACKDROPS = ['village', 'forest', 'ruin', 'town', 'camp']  # backdrop-<name>.png
@@ -295,7 +299,7 @@ def runs(flag):
     return list(zip(np.nonzero(d == 1)[0].tolist(), np.nonzero(d == -1)[0].tolist()))
 
 
-def pack_tiles(raw, tset, report, assets):
+def pack_tiles(raw, tset, report, assets, order=TILE_ORDER):
     """Terrain tiles from tiles-<tset>.png: a 4x2 grid of square tiles on #00ff00 green with green gaps.
 
     Tile rectangles are the runs of non-green columns and rows. Each is inset TILE_INSET px to drop edge fringe,
@@ -313,7 +317,7 @@ def pack_tiles(raw, tset, report, assets):
     k = 0
     for (y0, y1) in rows:
         for (x0, x1) in cols:
-            tid = TILE_ORDER[k]
+            tid = order[k]
             k += 1
             crop = Image.open(path).convert('RGB').crop((x0 + TILE_INSET, y0 + TILE_INSET, x1 - TILE_INSET, y1 - TILE_INSET))
             rel = f'tiles/{tid}.webp'
@@ -726,10 +730,10 @@ def main():
         if want(cid, 'tokens'):
             print(f'token {cid}')
             pack_tokens(raw, cid, [cid], report, assets, single=True)
-    for tset in TILE_SETS:
+    for tset, order in TILE_SETS.items():
         if want(tset, 'tiles'):
             print(f'tiles {tset}')
-            pack_tiles(raw, tset, report, assets)
+            pack_tiles(raw, tset, report, assets, order)
     if want('map', 'variants', 'connect', 'pieces'):
         print('map tiles')
         pack_map_tiles(raw, report, assets)

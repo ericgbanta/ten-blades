@@ -5,13 +5,13 @@
  "name": "terrain",
  "tilewidth": 96,
  "tileheight": 96,
- "tilecount": 10,
+ "tilecount": 18,
  "columns": 5,
  "margin": 0,
  "spacing": 0,
  "image": "tiles.png",
  "imagewidth": 480,
- "imageheight": 192,
+ "imageheight": 384,
  "tiles": [
   {
    "id": 0,
@@ -120,6 +120,94 @@
      "name": "terrain",
      "type": "string",
      "value": "ford"
+    }
+   ]
+  },
+  {
+   "id": 10,
+   "type": "cobble",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "cobble"
+    }
+   ]
+  },
+  {
+   "id": 11,
+   "type": "flagstone",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "flagstone"
+    }
+   ]
+  },
+  {
+   "id": 12,
+   "type": "building",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "building"
+    }
+   ]
+  },
+  {
+   "id": 13,
+   "type": "stall",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "stall"
+    }
+   ]
+  },
+  {
+   "id": 14,
+   "type": "rubble",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "rubble"
+    }
+   ]
+  },
+  {
+   "id": 15,
+   "type": "canal",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "canal"
+    }
+   ]
+  },
+  {
+   "id": 16,
+   "type": "gate",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "gate"
+    }
+   ]
+  },
+  {
+   "id": 17,
+   "type": "crates",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "crates"
     }
    ]
   }

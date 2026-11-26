@@ -9028,6 +9028,61 @@
       "path": "tiles/bridge.webp",
       "width": 96
     },
+    "tile.building": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/building.webp",
+      "width": 96
+    },
+    "tile.canal": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/canal.webp",
+      "width": 96
+    },
+    "tile.cobble": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/cobble.webp",
+      "width": 96
+    },
+    "tile.crates": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/crates.webp",
+      "width": 96
+    },
+    "tile.flagstone": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/flagstone.webp",
+      "width": 96
+    },
     "tile.ford": {
       "bbox": [
         0,
@@ -9081,6 +9136,17 @@
       ],
       "height": 96,
       "path": "tiles/fort.webp",
+      "width": 96
+    },
+    "tile.gate": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/gate.webp",
       "width": 96
     },
     "tile.hill": {
@@ -9171,6 +9237,17 @@
       "path": "tiles/road-straight.webp",
       "width": 96
     },
+    "tile.rubble": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/rubble.webp",
+      "width": 96
+    },
     "tile.shore.corner": {
       "bbox": [
         0,
@@ -9191,6 +9268,17 @@
       ],
       "height": 96,
       "path": "tiles/shore-edge.webp",
+      "width": 96
+    },
+    "tile.stall": {
+      "bbox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "height": 96,
+      "path": "tiles/stall.webp",
       "width": 96
     },
     "tile.village": {

@@ -21,6 +21,14 @@ export const TERRAIN_COLORS: Record<string, TerrainColors> = {
   fort: { base: 0x58524a, detail: 0x37332e },
   bridge: { base: 0x22405e, detail: 0x3d6488 },
   ford: { base: 0x2e5470, detail: 0x4d7898 },
+  cobble: { base: 0x5e554c, detail: 0x4a423a },
+  flagstone: { base: 0x6a625a, detail: 0x514a43 },
+  building: { base: 0x34313a, detail: 0x24222a },
+  stall: { base: 0x5e554c, detail: 0x8e3b2c },
+  rubble: { base: 0x6a625a, detail: 0x3e3933 },
+  canal: { base: 0x1c2c3c, detail: 0x34506a },
+  gate: { base: 0x58524a, detail: 0x37332e },
+  crates: { base: 0x5e554c, detail: 0x6b5236 },
 };
 
 export const UNKNOWN_TERRAIN: TerrainColors = { base: 0x553a55, detail: 0x3d283d };

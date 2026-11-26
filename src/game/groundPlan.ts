@@ -153,7 +153,7 @@ function terrainAt(g: GroundInput, x: number, y: number): string | null {
 
 /**
  * The directions a road or wall cell joins toward, as N/E/S/W bits. Roads join roads and the ends of bridges and
- * fords that run their way; walls join walls, forts and villages (a garden wall meets the cottage). At the map edge a cell joins outward when it continues
+ * fords that run their way; walls join walls, forts, villages (a garden wall meets the cottage), gates and houses. At the map edge a cell joins outward when it continues
  * from the opposite side, or when it has nothing else to join.
  */
 export function links(g: GroundInput, x: number, y: number): number {
@@ -172,7 +172,7 @@ export function links(g: GroundInput, x: number, y: number): number {
       if (n === 'road') mask |= d.bit;
       else if (isCrossing(n) && crossingRunsEastWest(g, nx, ny) === (d.bit === E || d.bit === W)) mask |= d.bit;
     } else if (t === 'wall') {
-      if (n === 'wall' || n === 'fort' || n === 'village') mask |= d.bit;
+      if (n === 'wall' || n === 'fort' || n === 'village' || n === 'gate' || n === 'building') mask |= d.bit;
     }
   }
   const inner = mask;
@@ -191,7 +191,10 @@ export function planGround(g: GroundInput, has: (key: string) => boolean): CellP
       const t = g.terrain[i]!;
       const single = (): CellPlan => (has(`tile.${t}`) ? { terrain: t, ops: [{ key: `tile.${t}`, rot: 0 }], placeholder: false } : { terrain: t, ops: [], placeholder: true });
       let plan: CellPlan | null = null;
-      if (t === 'road' && hasAll('tile.plain', 'piece.road.arm', 'piece.road.hub', 'piece.road.lip', 'piece.road.straight')) {
+      if (t === 'bridge' && canalBridge(g, x, y) && hasAll('tile.canal', 'piece.bridge.deck')) {
+        // A town bridge: the canal tile (its stone lips run east to west) with the planks across it, north to south.
+        plan = { terrain: t, ops: [{ key: 'tile.canal', rot: 0 }, { key: 'piece.bridge.deck', rot: 1 }], placeholder: false };
+      } else if (t === 'road' && hasAll('tile.plain', 'piece.road.arm', 'piece.road.hub', 'piece.road.lip', 'piece.road.straight')) {
         plan = { terrain: t, ops: [{ key: 'tile.plain', rot: 0 }, ...roadOps(links(g, x, y))], placeholder: false };
       } else if (t === 'wall' && hasAll('tile.plain', 'piece.wall.east', 'piece.wall.west', 'piece.wall.north', 'piece.wall.south', 'piece.wall.post')) {
         plan = { terrain: t, ops: [{ key: 'tile.plain', rot: 0 }, ...wallOps(links(g, x, y))], placeholder: false };
@@ -213,6 +216,11 @@ export function planGround(g: GroundInput, has: (key: string) => boolean): CellP
     }
   }
   return plans;
+}
+
+/** A bridge over a canal: canal on its east or west side. Canals only run east to west (the tile's lips do). */
+export function canalBridge(g: GroundInput, x: number, y: number): boolean {
+  return terrainAt(g, x - 1, y) === 'canal' || terrainAt(g, x + 1, y) === 'canal';
 }
 
 /** Road pieces for a link mask: the whole straight for a straight run, else arms, the hub and lips on closed sides. */
@@ -274,6 +282,7 @@ export function groundKeys(g: GroundInput): string[] {
     if (t === 'wall') ['east', 'west', 'north', 'south', 'post'].forEach((p) => keys.add(`piece.wall.${p}`));
     if (isWaterish(t)) ['bank', 'land', 'inner'].forEach((p) => keys.add(`piece.shore.${p}`));
     if (isCrossing(t)) keys.add(`piece.${t}.deck`);
+    if (t === 'bridge' && g.terrain.includes('canal')) keys.add('tile.canal');
   }
   return [...keys];
 }

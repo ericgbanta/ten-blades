@@ -8,5 +8,13 @@
   "water": { "name": "Water", "moveCost": { "foot": null }, "avoid": 0, "def": 0, "res": 0, "healPercent": 0 },
   "wall": { "name": "Wall", "moveCost": { "foot": null }, "avoid": 0, "def": 0, "res": 0, "healPercent": 0 },
   "bridge": { "name": "Bridge", "moveCost": { "foot": 1 }, "avoid": 0, "def": 0, "res": 0, "healPercent": 0 },
-  "ford": { "name": "Ford", "moveCost": { "foot": 2 }, "avoid": -10, "def": 0, "res": 0, "healPercent": 0 }
+  "ford": { "name": "Ford", "moveCost": { "foot": 2 }, "avoid": -10, "def": 0, "res": 0, "healPercent": 0 },
+  "cobble": { "name": "Cobbles", "moveCost": { "foot": 1 }, "avoid": 0, "def": 0, "res": 0, "healPercent": 0 },
+  "flagstone": { "name": "Flagstones", "moveCost": { "foot": 1 }, "avoid": 0, "def": 0, "res": 0, "healPercent": 0 },
+  "building": { "name": "House", "moveCost": { "foot": null }, "avoid": 0, "def": 0, "res": 0, "healPercent": 0 },
+  "stall": { "name": "Market Stall", "moveCost": { "foot": 2 }, "avoid": 20, "def": 1, "res": 0, "healPercent": 0 },
+  "rubble": { "name": "Rubble", "moveCost": { "foot": 3 }, "avoid": 20, "def": 1, "res": 0, "healPercent": 0 },
+  "canal": { "name": "Canal", "moveCost": { "foot": null }, "avoid": 0, "def": 0, "res": 0, "healPercent": 0 },
+  "gate": { "name": "Gate", "moveCost": { "foot": 1 }, "avoid": 20, "def": 2, "res": 1, "healPercent": 0 },
+  "crates": { "name": "Crates", "moveCost": { "foot": null }, "avoid": 0, "def": 0, "res": 0, "healPercent": 0 }
 }
