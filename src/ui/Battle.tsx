@@ -224,7 +224,9 @@ function BattleRun({ initial, launch, look, showDanger, onCheckpoint, quitText, 
         <TopBar view={view} onSpeed={setSpeed} onQuit={() => setQuitting(true)} />
       </div>
       <div class="dock" ref={dock}>
-        {levelUp ? <LevelUp popup={levelUp} onClose={() => controller.dismissPopup()} /> : <DockPanel view={view} controller={controller} look={look} />}
+        {levelUp ? (
+          <LevelUp popup={levelUp} stats={state.units.find((u) => u.id === levelUp.unitId)?.stats} onClose={() => controller.dismissPopup()} />
+        ) : <DockPanel view={view} controller={controller} look={look} />}
         <BottomBar view={view} data={gameData} onDanger={() => controller.toggleDanger()} onEndTurn={() => controller.requestEndTurn()} />
       </div>
       {banner && <PhaseBanner phase={banner.phase} turn={banner.turn} />}
@@ -267,11 +269,11 @@ function DockPanel({ view, controller, look }: { view: BattleView; controller: B
   const { state, selection: sel } = view;
   const unit = (id: string) => state.units.find((u) => u.id === id)!;
   const run = (cmd: Parameters<BattleController['command']>[0]) => controller.command(cmd);
-  if (view.forecast) return <ForecastPanel fc={view.forecast} state={state} run={run} />;
+  if (view.forecast) return <ForecastPanel fc={view.forecast} state={state} run={run} data={gameData} look={look} />;
   if (view.heal && sel.kind === 'confirm') {
-    return <HealPanel healer={unit(sel.unitId)} target={unit(view.heal.targetId)} amount={view.heal.amount} run={run} />;
+    return <HealPanel healer={unit(sel.unitId)} target={unit(view.heal.targetId)} amount={view.heal.amount} run={run} look={look} />;
   }
-  if (sel.kind === 'menu') return <ActionMenu unit={unit(sel.unitId)} options={view.menu} run={run} />;
+  if (sel.kind === 'menu') return <ActionMenu unit={unit(sel.unitId)} options={view.menu} run={run} data={gameData} />;
   if (sel.kind === 'target') return <TargetHint mode={sel.mode} run={run} />;
   if (sel.kind === 'unit' || sel.kind === 'inspect') return <UnitCard unit={unit(sel.unitId)} data={gameData} look={look} />;
   return null;
