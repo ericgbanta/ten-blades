@@ -1,0 +1,124 @@
+/* Design tokens: every screen takes its colors, type, spacing, radii, shadows and layers from here.
+   The kit images (frame, plates, ribbon, medallion, divider) are set at runtime as --kit-* by src/ui/kit.tsx,
+   from the manifest; when one is missing the CSS fallbacks below draw a plain shape instead. */
+
+/* Fonts, self-hosted from @fontsource (latin subset, only the weights used). */
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../../node_modules/@fontsource/cinzel/files/cinzel-latin-700-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Pirata One';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../node_modules/@fontsource/pirata-one/files/pirata-one-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Alegreya';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../node_modules/@fontsource/alegreya/files/alegreya-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Alegreya';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../../node_modules/@fontsource/alegreya/files/alegreya-latin-700-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Alegreya';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../node_modules/@fontsource/alegreya/files/alegreya-latin-400-italic.woff2') format('woff2');
+}
+
+:root {
+  /* Surfaces, darkest first. --c-panel matches the center of the iron frame art. */
+  --c-void: #09070a;
+  --c-bg: #110d12;
+  --c-panel: #1b1719;
+  --c-panel-hi: #251f23;
+  --c-inset: #0e0b0e;
+  --c-line: #3b3237;
+  --c-iron: #5a5056;
+  --c-iron-hi: #857a7c;
+
+  /* Text. Contrast on --c-panel: bone 13.9:1, dim 9.1:1, muted 6.1:1, gold 8.5:1;
+     on the crimson plate: bone 8.8:1, dim 5.7:1, gold 5.4:1 (muted is not used on crimson). */
+  --c-bone: #ece3d0;
+  --c-bone-dim: #c4b8a4;
+  --c-muted: #a0958c;
+  --c-gold: #d2ae6a;
+  --c-gold-dim: #9c7f4a;
+
+  /* Accents. */
+  --c-crimson: #8c1820;
+  --c-crimson-hi: #c63a40;
+  --c-crimson-deep: #4a0d12;
+  --c-rust: #c8743e;
+  --c-steel: #7f9bb8;
+
+  /* Teams, HP and the triangle. */
+  --c-player: #8db4ee;
+  --c-enemy: #f08474;
+  --c-ally: #84d49a;
+  --c-hp: #7cc26e;
+  --c-hp-low: #e0b04a;
+  --c-hp-crit: #e2503e;
+  --c-hp-track: #2d1518;
+  --c-good: #86d47c;
+  --c-bad: #ff7564;
+  --c-heavy: #ec9450;
+  --c-swift: #52c8bc;
+  --c-arcane: #b49cff;
+
+  /* Type. */
+  --font-title: 'Pirata One', 'Cinzel', Georgia, serif;
+  --font-display: 'Cinzel', Georgia, 'Times New Roman', serif;
+  --font-body: 'Alegreya', Georgia, 'Iowan Old Style', serif;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.84rem;
+  --fs-md: 0.94rem;
+  --fs-lg: 1.06rem;
+  --fs-xl: 1.3rem;
+
+  /* Spacing, radii, sizes. */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --r-1: 3px;
+  --r-2: 6px;
+  --r-pill: 999px;
+  --tap: 44px;
+  --frame-w: 15px;
+  --plate-w: 11px 14px;
+
+  /* Shadows (only on small boxes; never a blur over the map canvas). */
+  --shadow-panel: 0 6px 18px rgba(0, 0, 0, 0.55);
+  --shadow-text: 0 1px 0 rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.6);
+
+  /* Layers. */
+  --z-hud: 10;
+  --z-banner: 20;
+  --z-dialog: 30;
+  --z-end: 40;
+
+  /* Safe areas. */
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+}
