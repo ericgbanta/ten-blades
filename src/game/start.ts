@@ -4,6 +4,9 @@
 import Phaser from 'phaser';
 import type { BattleState, GameData, Pos } from '../core';
 import type { Insets } from './camera';
+import type { McLook } from '../art/mc/look';
+import type { FightStage } from '../battle/stage';
+import { FightScene } from './FightScene';
 import { MapScene, type SceneInput } from './MapScene';
 
 export interface GameHandle {
@@ -19,19 +22,24 @@ export interface GameHandle {
   tileCss(): number;
   /** The texture key a unit's token shows, or null. */
   tokenTexture(unitId: string): string | null;
+  /** The side-view battle scene, drawn over the map in the same canvas. */
+  fightStage: FightStage;
   destroy(): void;
 }
 
 export interface GameOptions {
   /** The main character's composed token (src/art/mc/compose.ts), drawn instead of their class token. */
   mcToken?: HTMLCanvasElement | null;
+  /** The main character's look, for their battle poses. */
+  look: McLook;
 }
 
-export function startGame(parent: HTMLElement, state: BattleState, data: GameData, input: SceneInput, options: GameOptions = {}): GameHandle {
+export function startGame(parent: HTMLElement, state: BattleState, data: GameData, input: SceneInput, options: GameOptions): GameHandle {
   const dpr = Math.min(3, window.devicePixelRatio || 1);
   const size = () => ({ w: Math.max(1, parent.clientWidth), h: Math.max(1, parent.clientHeight) });
   const { w, h } = size();
   const scene = new MapScene(state, data, input, dpr, options.mcToken ?? null);
+  const fight = new FightScene(dpr, data, options.look);
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent,
@@ -39,7 +47,7 @@ export function startGame(parent: HTMLElement, state: BattleState, data: GameDat
     scale: { mode: Phaser.Scale.NONE, width: w * dpr, height: h * dpr, zoom: 1 / dpr },
     input: { activePointers: 3 },
     banner: false,
-    scene,
+    scene: [scene, fight],
   });
   const observer = new ResizeObserver(() => {
     const s = size();
@@ -53,6 +61,7 @@ export function startGame(parent: HTMLElement, state: BattleState, data: GameDat
     tileCss: () => scene.tileCss(),
     cameraIdle: () => scene.cameraIdle(),
     tokenTexture: (id) => scene.tokenTexture(id),
+    fightStage: fight,
     destroy: () => {
       observer.disconnect();
       game.destroy(true);

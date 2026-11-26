@@ -14,6 +14,7 @@ const PLACEHOLDER_Y = TILE * 0.1;
 const BAR_W = TILE * 0.78;
 const BAR_H = 6;
 const BAR_Y = TILE * 0.4;
+const RESOLVE_H = 3;
 /** Feet line of a unit, in world units below the tile center, and the size of the team base around it. */
 const BASE_Y = TILE * 0.2;
 const BASE_RX = TILE * 0.4;
@@ -90,6 +91,8 @@ export class UnitToken extends Phaser.GameObjects.Container {
   private top: Phaser.GameObjects.Container;
   private bar: Phaser.GameObjects.Graphics;
   private acted = false;
+  /** Resolve as a fraction of the gauge, or null for a unit with no gauge (not a bearer). */
+  private resolve: number | null = null;
   /** HP shown by the bar, tweened toward the real value. */
   shownHp: number;
 
@@ -256,6 +259,28 @@ export class UnitToken extends Phaser.GameObjects.Container {
     const color = ratio > 0.5 ? 0x6ad08a : ratio > 0.25 ? 0xe8c04a : 0xe0503a;
     g.fillStyle(color, 1);
     g.fillRect(-BAR_W / 2, BAR_Y, BAR_W * ratio, BAR_H);
+    if (this.resolve !== null) {
+      // The Resolve strip under the HP bar: gold, and bright with a rim when the gauge is full.
+      const y = BAR_Y + BAR_H + 2;
+      const full = this.resolve >= 1;
+      g.fillStyle(0x0c0a0f, 0.9);
+      g.fillRect(-BAR_W / 2 - 2, y, BAR_W + 4, RESOLVE_H + 2);
+      g.fillStyle(0x2a2216, 1);
+      g.fillRect(-BAR_W / 2, y, BAR_W, RESOLVE_H);
+      g.fillStyle(full ? 0xffd86a : 0xb8913e, 1);
+      g.fillRect(-BAR_W / 2, y, BAR_W * Math.min(1, this.resolve), RESOLVE_H);
+      if (full) {
+        g.lineStyle(1.5, 0xfff2c0, 0.9);
+        g.strokeRect(-BAR_W / 2 - 1, y - 0.5, BAR_W + 2, RESOLVE_H + 1);
+      }
+    }
+  }
+
+  /** Show the Resolve gauge (a fraction from 0 to 1), or hide it with null. */
+  setResolve(fraction: number | null): void {
+    if (fraction === this.resolve) return;
+    this.resolve = fraction;
+    this.drawBar();
   }
 
   setActed(acted: boolean): void {

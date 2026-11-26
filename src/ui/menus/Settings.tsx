@@ -1,17 +1,18 @@
-// Settings: animation speed, save codes (export and import), deleting a slot,
+// Settings: animation speed, battle scenes, save codes (export and import), deleting a slot,
 // and a notice when saves only last until the tab closes.
 
 import { useState } from 'preact/hooks';
-import type { Speed } from '../../battle/controller';
+import type { SceneMode, Speed } from '../../battle/controller';
 import { decodeSaveCode, encodeSaveCode } from '../../save/code';
 import type { CampaignSave, SlotId } from '../../save/format';
-import { loadPrefs, savePrefs } from '../../save/prefs';
+import { loadPrefs, savePrefs, sceneModeOf } from '../../save/prefs';
 import { saveContext, writes } from '../saves';
 import { Choices, Confirm, Screen, SlotCard, goTo, useSaves, type SavesView } from './Screen';
 
 export function Settings() {
   const { saves, reload } = useSaves();
   const [speed, setSpeed] = useState<Speed>(() => loadPrefs().speed);
+  const [scenes, setScenes] = useState<SceneMode>(() => sceneModeOf(loadPrefs(), window.matchMedia('(prefers-reduced-motion: reduce)').matches));
   return (
     <Screen title="Settings" back={goTo('#/')} backLabel="Title">
       {saves && !saves.store.persistent && (
@@ -31,6 +32,20 @@ export function Settings() {
         onChange={(s) => {
           setSpeed(s);
           savePrefs({ ...loadPrefs(), speed: s });
+        }}
+      />
+      <Choices
+        label="Battle scenes"
+        compact
+        value={scenes}
+        options={[
+          { value: 'full', name: 'Full' },
+          { value: 'fast', name: 'Fast' },
+          { value: 'off', name: 'Off' },
+        ]}
+        onChange={(m) => {
+          setScenes(m);
+          savePrefs({ ...loadPrefs(), sceneMode: m });
         }}
       />
       {saves ? (

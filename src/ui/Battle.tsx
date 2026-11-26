@@ -6,17 +6,19 @@ import { chapters, gameData } from '../data';
 import { scenes as sceneData, speakers, worldNames } from '../data/story';
 import type { TextContext } from '../story/text';
 import { Dialogue } from './dialogue/Dialogue';
-import { BattleController, type BattleView, type CheckpointExtra, type Speed } from '../battle/controller';
+import { BattleController, type BattleView, type CheckpointExtra, type SceneMode, type Speed } from '../battle/controller';
 import { BattleSaver } from '../save/battleSaver';
 import { battleSetup } from '../save/campaign';
-import { loadPrefs, savePrefs } from '../save/prefs';
+import { loadPrefs, savePrefs, sceneModeOf } from '../save/prefs';
 import type { SaveStorage } from '../save/storage';
 import { startRun, takeRun, now, storage, writes, type CampaignRun } from './saves';
 import { battleSeed, parseLaunch, type LaunchOptions } from '../battle/setup';
 import { flowStep } from '../story/flow';
 import type { Insets } from '../game/camera';
 import type { GameHandle } from '../game/start';
-import { ActionMenu, ForecastPanel, HealPanel, TargetHint } from './battle/ActionPanels';
+import { powerDirections, powerPlan } from '../core';
+import { ActionMenu, ForecastPanel, HealPanel, PowerPanel, TargetHint } from './battle/ActionPanels';
+import { CutIn, FightHud } from './battle/FightHud';
 import { BottomBar, TopBar } from './battle/Hud';
 import { ConfirmDialog, EndScreen, LevelUp, PhaseBanner, type EndButton } from './battle/Overlays';
 import { UnitCard } from './battle/UnitCard';
@@ -170,6 +172,7 @@ function BattleRun({ initial, launch, look, text, scenes, pendingScenes, showDan
       new BattleController(initial, gameData, {
         reducedMotion: reduced,
         speed: loadPrefs().speed,
+        sceneMode: sceneModeOf(loadPrefs(), reduced),
         showDanger,
         onCheckpoint,
         scenes,
@@ -196,11 +199,13 @@ function BattleRun({ initial, launch, look, text, scenes, pendingScenes, showDan
     const token = lord ? composeMcToken(look, lord.classId).then(copyCanvas, () => null) : Promise.resolve(null);
     void Promise.all([import('../game/start'), token]).then(([{ startGame }, mcToken]) => {
       if (cancelled || !host.current) return;
-      game.current = startGame(host.current, controller.view.state, gameData, controller, { mcToken });
+      game.current = startGame(host.current, controller.view.state, gameData, controller, { mcToken, look });
+      controller.attachFightStage(game.current.fightStage);
       game.current.setInsets(insets.current);
     });
     return () => {
       cancelled = true;
+      controller.attachFightStage(null);
       removeHook?.();
       game.current?.destroy();
       game.current = null;
@@ -236,13 +241,17 @@ function BattleRun({ initial, launch, look, text, scenes, pendingScenes, showDan
     savePrefs({ ...loadPrefs(), speed: s });
     controller.setSpeed(s);
   };
+  const setScenes = (m: SceneMode) => {
+    savePrefs({ ...loadPrefs(), sceneMode: m });
+    controller.setSceneMode(m);
+  };
 
   const { state, banner, levelUp, confirmEnd, ended } = view;
   return (
-    <div class="battle" ref={root}>
+    <div class={`battle${view.fight ? ' fighting' : ''}`} ref={root}>
       <div class="battle-host" ref={host} />
       <div class="hud-top" ref={top}>
-        <TopBar view={view} onSpeed={setSpeed} onQuit={() => setQuitting(true)} />
+        <TopBar view={view} onSpeed={setSpeed} onScenes={setScenes} onQuit={() => setQuitting(true)} />
       </div>
       <div class="dock" ref={dock}>
         {levelUp ? (
@@ -271,6 +280,8 @@ function BattleRun({ initial, launch, look, text, scenes, pendingScenes, showDan
           onNo={() => setQuitting(false)}
         />
       )}
+      {view.fight && <FightHud view={view.fight} state={state} data={gameData} look={look} onSkip={() => controller.skip()} />}
+      {view.cutIn && <CutIn cut={view.cutIn} state={state} look={look} reduced={reduced} onSkip={() => controller.skip()} />}
       {ended && <EndScreen summary={ended} state={state} note={endNote?.(ended, state)} buttons={endButtons(ended)} />}
       {view.scene && <BattleScene key={view.scene} sceneId={view.scene} controller={controller} state={state} look={look} text={text} reduced={reduced} />}
     </div>
@@ -317,11 +328,17 @@ function DockPanel({ view, controller, look }: { view: BattleView; controller: B
   const unit = (id: string) => state.units.find((u) => u.id === id)!;
   const run = (cmd: Parameters<BattleController['command']>[0]) => controller.command(cmd);
   if (view.forecast) return <ForecastPanel fc={view.forecast} state={state} run={run} data={gameData} look={look} />;
+  if (view.power) return <PowerPanel fc={view.power} state={state} run={run} data={gameData} look={look} />;
   if (view.heal && sel.kind === 'confirm') {
     return <HealPanel healer={unit(sel.unitId)} target={unit(view.heal.targetId)} amount={view.heal.amount} run={run} look={look} />;
   }
-  if (sel.kind === 'menu') return <ActionMenu unit={unit(sel.unitId)} options={view.menu} run={run} data={gameData} />;
-  if (sel.kind === 'target') return <TargetHint mode={sel.mode} run={run} />;
+  if (sel.kind === 'menu') return <ActionMenu unit={unit(sel.unitId)} options={view.menu} run={run} data={gameData} power={view.powerOption} />;
+  if (sel.kind === 'target') {
+    if (sel.mode !== 'power') return <TargetHint mode={sel.mode} run={run} />;
+    const plan = powerPlan(state, sel.unitId, gameData);
+    const dirs = plan?.aim === 'line' ? powerDirections(state, sel.unitId, sel.to, gameData) : null;
+    return <TargetHint mode="power" run={run} dirs={dirs} powerName={plan?.name} />;
+  }
   if (sel.kind === 'unit' || sel.kind === 'inspect') return <UnitCard unit={unit(sel.unitId)} data={gameData} look={look} />;
   return null;
 }

@@ -5,6 +5,14 @@
 import {
   attackRange,
   attackTargets,
+  DIRECTIONS,
+  canUsePower,
+  lineTiles,
+  powerBlock,
+  powerDirections,
+  powerForecast,
+  powerPlan,
+  powerTargets,
   forecast,
   getUnit,
   healRange,
@@ -18,12 +26,15 @@ import {
   validateAction,
   type Action,
   type BattleState,
+  type Direction,
+  type PowerAim,
+  type PowerForecast,
   type Forecast,
   type GameData,
   type Pos,
 } from '../core';
 
-export type TargetMode = 'attack' | 'heal' | 'talk';
+export type TargetMode = 'attack' | 'heal' | 'talk' | 'power';
 
 export type Selection =
   /** Nothing selected. */
@@ -37,13 +48,25 @@ export type Selection =
   /** Choosing whom to attack or heal from `to`. */
   | { kind: 'target'; unitId: string; to: Pos; mode: TargetMode }
   /** The forecast (or heal preview) for one target, waiting for Confirm. Talk needs no confirm. */
-  | { kind: 'confirm'; unitId: string; to: Pos; mode: 'attack' | 'heal'; targetId: string };
+  | { kind: 'confirm'; unitId: string; to: Pos; mode: 'attack' | 'heal'; targetId: string }
+  /** The power forecast for an aim (a target or a direction), waiting for Confirm. */
+  | { kind: 'powerConfirm'; unitId: string; to: Pos; aim: PowerAim };
 
 export const NO_SELECTION: Selection = { kind: 'none' };
 
-export type MenuOption = 'attack' | 'heal' | 'talk' | 'wait' | 'cancel';
+export type MenuOption = 'attack' | 'power' | 'heal' | 'talk' | 'wait' | 'cancel';
 
-export type Command = MenuOption | 'confirm' | 'back';
+/** Menu options, Confirm and Back, and a direction for a line power. */
+export type Command = MenuOption | 'confirm' | 'back' | Direction;
+
+/** The Power option of the action menu: shown for bearers, disabled with a reason when it cannot fire here. */
+export interface PowerOption {
+  name: string;
+  resolve: number;
+  cost: number;
+  /** Why it cannot fire from the previewed tile, or null when it can. */
+  reason: string | null;
+}
 
 export interface Transition {
   selection: Selection;
@@ -80,6 +103,7 @@ function canStopOn(state: BattleState, unitId: string, pos: Pos, data: GameData)
 
 function targetsFor(state: BattleState, unitId: string, to: Pos, mode: TargetMode, data: GameData): string[] {
   if (mode === 'talk') return talkTargets(state, unitId, to, data);
+  if (mode === 'power') return powerTargets(state, unitId, to, data);
   return mode === 'attack' ? attackTargets(state, unitId, to, data) : healTargets(state, unitId, to, data);
 }
 
@@ -117,10 +141,13 @@ export function tapTile(state: BattleState, sel: Selection, pos: Pos, data: Game
       if (free && canStopOn(state, sel.unitId, pos, data)) return { kind: 'menu', unitId: sel.unitId, to: pos };
       return { kind: 'unit', unitId: sel.unitId };
     }
+    case 'powerConfirm':
+      return tapPower(state, sel, pos, data) ?? { kind: 'target', unitId: sel.unitId, to: sel.to, mode: 'power' };
     case 'target':
     case 'confirm': {
+      if (sel.kind === 'target' && sel.mode === 'power') return tapPower(state, sel, pos, data) ?? { kind: 'menu', unitId: sel.unitId, to: sel.to };
       const t = unitAt(state, pos);
-      if (sel.mode !== 'talk' && t && targetsFor(state, sel.unitId, sel.to, sel.mode, data).includes(t.id)) {
+      if (sel.mode !== 'talk' && sel.mode !== 'power' && t && targetsFor(state, sel.unitId, sel.to, sel.mode, data).includes(t.id)) {
         return { kind: 'confirm', unitId: sel.unitId, to: sel.to, mode: sel.mode, targetId: t.id };
       }
       return sel.kind === 'confirm'
@@ -130,11 +157,44 @@ export function tapTile(state: BattleState, sel: Selection, pos: Pos, data: Game
   }
 }
 
-/** Options for the action menu, in display order. Empty unless the menu is open. */
+/**
+ * A tap while aiming a power: a target picks it; for a line power, a tile on a valid direction's line picks that
+ * direction. Null when the tap aims at nothing.
+ */
+function tapPower(state: BattleState, sel: { unitId: string; to: Pos }, pos: Pos, data: GameData): Selection | null {
+  const plan = powerPlan(state, sel.unitId, data);
+  if (!plan) return null;
+  if (plan.aim === 'unit') {
+    const t = unitAt(state, pos);
+    if (t && powerTargets(state, sel.unitId, sel.to, data).includes(t.id)) return { kind: 'powerConfirm', unitId: sel.unitId, to: sel.to, aim: { targetId: t.id } };
+    return null;
+  }
+  const len = plan.effect.type === 'scatter' ? plan.effect.length : 0;
+  for (const dir of powerDirections(state, sel.unitId, sel.to, data)) {
+    if (lineTiles(state, sel.to, dir, len).some((p) => samePos(p, pos))) return { kind: 'powerConfirm', unitId: sel.unitId, to: sel.to, aim: { dir } };
+  }
+  return null;
+}
+
+/** The Power option for the open menu, or null when the unit has no power (not a bearer, or not built yet). */
+export function powerOption(state: BattleState, sel: Selection, data: GameData): PowerOption | null {
+  if (sel.kind !== 'menu') return null;
+  const plan = powerPlan(state, sel.unitId, data);
+  if (!plan) return null;
+  const u = getUnit(state, sel.unitId);
+  let reason = powerBlock(state, sel.unitId, data);
+  if (reason !== null && reason.startsWith('Resolve')) reason = `Resolve ${u.resolve}/${plan.cost}`;
+  else if (reason === null && !canUsePower(state, sel.unitId, sel.to, data)) reason = 'No target in reach';
+  return { name: plan.name, resolve: u.resolve, cost: plan.cost, reason };
+}
+
+/** Options for the action menu, in display order. Empty unless the menu is open. Power is listed for every
+ * bearer (see powerOption for whether it can fire). */
 export function menuOptions(state: BattleState, sel: Selection, data: GameData): MenuOption[] {
   if (sel.kind !== 'menu') return [];
   const out: MenuOption[] = [];
   if (attackTargets(state, sel.unitId, sel.to, data).length > 0) out.push('attack');
+  if (powerPlan(state, sel.unitId, data)) out.push('power');
   if (healTargets(state, sel.unitId, sel.to, data).length > 0) out.push('heal');
   if (talkTargets(state, sel.unitId, sel.to, data).length > 0) out.push('talk');
   out.push('wait', 'cancel');
@@ -152,7 +212,9 @@ export function runCommand(state: BattleState, sel: Selection, cmd: Command, dat
   const stay: Transition = { selection: sel, action: null };
   if (sel.kind === 'menu') {
     if (!menuOptions(state, sel, data).includes(cmd as MenuOption)) return stay;
+    if (cmd === 'power' && powerOption(state, sel, data)?.reason !== null) return stay;
     switch (cmd) {
+      case 'power':
       case 'attack':
       case 'heal':
       case 'talk':
@@ -165,6 +227,15 @@ export function runCommand(state: BattleState, sel: Selection, cmd: Command, dat
   }
   if (sel.kind === 'target' && cmd === 'back') {
     return { selection: { kind: 'menu', unitId: sel.unitId, to: sel.to }, action: null };
+  }
+  if (sel.kind === 'target' && sel.mode === 'power' && (DIRECTIONS as readonly string[]).includes(cmd)) {
+    const dir = cmd as Direction;
+    if (!powerDirections(state, sel.unitId, sel.to, data).includes(dir)) return stay;
+    return { selection: { kind: 'powerConfirm', unitId: sel.unitId, to: sel.to, aim: { dir } }, action: null };
+  }
+  if (sel.kind === 'powerConfirm') {
+    if (cmd === 'back') return { selection: { kind: 'target', unitId: sel.unitId, to: sel.to, mode: 'power' }, action: null };
+    if (cmd === 'confirm') return commit(state, { type: 'power', unitId: sel.unitId, to: sel.to, ...sel.aim }, data);
   }
   if (sel.kind === 'confirm') {
     if (cmd === 'back') return { selection: { kind: 'target', unitId: sel.unitId, to: sel.to, mode: sel.mode }, action: null };
@@ -221,16 +292,41 @@ export function overlayFor(state: BattleState, sel: Selection, data: GameData, d
       return { ...empty, cursor: sel.to };
     case 'target':
     case 'confirm': {
+      if (sel.mode === 'power') return { ...empty, ...powerAimOverlay(state, sel.unitId, sel.to, data), cursor: sel.to };
       const targets = targetsFor(state, sel.unitId, sel.to, sel.mode, data).map((id) => getUnit(state, id).pos);
       return { ...empty, targets, cursor: sel.to };
+    }
+    case 'powerConfirm': {
+      const fc = powerForecast(state, sel.unitId, sel.to, sel.aim, data);
+      const struck = fc.targets.map((t) => getUnit(state, t.unitId).pos);
+      return { ...empty, attack: 'dir' in sel.aim ? without(fc.tiles, struck) : [], targets: struck, cursor: sel.to };
     }
   }
 }
 
+/** While aiming a power: its targets pulse; a line power also shows every valid line in red. */
+function powerAimOverlay(state: BattleState, unitId: string, to: Pos, data: GameData): Pick<Overlay, 'attack' | 'targets'> {
+  const plan = powerPlan(state, unitId, data);
+  if (!plan || plan.aim === 'unit') return { attack: [], targets: powerTargets(state, unitId, to, data).map((id) => getUnit(state, id).pos) };
+  const len = plan.effect.type === 'scatter' ? plan.effect.length : 0;
+  const tiles = powerDirections(state, unitId, to, data).flatMap((d) => lineTiles(state, to, d, len));
+  const targets = tiles.filter((p) => {
+    const u = unitAt(state, p);
+    return u !== null && u.team !== getUnit(state, unitId).team && u.team === 'enemy';
+  });
+  return { attack: without(tiles, targets), targets };
+}
+
 /** The previewed move (unit and tile), if the unit stands somewhere new. */
 export function previewOf(state: BattleState, sel: Selection): { unitId: string; to: Pos } | null {
-  if (sel.kind !== 'menu' && sel.kind !== 'target' && sel.kind !== 'confirm') return null;
+  if (sel.kind !== 'menu' && sel.kind !== 'target' && sel.kind !== 'confirm' && sel.kind !== 'powerConfirm') return null;
   return samePos(getUnit(state, sel.unitId).pos, sel.to) ? null : { unitId: sel.unitId, to: sel.to };
+}
+
+/** The power forecast for a power confirm, or null. */
+export function powerForecastFor(state: BattleState, sel: Selection, data: GameData): PowerForecast | null {
+  if (sel.kind !== 'powerConfirm') return null;
+  return powerForecast(state, sel.unitId, sel.to, sel.aim, data);
 }
 
 /** The forecast for an attack confirm, or null. */

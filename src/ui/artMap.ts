@@ -48,7 +48,7 @@ export function schoolIcon(s: School): IconName | null {
   return s === 'none' ? null : s;
 }
 
-/** Portrait sheet id by unit id (named characters), then by class id (generic units). */
+/** Portrait (and battle pose) sheet id by unit id (named characters), then by class id (generic units). */
 const PORTRAIT_BY_UNIT: Record<string, string> = {
   stranger: 'stranger',
   gravemaw: 'gravemaw',
@@ -68,6 +68,32 @@ const PORTRAIT_BY_CLASS: Record<string, string> = {
   inquisitor: 'inquisitor',
   archer: 'archer',
 };
+
+/** The four battle poses every character sheet has (src/art/battle, `battle.<sheet>.<pose>`). */
+export const BATTLE_POSES = ['idle', 'windup', 'strike', 'hit'] as const;
+export type BattlePose = (typeof BATTLE_POSES)[number];
+
+/** The main character's combat styles: a player lord of one of these classes is drawn from their composed look. */
+const MC_STYLES = ['vanguard', 'duelist', 'spiritblade'];
+
+/** How a unit is drawn in the battle scene: the composed main character, a pose sheet, or a placeholder. */
+export type BattleArt = { kind: 'mc'; style: string } | { kind: 'sheet'; sheet: string } | { kind: 'placeholder' };
+
+/**
+ * The battle art for a unit: the main character (a player lord of a combat style class) is composed from their
+ * look; others use their sheet by unit id, then by class, the same sheets as portraits, when every pose exists.
+ */
+export function battleArt(unit: Pick<Unit, 'id' | 'classId' | 'isLord' | 'team'>): BattleArt {
+  if (unit.isLord && unit.team === 'player' && MC_STYLES.includes(unit.classId)) return { kind: 'mc', style: unit.classId };
+  const sheet = PORTRAIT_BY_UNIT[unit.id] ?? PORTRAIT_BY_CLASS[unit.classId];
+  if (sheet && BATTLE_POSES.every((p) => imageMeta(`battle.${sheet}.${p}`))) return { kind: 'sheet', sheet };
+  return { kind: 'placeholder' };
+}
+
+/** A unit's portrait sheet (named characters by id, others by class), or null. */
+export function portraitSheet(unit: Pick<Unit, 'id' | 'classId'>): string | null {
+  return PORTRAIT_BY_UNIT[unit.id] ?? PORTRAIT_BY_CLASS[unit.classId] ?? null;
+}
 
 /** The `portrait.<id>.neutral` id for a unit, or null when there is none (the MC is composed instead). */
 export function portraitId(unit: Pick<Unit, 'id' | 'classId'>): string | null {

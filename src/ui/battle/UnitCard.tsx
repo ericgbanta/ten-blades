@@ -1,4 +1,4 @@
-import type { GameData, School, Unit } from '../../core';
+import { bladeOf, implementedPower, type GameData, type School, type Unit } from '../../core';
 import type { McLook } from '../../art/mc/look';
 import { Icon, Medallion, schoolIcon, weaponIcon } from '../kit';
 import { SCHOOL_LABEL, STAT_LABEL } from './text';
@@ -23,6 +23,20 @@ export function HpBar({ hp, max, after }: { hp: number; max: number; after?: num
       {after !== undefined && after > hp && <div class="hpbar-gain" style={{ width: `${pct(after)}%` }} />}
       <div class={`hpbar-fill ${tone(pct(end))}`} style={{ width: `${pct(Math.min(hp, end))}%` }} />
     </div>
+  );
+}
+
+/** The Resolve gauge: a bar with the value, gold when full. */
+export function ResolveGauge({ value, max, label = true }: { value: number; max: number; label?: boolean }) {
+  const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
+  return (
+    <span class={`resolve${value >= max ? ' full' : ''}`} role="img" aria-label={`Resolve ${value} of ${max}`}>
+      {label && <span class="resolve-k">Resolve</span>}
+      <span class="resolve-bar">
+        <span class="resolve-fill" style={{ width: `${pct}%` }} />
+      </span>
+      {label && <span class="resolve-v num">{value}</span>}
+    </span>
   );
 }
 
@@ -51,6 +65,24 @@ export function TriangleHint({ school, data }: { school: School; data: GameData 
         </span>
       )}
     </span>
+  );
+}
+
+/** For a bearer: the power's name and the Resolve gauge. */
+function BladeRow({ unit, data }: { unit: Unit; data: GameData }) {
+  const blade = bladeOf(unit, data);
+  if (!blade) return null;
+  const power = implementedPower(blade.power, data);
+  const name = power?.def.name ?? data.powers[blade.power]?.name ?? blade.power;
+  return (
+    <div class="blade-row" data-testid="blade-row">
+      <span class="blade-power">
+        <Icon name="tenblade" size={14} />
+        {name}
+        {!power && <span class="muted"> (sealed)</span>}
+      </span>
+      <ResolveGauge value={unit.resolve} max={data.balance.resolve.max} />
+    </div>
   );
 }
 
@@ -88,6 +120,7 @@ export function UnitCard({ unit, data, look }: { unit: Unit; data: GameData; loo
             </span>
             <HpBar hp={unit.hp} max={unit.stats.hp} />
           </div>
+          <BladeRow unit={unit} data={data} />
         </div>
       </div>
       <dl class="stats">

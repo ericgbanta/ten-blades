@@ -3,7 +3,7 @@
 
 import type { JSX } from 'preact';
 import { livingUnits, terrainAt, type GameData, type Objective } from '../../core';
-import type { BattleView, Speed } from '../../battle/controller';
+import type { BattleView, SceneMode, Speed } from '../../battle/controller';
 import { Icon, type IconName } from '../kit';
 import { PHASE_LABEL, objectiveText, signed } from './text';
 
@@ -15,8 +15,11 @@ const OBJECTIVE_ICON: Record<Objective['type'], IconName> = {
   escape: 'mov',
 };
 
-export function TopBar(props: { view: BattleView; onSpeed: (s: Speed) => void; onQuit: () => void }) {
-  const { state, speed } = props.view;
+const NEXT_SCENE: Record<SceneMode, SceneMode> = { full: 'fast', fast: 'off', off: 'full' };
+const SCENE_LABEL: Record<SceneMode, string> = { full: 'Full', fast: 'Fast', off: 'Off' };
+
+export function TopBar(props: { view: BattleView; onSpeed: (s: Speed) => void; onScenes: (m: SceneMode) => void; onQuit: () => void }) {
+  const { state, speed, sceneMode } = props.view;
   const left = livingUnits(state, 'enemy').length;
   return (
     <div class="hud-row top">
@@ -45,6 +48,16 @@ export function TopBar(props: { view: BattleView; onSpeed: (s: Speed) => void; o
       >
         <span class="speed-k">Speed</span>
         <span class="speed-v num">{speed === 'normal' ? '1x' : '2x'}</span>
+      </button>
+      <button
+        type="button"
+        class="btn small quiet speed scenes"
+        aria-label={`Battle scenes: ${SCENE_LABEL[sceneMode]}`}
+        data-testid="scenes-toggle"
+        onClick={() => props.onScenes(NEXT_SCENE[sceneMode])}
+      >
+        <span class="speed-k">Scenes</span>
+        <span class="speed-v">{SCENE_LABEL[sceneMode]}</span>
       </button>
     </div>
   );

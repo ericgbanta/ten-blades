@@ -1,15 +1,16 @@
 // The action menu, the combat forecast and the heal preview.
 
 import { Fragment } from 'preact';
-import type { BattleState, CombatSide, Forecast, GameData, TriangleEdge, Unit } from '../../core';
+import type { BattleState, CombatSide, Direction, Forecast, GameData, PowerForecast, TriangleEdge, Unit } from '../../core';
 import type { McLook } from '../../art/mc/look';
-import type { Command, MenuOption, TargetMode } from '../../battle/selection';
+import type { Command, MenuOption, PowerOption, TargetMode } from '../../battle/selection';
 import { Icon, Medallion, schoolIcon, weaponIcon, type IconName } from '../kit';
-import { HpBar } from './UnitCard';
+import { HpBar, ResolveGauge } from './UnitCard';
 import { SCHOOL_LABEL, triangleMark } from './text';
 
 const OPTION_LABEL: Record<MenuOption, string> = {
   attack: 'Attack',
+  power: 'Power',
   heal: 'Heal',
   talk: 'Talk',
   wait: 'Wait',
@@ -25,7 +26,27 @@ function optionIcon(o: MenuOption, unit: Unit, data: GameData): IconName | null 
   return null;
 }
 
-export function ActionMenu({ unit, options, run, data }: { unit: Unit; options: MenuOption[]; run: Run; data: GameData }) {
+function PowerButton({ power, run }: { power: PowerOption; run: Run }) {
+  const ready = power.reason === null;
+  return (
+    <button
+      type="button"
+      class={`btn power-btn${ready ? ' primary' : ''}`}
+      disabled={!ready}
+      aria-label={ready ? `Power: ${power.name}` : `Power: ${power.name}, not ready. ${power.reason}`}
+      onClick={() => run('power')}
+    >
+      <Icon name="tenblade" size={20} />
+      <span class="power-btn-text">
+        <span>{power.name}</span>
+        {ready ? null : <span class="power-why">{power.reason}</span>}
+      </span>
+      <ResolveGauge value={power.resolve} max={power.cost} label={false} />
+    </button>
+  );
+}
+
+export function ActionMenu({ unit, options, run, data, power }: { unit: Unit; options: MenuOption[]; run: Run; data: GameData; power: PowerOption | null }) {
   return (
     <section class="panel action-menu" aria-label={`Orders for ${unit.name}`}>
       <p class="panel-title">
@@ -34,6 +55,7 @@ export function ActionMenu({ unit, options, run, data }: { unit: Unit; options: 
       </p>
       <div class="btn-row">
         {options.map((o) => {
+          if (o === 'power') return power ? <PowerButton key={o} power={power} run={run} /> : null;
           const icon = optionIcon(o, unit, data);
           const kind = o === 'attack' || o === 'heal' || o === 'talk' ? ' primary' : o === 'cancel' ? ' quiet' : '';
           return (
@@ -52,16 +74,106 @@ const TARGET_HINT: Record<TargetMode, string> = {
   attack: 'Tap a red target to see the forecast.',
   heal: 'Tap a wounded ally to heal.',
   talk: 'Tap someone to talk to.',
+  power: 'Tap a target for the power.',
 };
 
-export function TargetHint({ mode, run }: { mode: TargetMode; run: Run }) {
+const DIR_LABEL: Record<Direction, { arrow: string; name: string }> = {
+  up: { arrow: '↑', name: 'Up' },
+  left: { arrow: '←', name: 'Left' },
+  right: { arrow: '→', name: 'Right' },
+  down: { arrow: '↓', name: 'Down' },
+};
+
+export function TargetHint({ mode, run, dirs, powerName }: { mode: TargetMode; run: Run; dirs?: Direction[] | null; powerName?: string }) {
+  if (mode === 'power' && dirs) {
+    return (
+      <section class="panel target-hint power-aim" aria-label={`Aim ${powerName ?? 'the power'}`}>
+        <p class="power-aim-text">
+          <Icon name="tenblade" size={20} />
+          {powerName}: pick a direction, or tap a red line.
+        </p>
+        <div class="dir-pad">
+          {(['up', 'left', 'right', 'down'] as const).map((d) => (
+            <button key={d} type="button" class={`btn dir dir-${d}`} disabled={!dirs.includes(d)} aria-label={DIR_LABEL[d].name} onClick={() => run(d)}>
+              {DIR_LABEL[d].arrow}
+            </button>
+          ))}
+          <button type="button" class="btn quiet dir-back" onClick={() => run('back')}>
+            Back
+          </button>
+        </div>
+      </section>
+    );
+  }
   return (
     <section class="panel target-hint">
-      <Icon name={mode === 'attack' ? 'sabre' : mode === 'heal' ? 'staff' : 'lck'} size={22} />
-      <p>{TARGET_HINT[mode]}</p>
+      <Icon name={mode === 'attack' ? 'sabre' : mode === 'heal' ? 'staff' : mode === 'power' ? 'tenblade' : 'lck'} size={22} />
+      <p>{mode === 'power' && powerName ? `${powerName}: tap a red target.` : TARGET_HINT[mode]}</p>
       <button type="button" class="btn quiet" onClick={() => run('back')}>
         Back
       </button>
+    </section>
+  );
+}
+
+/**
+ * The forecast for a power. A fight (Devour, Echo's attack) shows both sides like an attack, plus the heal or the
+ * repeat strike; Scatter lists each target in the line with its damage and hit.
+ */
+export function PowerPanel({ fc, state, run, data, look }: { fc: PowerForecast; state: BattleState; run: Run; data: GameData; look: McLook }) {
+  const bearer = state.units.find((u) => u.id === fc.bearerId)!;
+  const echoOf = fc.plan.echoOf ? state.units.find((u) => u.id === fc.plan.echoOf) : undefined;
+  const notes: string[] = [];
+  if (fc.healMax > 0) notes.push(`Heals the damage dealt, up to ${fc.healMax} HP.`);
+  if (fc.plan.effect.type === 'devour') notes.push(`A kill adds ${fc.plan.effect.attackPerKill} attack for the rest of the map.`);
+  if (fc.echoStrike) notes.push(`Then an echo strike: ${fc.echoStrike.damage} damage, ${fc.echoStrike.hit}% hit, no counter.`);
+  if (fc.plan.effect.type === 'scatter') notes.push('No counters.');
+  return (
+    <section class="panel forecast power-fc" aria-label={`${fc.plan.name} forecast`}>
+      <p class="panel-title power-title">
+        <Icon name="tenblade" size={18} />
+        <span class={`school-${data.weapons[bearer.weaponId ?? '']?.school ?? 'none'}`}>{fc.plan.name}</span>
+        {echoOf && <span class="panel-sub">echoing {echoOf.name}</span>}
+      </p>
+      {fc.combat ? (
+        <ForecastTable fc={fc.combat} state={state} data={data} look={look} />
+      ) : (
+        <ul class="power-targets">
+          {fc.targets.map((t) => {
+            const u = state.units.find((x) => x.id === t.unitId)!;
+            const left = Math.max(0, t.hp - t.side.damage);
+            return (
+              <li key={t.unitId} class={`power-target team-${u.team}`}>
+                <Medallion unit={u} look={look} size={32} />
+                <span class="pt-name">{u.name}</span>
+                <span class="pt-hp num">
+                  {t.hp}
+                  {' → '}
+                  <strong class={left === 0 ? 'ko' : ''}>{left}</strong>
+                </span>
+                <span class="pt-n num">
+                  <Icon name="str" size={13} /> {t.side.damage}
+                </span>
+                <span class="pt-n num">
+                  <Icon name="skl" size={13} /> {t.side.hit}%
+                </span>
+                <span class="pt-n num">
+                  <Icon name="shard" size={13} /> {t.side.crit}%
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {notes.length > 0 && <p class="power-notes">{notes.join(' ')}</p>}
+      <div class="btn-row">
+        <button type="button" class="btn quiet" onClick={() => run('back')}>
+          Back
+        </button>
+        <button type="button" class="btn primary" onClick={() => run('confirm')}>
+          Confirm
+        </button>
+      </div>
     </section>
   );
 }
@@ -144,11 +256,26 @@ function value(side: CombatSide, key: 'damage' | 'hit' | 'crit') {
 
 /** Both sides of the fight. HP after assumes every strike lands. */
 export function ForecastPanel({ fc, state, run, data, look }: { fc: Forecast; state: BattleState; run: Run; data: GameData; look: McLook }) {
+  return (
+    <section class="panel forecast" aria-label="Combat forecast">
+      <ForecastTable fc={fc} state={state} data={data} look={look} />
+      <div class="btn-row">
+        <button type="button" class="btn quiet" onClick={() => run('back')}>
+          Back
+        </button>
+        <button type="button" class="btn primary" onClick={() => run('confirm')}>
+          Confirm
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function ForecastTable({ fc, state, data, look }: { fc: Forecast; state: BattleState; data: GameData; look: McLook }) {
   const a = state.units.find((u) => u.id === fc.attacker.unitId)!;
   const d = state.units.find((u) => u.id === fc.defenderId)!;
   const c = fc.counter;
   return (
-    <section class="panel forecast" aria-label="Combat forecast">
       <div class="fc-table">
         <Head unit={a} edge={fc.attacker.triangle} data={data} look={look} align="left" />
         <div class="fc-vs" aria-hidden="true">
@@ -184,15 +311,6 @@ export function ForecastPanel({ fc, state, run, data, look }: { fc: Forecast; st
           </Fragment>
         ))}
       </div>
-      <div class="btn-row">
-        <button type="button" class="btn quiet" onClick={() => run('back')}>
-          Back
-        </button>
-        <button type="button" class="btn primary" onClick={() => run('confirm')}>
-          Confirm
-        </button>
-      </div>
-    </section>
   );
 }
 

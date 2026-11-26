@@ -3,7 +3,7 @@
 // controller tells it what to draw; it holds no rules.
 
 import Phaser from 'phaser';
-import type { BattleEvent, BattleState, GameData, Pos, Unit } from '../core';
+import { isBearer, type BattleEvent, type BattleState, type GameData, type Pos, type Unit } from '../core';
 import { imageMeta, imageUrl } from '../art/manifest';
 import propDefs from '../data/props.json';
 import type { Overlay } from '../battle/selection';
@@ -400,6 +400,26 @@ export class MapScene extends Phaser.Scene implements Stage {
       t.setTeam(u.team);
       t.setMaxHp(u.stats.hp);
       void t.tweenHp(u.hp, 0);
+      this.syncResolve(t, u);
+    }
+  }
+
+  private syncResolve(t: UnitToken, u: Unit): void {
+    t.setResolve(isBearer(u, this.gameData) ? u.resolve / this.gameData.balance.resolve.max : null);
+  }
+
+  /** Snap tokens to what a battle scene showed: HP, falls, gauges. No animation, and the camera stays put. */
+  settle(events: readonly BattleEvent[], state: BattleState): void {
+    this.lastState = state;
+    for (const ev of events) {
+      if (ev.type === 'strike') void this.tokens.get(ev.defenderId)?.tweenHp(ev.hpAfter, 0);
+      else if (ev.type === 'unitHealed') void this.tokens.get(ev.unitId)?.tweenHp(ev.hpAfter, 0);
+      else if (ev.type === 'unitDefeated') this.tokens.get(ev.unitId)?.setVisible(false);
+      else if (ev.type === 'resolveChanged') {
+        const u = state.units.find((x) => x.id === ev.unitId);
+        const t = this.tokens.get(ev.unitId);
+        if (u && t) t.setResolve(ev.resolveAfter / this.gameData.balance.resolve.max);
+      }
     }
   }
 
@@ -584,6 +604,27 @@ export class MapScene extends Phaser.Scene implements Stage {
         tok.setTeam(ev.to);
         tok.setActed(state.units.find((u) => u.id === ev.unitId)?.acted ?? false);
         tok.hitFlash(t.ms(300));
+        await this.sleep(t.ms(300));
+        return;
+      }
+      case 'powerUsed': {
+        // The cut-in has announced it; on the map, the name rises over the bearer.
+        const tok = this.tokens.get(ev.summary.bearerId);
+        if (!tok) return;
+        await this.reveal([ev.summary.from, ...ev.summary.tiles.slice(0, 1)], t.ms(220));
+        const name = this.gameData.powers[ev.summary.powerId]?.name ?? ev.summary.powerId;
+        this.floatText(tok, name, TEXT.crit, 24, t.ms(900));
+        await this.sleep(t.ms(260));
+        return;
+      }
+      case 'resolveChanged': {
+        const tok = this.tokens.get(ev.unitId);
+        tok?.setResolve(ev.resolveAfter / this.gameData.balance.resolve.max);
+        return;
+      }
+      case 'devourStack': {
+        const tok = this.tokens.get(ev.unitId);
+        if (tok) this.floatText(tok, `Atk +${ev.attackBonus}`, TEXT.heal, 20, t.ms(800));
         await this.sleep(t.ms(300));
         return;
       }

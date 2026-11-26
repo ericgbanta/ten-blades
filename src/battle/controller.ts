@@ -13,6 +13,7 @@ import {
   samePos,
   startBattle,
   threatTiles,
+  validateAction,
   type Action,
   type BattleEvent,
   type BattleState,
@@ -23,10 +24,14 @@ import {
   type Stats,
   type Team,
 } from '../core';
+import { buildFightScript, isSceneStart, sceneGroupEnd, type FightScript, type FighterFacts } from './fightTimeline';
 import {
   NO_SELECTION,
   forecastFor,
   menuOptions,
+  powerForecastFor,
+  powerOption,
+  type PowerOption,
   overlayFor,
   previewOf,
   readyUnitIds,
@@ -36,9 +41,16 @@ import {
   type MenuOption,
   type Selection,
 } from './selection';
-import type { Stage, Timing } from './stage';
+import type { FightStage, Stage, Timing } from './stage';
 
 export type Speed = 'normal' | 'fast';
+
+/** Battle scenes: Full, Fast (about twice as quick) or Off (map only). */
+export type SceneMode = 'full' | 'fast' | 'off';
+
+const SCENE_SCALE: Record<SceneMode, number> = { full: 1, fast: 0.5, off: 0 };
+/** The power cut-in before its scene, in ms at Full speed. */
+export const CUT_IN_MS = 760;
 
 const SPEED_SCALE: Record<Speed, number> = { normal: 1, fast: 0.45 };
 /** Base lengths in ms for the overlays the controller shows itself. */
@@ -52,6 +64,25 @@ export interface LevelUpPopup {
   name: string;
   level: number;
   gains: Stats;
+}
+
+/** The battle scene on screen, for the HUD under it. */
+export interface FightView {
+  script: FightScript;
+  /** Each shown fighter's HP as the scene stands, and how long its bar takes to get there. */
+  hp: Record<string, { hp: number; ms: number }>;
+  /** The numbers each side fights with: from the forecast (a power's for its bearer), or null (no counter). */
+  numbers: Record<string, { damage: number; hit: number; crit: number; strikes: number } | null>;
+}
+
+/** The portrait cut-in that announces a power. */
+export interface CutInView {
+  unitId: string;
+  name: string;
+  school: string;
+  /** The unit whose power an Echo re-casts, or null. */
+  echoOf: string | null;
+  ms: number;
 }
 
 /** Everything the overlays render. A fresh object after every change. */
@@ -75,6 +106,14 @@ export interface BattleView {
   ended: BattleSummary | null;
   /** The mid-battle dialogue scene to show over the map, or null. Call `sceneDone` when it has played. */
   scene: string | null;
+  sceneMode: SceneMode;
+  /** The battle scene playing, or null. */
+  fight: FightView | null;
+  cutIn: CutInView | null;
+  /** The Power option while the menu is open (null when the unit has no power). */
+  powerOption: PowerOption | null;
+  /** The power forecast while a power waits for Confirm. */
+  power: ReturnType<typeof powerForecastFor>;
 }
 
 export interface ControllerOptions {
@@ -96,6 +135,8 @@ export interface ControllerOptions {
   scenes?: boolean;
   /** Scenes a resumed battle still owes from its last player action, played first. */
   pendingScenes?: string[];
+  /** Battle scenes: Full by default. Without a fight stage attached, fights play on the map. */
+  sceneMode?: SceneMode;
 }
 
 /** Controller state that a resume keeps. */
@@ -142,6 +183,11 @@ export class BattleController {
   private pending: string[];
   private scene: string | null = null;
   private sceneResolve: (() => void) | null = null;
+  private sceneMode: SceneMode;
+  private fightStage: FightStage | null = null;
+  private fight: FightView | null = null;
+  private cutIn: CutInView | null = null;
+  private testSlow = 1;
 
   constructor(
     initial: BattleState,
@@ -156,6 +202,7 @@ export class BattleController {
     this.onCheckpoint = options.onCheckpoint;
     this.scenesOn = options.scenes ?? false;
     this.pending = this.scenesOn ? [...(options.pendingScenes ?? [])] : [];
+    this.sceneMode = options.sceneMode ?? 'full';
   }
 
   // -------------------------------------------------------------------------
@@ -184,6 +231,11 @@ export class BattleController {
       speed: this.speed,
       ended: this.ended,
       scene: this.scene,
+      sceneMode: this.sceneMode,
+      fight: this.fight,
+      cutIn: this.cutIn,
+      powerOption: this.busy ? null : powerOption(s, sel, this.data),
+      power: this.busy ? null : powerForecastFor(s, sel, this.data),
     };
     return this.cached;
   }
@@ -201,6 +253,11 @@ export class BattleController {
   // -------------------------------------------------------------------------
   // Wiring
   // -------------------------------------------------------------------------
+
+  /** Connect the battle scene player. Until then (or with scenes Off) fights play on the map. */
+  attachFightStage(stage: FightStage | null): void {
+    this.fightStage = stage;
+  }
 
   /** Connect the renderer. It is synced to the current state right away. */
   attachStage(stage: Stage): void {
@@ -304,11 +361,43 @@ export class BattleController {
     this.changed();
   }
 
-  /** Skip the rest of the current playback. */
+  /**
+   * Test hook only (`?test=1`): replace the state between actions, for example to fill a gauge. Not used by
+   * play; the battle must be at rest.
+   */
+  patchStateForTest(patch: (s: BattleState) => BattleState): void {
+    if (this.busy) return;
+    this.state = patch(structuredClone(this.state));
+    this.stage?.sync(this.state);
+    this.refreshOverlay();
+    this.changed();
+  }
+
+  /** Test hook only: play an action as if the player had chosen it (it is validated first). */
+  actForTest(action: Action): boolean {
+    if (this.busy || this.ended) return false;
+    const t = commitForTest(this.state, action, this.data);
+    if (!t) return false;
+    this.perform(t);
+    return true;
+  }
+
+  /** Test hook only: stretch battle scene time by `factor` (frame captures). */
+  slowScenesForTest(factor: number): void {
+    this.testSlow = factor;
+  }
+
+  setSceneMode(mode: SceneMode): void {
+    this.sceneMode = mode;
+    this.changed();
+  }
+
+  /** Skip the rest of the current playback (a battle scene jumps to its end). */
   skip(): void {
     if (!this.busy) return;
     this.skipping = true;
     this.cancelWait?.();
+    if (this.fight) this.fightStage?.skip();
   }
 
   /** Close the level-up popup without skipping anything else. */
@@ -455,7 +544,15 @@ export class BattleController {
   }
 
   private async playEvents(events: BattleEvent[]): Promise<void> {
-    for (const ev of events) {
+    for (let i = 0; i < events.length; i++) {
+      const ev = events[i]!;
+      if (isSceneStart(ev) && (ev.type === 'powerUsed' || this.scenesPlay())) {
+        const end = sceneGroupEnd(events, i);
+        if (await this.playFight(events.slice(i, end))) {
+          i = end - 1;
+          continue;
+        }
+      }
       if (ev.type === 'phaseChanged') {
         await this.showBanner(ev.phase, ev.turn);
       } else if (ev.type === 'sceneRequested') {
@@ -468,6 +565,71 @@ export class BattleController {
         await this.stage?.play(ev, this.state, this.timing());
       }
     }
+  }
+
+  /** True when battle scenes play now: a scene player is attached, the setting is on, and nothing is skipping. */
+  private scenesPlay(): boolean {
+    return this.fightStage !== null && this.sceneMode !== 'off' && !this.skipping;
+  }
+
+  private facts = (unitId: string): FighterFacts | null => {
+    const u = this.state.units.find((x) => x.id === unitId);
+    if (!u) return null;
+    const w = u.weaponId ? (this.data.weapons[u.weaponId] ?? null) : null;
+    return { team: u.team, weapon: w, maxHp: u.stats.hp, hp: u.hp };
+  };
+
+  /**
+   * Stage one fight, heal or power: the power's cut-in, then the side-view scene, then the map snaps to the
+   * outcome. The state is already applied; nothing here changes it. Returns false when the group is left to the
+   * map (scenes off, nothing to stage): a power still gets its cut-in, and its events then play on the map.
+   */
+  private async playFight(group: BattleEvent[]): Promise<boolean> {
+    const first = group[0]!;
+    const script = buildFightScript(group, this.facts);
+    if (first.type === 'powerUsed') await this.showCutIn(first.summary.bearerId, first.summary.powerId, first.summary.bladePowerId, first.summary.echoOf);
+    if (!script || !this.scenesPlay()) return false;
+    const stage = this.fightStage!;
+    try {
+      await stage.prepare(script, this.state);
+      if (this.skipping) throw new Error('skipped');
+      this.fight = { script, hp: Object.fromEntries(script.fighters.map((f) => [f.unitId, { hp: f.hpBefore, ms: 0 }])), numbers: fightNumbers(group) };
+      this.changed();
+      const scale = SCENE_SCALE[this.sceneMode] * SPEED_SCALE[this.speed] * this.testSlow;
+      await stage.play(script, this.state, {
+        scale,
+        calm: this.reduced,
+        onHp: (unitId, hp, ms) => {
+          if (!this.fight) return;
+          this.fight = { ...this.fight, hp: { ...this.fight.hp, [unitId]: { hp, ms } } };
+          this.changed();
+        },
+      });
+    } catch (e) {
+      // A scene that fails to load or play must never stop the battle: the map shows the outcome.
+      if (!(e instanceof Error && e.message === 'skipped')) console.warn('Battle scene failed', e);
+    }
+    this.fight = null;
+    this.changed();
+    if (this.stage?.settle) this.stage.settle(group, this.state);
+    else for (const ev of group) await this.stage?.play(ev, this.state, { ms: () => 0, reduced: this.reduced });
+    return true;
+  }
+
+  private async showCutIn(unitId: string, powerId: string, bladePowerId: string, echoOf: string | null): Promise<void> {
+    if (this.skipping) return;
+    const def = this.data.powers[bladePowerId];
+    const u = this.state.units.find((x) => x.id === unitId);
+    const w = u?.weaponId ? this.data.weapons[u.weaponId] : undefined;
+    const echoed = echoOf ? this.data.powers[powerId] : undefined;
+    const name = echoed && def ? `${def.name}: ${echoed.name}` : (def?.name ?? powerId);
+    const scale = (this.sceneMode === 'off' ? SCENE_SCALE.fast : SCENE_SCALE[this.sceneMode]) * SPEED_SCALE[this.speed];
+    const ms = Math.round(CUT_IN_MS * scale * (this.reduced ? 0.6 : 1) * this.testSlow);
+    this.cutIn = { unitId, name, school: w?.school ?? 'none', echoOf, ms };
+    this.changed();
+    await this.wait(ms);
+    this.cutIn = null;
+    this.changed();
   }
 
   private async showBanner(phase: Team, turn: number): Promise<void> {
@@ -487,4 +649,28 @@ export class BattleController {
     this.levelUp = null;
     this.changed();
   }
+}
+
+function commitForTest(state: BattleState, action: Action, data: GameData): Action | null {
+  return validateAction(state, action, data) === null ? action : null;
+}
+
+/** The HUD numbers for each side of a fight: the forecast's (a power's include its bonus), or null for no counter. */
+function fightNumbers(group: BattleEvent[]): FightView['numbers'] {
+  const out: FightView['numbers'] = {};
+  const started = group.find((e): e is Extract<BattleEvent, { type: 'combatStarted' }> => e.type === 'combatStarted');
+  if (started) {
+    const f = started.forecast;
+    const pick = (c: typeof f.attacker) => ({ damage: c.damage, hit: c.hit, crit: c.crit, strikes: c.strikes });
+    out[started.attackerId] = pick(f.attacker);
+    out[started.defenderId] = f.counter ? pick(f.counter) : null;
+    return out;
+  }
+  const used = group.find((e): e is Extract<BattleEvent, { type: 'powerUsed' }> => e.type === 'powerUsed');
+  if (used) {
+    const o = used.summary.odds[0];
+    if (o) out[used.summary.bearerId] = { damage: o.damage, hit: o.hit, crit: o.crit, strikes: 1 };
+    for (const id of used.summary.targetIds) out[id] = null;
+  }
+  return out;
 }
