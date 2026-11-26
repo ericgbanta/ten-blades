@@ -40,6 +40,33 @@ describe('game data', () => {
     expect(s.units.find((u) => u.id === 'mc')).toMatchObject({ isLord: true, classId: 'duelist' });
   });
 
+  it('on every map, every tile passable on foot is reachable from the MC slot', () => {
+    for (const m of Object.values(gameData.maps)) {
+      const passable = (x: number, y: number): boolean => {
+        const ch = m.tiles[y]?.[x];
+        if (ch === undefined) return false;
+        const cost = gameData.terrain[m.legend[ch]!]!.moveCost.foot;
+        return cost !== null && cost !== undefined;
+      };
+      const mc = m.placements.find((p) => p.kind === 'mc')!;
+      const seen = new Set<string>([`${mc.pos.x},${mc.pos.y}`]);
+      const queue = [mc.pos];
+      while (queue.length > 0) {
+        const p = queue.shift()!;
+        for (const [dx, dy] of [[0, -1], [1, 0], [0, 1], [-1, 0]] as const) {
+          const x = p.x + dx;
+          const y = p.y + dy;
+          if (!passable(x, y) || seen.has(`${x},${y}`)) continue;
+          seen.add(`${x},${y}`);
+          queue.push({ x, y });
+        }
+      }
+      const cut: string[] = [];
+      for (let y = 0; y < m.height; y++) for (let x = 0; x < m.width; x++) if (passable(x, y) && !seen.has(`${x},${y}`)) cut.push(`${x},${y}`);
+      expect(cut, `map ${m.id}`).toEqual([]);
+    }
+  });
+
   it('catches broken references', () => {
     const d = clone();
     d.classes.hunter!.startingWeapon = 'nope';
