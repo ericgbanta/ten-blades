@@ -1,14 +1,16 @@
 // Deterministic AI for enemy and ally phases (and the simulator's player side).
 //
 // Behaviors:
-// - charge: attack the best target in reach, else move toward the nearest hostile.
+// - charge: attack the best target in reach, else move toward the nearest hostile it
+//   can hurt (or a hostile lord if it can hurt nobody). It never attacks for zero
+//   expected damage; that holds for every behavior.
 // - hold: stay put until a hostile is in reach (or it is attacked), then charge for good.
 // - guard: only act from tiles within `guardRadius` of `guardTile`; otherwise return
 //   toward it. Bosses default to guarding their own tile with radius 0 (stay put).
 // Staff users heal the most wounded friend they can reach, else stay put.
 
 import { applyAction } from './battle';
-import { forecast } from './combat';
+import { canHurt, forecast } from './combat';
 import { areHostile, attackWeaponOf, distance, getUnit, livingUnits, staffOf, tileIndex } from './grid';
 import { actionTiles, attackTargets, distanceField, healTargets, moveTiles, reachableTiles } from './pathfinding';
 import type { Action, ActionResult, AiState, BattleEvent, BattleState, GameData, Pos, Unit } from './types';
@@ -30,10 +32,16 @@ export function attackScore(state: BattleState, unit: Unit, targetId: string, fr
   return dealt * 2 + lethal - taken + (target.isLord ? 5 : 0);
 }
 
+/**
+ * The highest-scoring attack from any of `tiles`, or null. Attacks with zero
+ * expected damage (hit 0 or damage 0) are never chosen: they only feed the counter.
+ */
 function bestAttack(state: BattleState, unit: Unit, tiles: Pos[], data: GameData): Candidate | null {
   let best: Candidate | null = null;
   for (const to of tiles) {
     for (const targetId of attackTargets(state, unit.id, to, data)) {
+      const a = forecast(state, unit.id, targetId, to, data).attacker;
+      if (a.hit <= 0 || a.damage <= 0) continue;
       const score = attackScore(state, unit, targetId, to, data);
       if (!best || score > best.score) best = { action: { type: 'attack', unitId: unit.id, to, targetId }, score };
     }
@@ -68,14 +76,22 @@ function moveToward(state: BattleState, unit: Unit, sources: Pos[], data: GameDa
   return { type: 'wait', unitId: unit.id, to: best.to };
 }
 
+/**
+ * Attack the best target in reach; otherwise walk toward the nearest foe it can
+ * hurt. If it can hurt nobody, it walks toward the nearest hostile lord (or any
+ * hostile when there is no lord), and never attacks.
+ */
 function charge(state: BattleState, unit: Unit, data: GameData): Action {
   const attack = bestAttack(state, unit, moveTiles(state, unit.id, data), data);
   if (attack) return attack.action;
   const foes = livingUnits(state).filter((u) => areHostile(unit.team, u.team));
+  const hurtable = foes.filter((u) => canHurt(state, unit.id, u.id, data));
+  const lords = foes.filter((u) => u.isLord);
+  const goals = hurtable.length > 0 ? hurtable : lords.length > 0 ? lords : foes;
   return moveToward(
     state,
     unit,
-    foes.map((u) => u.pos),
+    goals.map((u) => u.pos),
     data,
   );
 }

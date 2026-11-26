@@ -39,8 +39,14 @@ interface Field {
 /**
  * Dijkstra from `sources` over the map for `mover`. Tiles holding units hostile to
  * the mover are impassable (except sources). Stops expanding past `budget`.
+ *
+ * Forward (the default) charges the cost of entering each new tile, so `cost` is the
+ * movement spent walking out from a source. Reverse charges the cost of the tile
+ * stepped from, so `cost[t]` is the movement needed to walk from t back to a source.
+ * In reverse, a source holding a hostile unit costs nothing to "enter" (the mover
+ * stops next to it), so the cost is to reach a tile beside that unit.
  */
-function dijkstra(state: BattleState, mover: Unit, sources: Pos[], budget: number, data: GameData): Field {
+function dijkstra(state: BattleState, mover: Unit, sources: Pos[], budget: number, data: GameData, reverse = false): Field {
   const n = state.map.width * state.map.height;
   const cost = new Array<number>(n).fill(Infinity);
   const prev = new Array<number>(n).fill(-1);
@@ -63,10 +69,14 @@ function dijkstra(state: BattleState, mover: Unit, sources: Pos[], budget: numbe
     const [bestCost, best] = top;
     if (done[best] || bestCost !== cost[best]) continue;
     done[best] = true;
-    for (const nb of neighbors(state, indexToPos(state, best))) {
+    const here = indexToPos(state, best);
+    // Reverse: travelling toward the source, the mover steps from a neighbor into `here`.
+    const into = reverse ? (blocked[best] ? 0 : moveCostAt(state, here, moveType, data)) : 0;
+    if (into === null) continue;
+    for (const nb of neighbors(state, here)) {
       const ni = tileIndex(state, nb);
       if (done[ni] || blocked[ni]) continue;
-      const step = moveCostAt(state, nb, moveType, data);
+      const step = reverse ? into : moveCostAt(state, nb, moveType, data);
       if (step === null) continue;
       const c = bestCost + step;
       if (c <= budget && c < cost[ni]!) {
@@ -251,9 +261,11 @@ export function threatTiles(state: BattleState, data: GameData, team: Unit['team
 }
 
 /**
- * Movement cost from the nearest source to every tile for `mover`, ignoring its
- * move budget. Infinity where unreachable. Used by the AI to approach targets.
+ * For every tile, the movement `mover` would need to walk from it to the nearest
+ * source, ignoring its move budget: to the source tile itself, or to a tile beside
+ * it when a hostile unit stands there. Infinity where unreachable. Used by the AI
+ * to approach targets.
  */
 export function distanceField(state: BattleState, mover: Unit, sources: Pos[], data: GameData): number[] {
-  return dijkstra(state, mover, sources, Infinity, data).cost;
+  return dijkstra(state, mover, sources, Infinity, data, true).cost;
 }
