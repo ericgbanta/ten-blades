@@ -124,7 +124,7 @@ export function PowerPanel({ fc, state, run, data, look }: { fc: PowerForecast; 
   const bearer = state.units.find((u) => u.id === fc.bearerId)!;
   const echoOf = fc.plan.echoOf ? state.units.find((u) => u.id === fc.plan.echoOf) : undefined;
   const notes: string[] = [];
-  if (fc.healMax > 0) notes.push(`Heals the damage dealt, up to ${fc.healMax} HP.`);
+  if (fc.plan.effect.type === 'devour') notes.push(fc.healMax > 0 ? `Heals the damage dealt, up to ${fc.healMax} HP.` : 'Heals the damage dealt (at full HP now).');
   if (fc.plan.effect.type === 'devour') notes.push(`A kill adds ${fc.plan.effect.attackPerKill} attack for the rest of the map.`);
   if (fc.echoStrike) notes.push(`Then an echo strike: ${fc.echoStrike.damage} damage, ${fc.echoStrike.hit}% hit, no counter.`);
   if (fc.plan.effect.type === 'scatter') notes.push('No counters.');
