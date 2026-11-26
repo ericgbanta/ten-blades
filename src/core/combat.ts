@@ -4,6 +4,7 @@
 import { ActionError } from './errors';
 import { attackWeaponOf, distance, findUnit, getUnit, inBounds, terrainAt } from './grid';
 import { devourBonus } from './resolve';
+import { hasStatus } from './status';
 import { nextInt, rollPercent, type RngState } from './rng';
 import type {
   Balance,
@@ -118,7 +119,8 @@ export function forecastWith(
   if (dist < aw.range[0] || dist > aw.range[1]) throw new ActionError(`${d.id} is out of ${a.id}'s range`);
   const dw = attackWeaponOf(d, data);
   const attacker = sideNumbers(a, aw, d, d.pos, dw, state, data, bonus);
-  const canCounter = dw !== null && dist >= dw.range[0] && dist <= dw.range[1];
+  // A silenced defender cannot answer (Hush).
+  const canCounter = dw !== null && !hasStatus(d, 'silence') && dist >= dw.range[0] && dist <= dw.range[1];
   const counter = canCounter ? sideNumbers(d, dw, a, from, aw, state, data) : null;
   return {
     attacker,

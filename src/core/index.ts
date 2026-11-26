@@ -68,6 +68,7 @@ export {
   powerTargets,
   powerDirections,
   powerForecast,
+  powerIds,
   canUsePower,
   echoSource,
   lineTiles,
@@ -76,6 +77,20 @@ export {
   type PowerForecast,
   type PowerTargetForecast,
 } from './powers';
-export { bladeOf, bladeIdOf, isBearer, bearerPower, implementedPower, powerCost, devourBonus } from './resolve';
+export {
+  bladeOf,
+  bladeIdOf,
+  bladeTier,
+  unitBladeTier,
+  bearerPowers,
+  bloodPriceOf,
+  isBearer,
+  bearerPower,
+  implementedPower,
+  powerCost,
+  devourBonus,
+} from './resolve';
+export { parseWeaponId, rankedWeaponId, weaponDef, itemDef, isWeaponId, classCanWield, isBound, inventoryWith } from './items';
+export { hasStatus, moveBudget } from './status';
 export { forecastWith, strikeSide } from './combat';
 export { powerScore } from './ai';

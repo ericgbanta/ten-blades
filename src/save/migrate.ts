@@ -101,12 +101,54 @@ function addBlades(save: RawSave): RawSave {
   return campaign(save) as RawSave;
 }
 
+/** A unit's inventory before version 5: just the weapon in its hand. */
+function inventoryOf(u: Obj): Obj {
+  return { ...u, inventory: typeof u.weaponId === 'string' ? [u.weaponId] : [] };
+}
+
+/**
+ * Version 4 to 5: camp.
+ * - Every party and fallen unit carries an inventory holding the weapon in its hand. The campaign gets an empty
+ *   convoy, bench, wounded list and skirmish count.
+ * - A campaign between chapters (at the start of an intro that has not begun, with a chapter already won) is in
+ *   camp now: that is where the army rests between chapters.
+ * - A suspended battle is a story battle (skirmish null). Its battle state moves to version 4: every unit's
+ *   inventory holds its weapon and it has no statuses, and the blades' tiers come from the campaign (all
+ *   Dormant at version 4).
+ */
+function addCamp(save: RawSave): RawSave {
+  const campaign = (c: Obj): Obj => {
+    const party = Array.isArray(c.party) ? (c.party as Obj[]).map(inventoryOf) : c.party;
+    const fallen = Array.isArray(c.fallen) ? (c.fallen as Obj[]).map(inventoryOf) : c.fallen;
+    let progress = c.progress;
+    if (typeof progress === 'object' && progress !== null) {
+      const p = progress as Obj;
+      const between = p.stage === 'intro' && p.scenes === null && Array.isArray(p.completed) && p.completed.length > 0 && p.current !== null;
+      if (between) progress = { ...p, stage: 'camp' };
+    }
+    return { ...c, version: 5, party, fallen, progress, convoy: [], benched: [], wounded: {}, skirmishWins: {} };
+  };
+  if (save.kind === 'suspend') {
+    const camp = typeof save.campaign === 'object' && save.campaign !== null ? campaign(save.campaign as Obj) : save.campaign;
+    let battle = save.battle;
+    if (typeof battle === 'object' && battle !== null) {
+      const b = battle as Obj;
+      const units = Array.isArray(b.units) ? (b.units as Obj[]).map((u) => ({ ...inventoryOf(u), statuses: [] })) : b.units;
+      const blades = (typeof camp === 'object' && camp !== null ? (camp as Obj).blades : null) as Record<string, { tier?: unknown }> | null;
+      const bladeTiers = Object.fromEntries(Object.entries(blades ?? {}).map(([id, r]) => [id, typeof r?.tier === 'number' ? r.tier : 1]));
+      battle = { ...b, version: 4, units, bladeTiers };
+    }
+    return { ...save, version: 5, campaign: camp, battle, skirmish: null };
+  }
+  return campaign(save) as RawSave;
+}
+
 /**
  * Steps keyed by the version they upgrade from. A step must handle both kinds
  * (`campaign` and `suspend`, whose `campaign` field is a campaign save of the
  * same version).
  */
-export const MIGRATIONS: Readonly<Record<number, MigrationStep>> = { 1: addLook, 2: addStory, 3: addBlades };
+export const MIGRATIONS: Readonly<Record<number, MigrationStep>> = { 1: addLook, 2: addStory, 3: addBlades, 4: addCamp };
 
 /**
  * Upgrade a parsed save to `target`. Returns the upgraded object, still unchecked:

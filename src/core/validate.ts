@@ -50,7 +50,22 @@ export function validateGameData(data: GameData, story?: StoryRefs): string[] {
     }
     for (const k of ['might', 'hit', 'crit', 'heal'] as const) if (!isInt(w[k])) errs.push(`weapon ${id}: ${k} missing`);
     if (w.heal > 0 && w.school !== 'none') errs.push(`weapon ${id}: staves sit outside the triangle`);
+    if (id.includes('+')) errs.push(`weapon ${id}: "+" is kept for forge ranks`);
+    if (w.price !== undefined && (!isInt(w.price) || w.price < 0)) errs.push(`weapon ${id}: price must be a whole number of 0 or more`);
+    if (w.price !== undefined && w.legendary) errs.push(`weapon ${id}: a legendary weapon has no price`);
   }
+
+  for (const [id, it] of Object.entries(data.items ?? {})) {
+    if (data.weapons[id]) errs.push(`item ${id}: a weapon has the same id`);
+    for (const k of ['price', 'heal', 'resolve'] as const) if (!isInt(it[k]) || it[k] < 0) errs.push(`item ${id}: ${k} must be a whole number of 0 or more`);
+    if (it.heal === 0 && it.resolve === 0) errs.push(`item ${id}: does nothing`);
+  }
+  const inv = data.balance.inventory;
+  if (!inv || !isInt(inv.slots) || inv.slots < 1) errs.push('balance: inventory.slots must be at least 1');
+  const ranks = data.balance.weaponRanks;
+  if (!ranks || ![ranks.max, ranks.might, ranks.hit].every((v) => isInt(v) && v >= 0)) errs.push('balance: weaponRanks numbers must be whole numbers of 0 or more');
+  const ai = data.balance.ai;
+  if (!ai || !isInt(ai.itemBelowPercent) || !isInt(ai.statusValue)) errs.push('balance: ai numbers missing');
 
   errs.push(...validateBlades(data));
 
@@ -97,6 +112,20 @@ function validateBlades(data: GameData): string[] {
     if (!BLADE_SCHOOLS.includes(b.school)) errs.push(`blade ${id}: bad school ${b.school}`);
     if (!data.powers[b.power]) errs.push(`blade ${id}: unknown power ${b.power}`);
     if (!Array.isArray(b.tiers) || b.tiers.length === 0 || b.tiers.some((t, i) => t.tier !== i + 1)) errs.push(`blade ${id}: tiers must count up from 1`);
+    for (const t of b.tiers ?? []) {
+      const at = `blade ${id} tier ${t.tier}`;
+      if (t.power !== undefined && !data.powers[t.power]) errs.push(`${at}: unknown power ${t.power}`);
+      if (t.shards !== undefined && (!isInt(t.shards) || t.shards < 0)) errs.push(`${at}: shards must be a whole number of 0 or more`);
+      if (t.bloodPrice !== undefined && (!isInt(t.bloodPrice) || t.bloodPrice < 0)) errs.push(`${at}: bloodPrice must be a whole number of 0 or more`);
+      for (const [k, v] of Object.entries(t.statBoost ?? {})) {
+        if (!(STAT_KEYS as readonly string[]).includes(k) || !isInt(v)) errs.push(`${at}: bad statBoost ${k}`);
+      }
+      // A tier can be reached only once it is designed: it names its shards and its requirement in words.
+      if (t.tier > 1 && t.shards !== undefined && (!t.requires || typeof t.requires.text !== 'string' || t.requires.text === '')) {
+        errs.push(`${at}: needs requires with a text`);
+      }
+      if (t.requires?.act !== undefined && (!isInt(t.requires.act) || t.requires.act < 1)) errs.push(`${at}: bad requires.act`);
+    }
   }
   for (const [id, p] of Object.entries(data.powers)) {
     if (p.cost !== null && (!isInt(p.cost) || p.cost <= 0 || (r && p.cost > r.max))) errs.push(`power ${id}: cost must be 1 to resolve.max, or null`);
@@ -108,8 +137,16 @@ function validateBlades(data: GameData): string[] {
         ? [['range', e.range], ['fallback.damagePercent', e.fallback.damagePercent], ['fallback.range[0]', e.fallback.range[0]], ['fallback.range[1]', e.fallback.range[1]]]
         : e.type === 'devour'
           ? [['bonusMight', e.bonusMight], ['healPercent', e.healPercent], ['healCap', e.healCap], ['attackPerKill', e.attackPerKill], ['maxStacks', e.maxStacks]]
-          : [['length', e.length], ['damagePercent', e.damagePercent]];
-    if (!['echo', 'devour', 'scatter'].includes(e.type)) errs.push(`power ${id}: unknown effect ${String(e.type)}`);
+          : e.type === 'scatter'
+            ? [['length', e.length], ['damagePercent', e.damagePercent]]
+            : e.type === 'strike'
+              ? [['range[0]', e.range[0]], ['range[1]', e.range[1]], ['damagePercent', e.damagePercent]]
+              : [['bonusMight', e.bonusMight], ['splashPercent', e.splashPercent]];
+    if (!['echo', 'devour', 'scatter', 'strike', 'cleave'].includes(e.type)) errs.push(`power ${id}: unknown effect ${String(e.type)}`);
+    if (e.type === 'strike') {
+      if (e.range[0] < 1 || e.range[1] < e.range[0]) errs.push(`power ${id}: bad range`);
+      if (e.status !== null && !['silence', 'pin'].includes(e.status)) errs.push(`power ${id}: unknown status ${String(e.status)}`);
+    }
     for (const [k, v] of nums) if (!isInt(v) || v < 0) errs.push(`power ${id}: ${k} must be a whole number of 0 or more`);
     if (e.type === 'scatter' && e.length < 1) errs.push(`power ${id}: length must be at least 1`);
   }
@@ -161,6 +198,7 @@ function validateMap(m: MapData, data: GameData, story: StoryRefs | undefined): 
       if (!w) errs.push(`${where}: ${label} unknown weapon ${p.weaponId}`);
       else if (cls && !cls.weaponKinds.includes(w.kind)) errs.push(`${where}: ${label} cannot use ${p.weaponId}`);
     }
+    for (const it of p.items ?? []) if (!data.items?.[it]) errs.push(`${where}: ${label} unknown item ${it}`);
     if (p.team !== 'player' && !p.ai && !p.isBoss) errs.push(`${where}: ${label} needs an ai`);
     if (p.ai && !BEHAVIORS.includes(p.ai.behavior)) errs.push(`${where}: ${label} bad ai ${p.ai.behavior}`);
     checkPos(p.pos, label, p.classId);

@@ -1,0 +1,23 @@
+{
+  "healing_salve": {
+    "name": "Healing Salve",
+    "description": "A bitter paste of moss and ash. Restores 10 HP.",
+    "price": 150,
+    "heal": 10,
+    "resolve": 0
+  },
+  "mender_tonic": {
+    "name": "Mender's Tonic",
+    "description": "Field surgeon's draught. Restores 20 HP.",
+    "price": 350,
+    "heal": 20,
+    "resolve": 0
+  },
+  "grave_wine": {
+    "name": "Grave Wine",
+    "description": "The blades drink it too. Adds 30 Resolve to a bearer's gauge.",
+    "price": 500,
+    "heal": 0,
+    "resolve": 30
+  }
+}

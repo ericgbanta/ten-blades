@@ -202,6 +202,13 @@ function applyEffect(s: BattleState, ev: MapEvent, fx: EventEffect, data: GameDa
     case 'giveWeapon': {
       const u = findUnit(s, fx.unitId);
       if (!u) return;
+      // The weapon joins the inventory (replacing the one in hand when every slot is full) and is equipped.
+      if (!u.inventory.includes(fx.weaponId)) {
+        const full = u.inventory.length >= data.balance.inventory.slots;
+        const i = u.weaponId === null ? -1 : u.inventory.indexOf(u.weaponId);
+        if (full && i >= 0) u.inventory[i] = fx.weaponId;
+        else u.inventory.push(fx.weaponId);
+      }
       u.weaponId = fx.weaponId;
       out.push({ type: 'weaponChanged', unitId: u.id, weaponId: fx.weaponId });
       return;

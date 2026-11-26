@@ -1,0 +1,13 @@
+{
+  "id": "skirmish_ridge_lore",
+  "draft": true,
+  "backdrop": "forest",
+  "lines": [
+    { "speaker": "narrator", "text": "Halfway up the ridge road stands a cairn of black stones, older than the road." },
+    { "speaker": "narrator", "text": "Words are cut into the top stone, worn almost smooth: ONE EDGE, BROKEN TEN WAYS." },
+    { "speaker": "mc", "side": "left", "expr": "neutral", "text": "Ten ways. Ten blades. You were one sword once." },
+    { "speaker": "blade", "text": "I was a piece of one. The whole of it was hungry, and the world was small." },
+    { "speaker": "mc", "expr": "angry", "text": "Who broke it?" },
+    { "speaker": "blade", "text": "People who are dust now. Smoke on the ridge. Deserters. Go and be useful." }
+  ]
+}

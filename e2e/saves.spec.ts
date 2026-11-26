@@ -51,7 +51,7 @@ test('play one action, reload, Continue: the battle is exactly where it was', as
   await playByTaps(page, second);
   await saved(page);
   const before = await state(page);
-  expect(before.units.find((u) => u.id === 'mc')!.pos).toEqual(action.type === 'endPhase' ? before.units[0]!.pos : action.to);
+  expect(before.units.find((u) => u.id === 'mc')!.pos).toEqual(action.type === 'endPhase' || action.type === 'equip' ? before.units[0]!.pos : action.to);
 
   await page.reload();
   await expect(page).toHaveURL(/#\/$/);

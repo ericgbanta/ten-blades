@@ -138,7 +138,7 @@ describe('defect 3: reinforcements act in the next phase of their team', () => {
 describe('defect 4: duplicate unit ids are rejected at createBattle', () => {
   const d = fixtureData();
   d.classes.vanguard = d.classes.fighter!;
-  const kit = { id: 'kit', name: 'Kit', classId: 'rogue', level: 1, xp: 0, stats: d.classes.rogue!.baseStats, weaponId: 'dagger', isLord: false };
+  const kit = { id: 'kit', name: 'Kit', classId: 'rogue', level: 1, xp: 0, stats: d.classes.rogue!.baseStats, weaponId: 'dagger', isLord: false, inventory: ['dagger'] };
 
   it('a party member with the id of a map placement', () => {
     const map = makeMap(['....'], [{ kind: 'mc', pos: pos(0, 0) }, { kind: 'party', pos: pos(1, 0) }, place('kit', 'rogue', 'player', 2, 0), place('e', 'rogue', 'enemy', 3, 0)]);

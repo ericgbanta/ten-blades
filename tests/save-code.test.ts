@@ -6,7 +6,7 @@ import type { CampaignSave, SaveContext } from '../src/save/format';
 import { memoryStorage } from '../src/save/storage';
 import { DEFAULT_LOOK } from '../src/art/mc/look';
 import v1 from './fixtures/save-v1.json';
-import v4 from './fixtures/save-v4.json';
+import v5 from './fixtures/save-v5.json';
 
 const ctx: SaveContext = { data: gameData, chapters };
 
@@ -26,10 +26,10 @@ describe('save codes', () => {
     });
   }
 
-  it('round trips the v4 fixture and survives spaces and line breaks from pasting', async () => {
-    const code = await encodeSaveCode(v4 as CampaignSave);
+  it('round trips the v5 fixture and survives spaces and line breaks from pasting', async () => {
+    const code = await encodeSaveCode(v5 as unknown as CampaignSave);
     const pasted = `  ${code.slice(0, 20)}\n${code.slice(20, 50)} \r\n${code.slice(50)}\n`;
-    expect(await decodeSaveCode(pasted, ctx)).toEqual({ ok: true, value: v4 });
+    expect(await decodeSaveCode(pasted, ctx)).toEqual({ ok: true, value: v5 });
   });
 
   it('imports a code made from a version 1 save, with the default look', async () => {
@@ -37,7 +37,7 @@ describe('save codes', () => {
     const r = await decodeSaveCode(code, ctx);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.value.version).toBe(4);
+    expect(r.value.version).toBe(5);
     expect(r.value.mc.look).toEqual(DEFAULT_LOOK);
   });
 
@@ -74,7 +74,7 @@ describe('save codes', () => {
     expect(await err(`TB1.j.${btoa('{"version":1')}`)).toMatch(/damaged/);
     expect(await err(`TB1.j.${btoa('{"version":1,"kind":"campaign"}')}`)).toMatch(/^This save could not be read/);
     expect(await err(`TB1.j.${btoa('{"version":1,"kind":"suspend"}')}`)).toBe('This code holds a suspended battle, not a campaign save.');
-    expect(await err(`TB1.j.${btoa('{"version":5}')}`)).toMatch(/newer version of the game/);
+    expect(await err(`TB1.j.${btoa('{"version":6}')}`)).toMatch(/newer version of the game/);
   });
 
   it('rejects invalid UTF-8', async () => {

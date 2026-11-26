@@ -8,12 +8,15 @@
 // - guard: only act from tiles within `guardRadius` of `guardTile`; otherwise return
 //   toward it. Bosses default to guarding their own tile with radius 0 (stay put).
 // Staff users heal the most wounded friend they can reach, else stay put.
+// Items: an enemy or ally below balance.ai.itemBelowPercent of its max HP drinks the first healing item it carries,
+// where it stands, before anything else. Bearers score each of their powers (two for an Awakened blade).
 
 import { applyAction } from './battle';
 import { canHurt, forecast } from './combat';
 import { areHostile, attackWeaponOf, distance, getUnit, livingUnits, staffOf, tileIndex } from './grid';
 import { actionTiles, attackTargets, distanceField, healTargets, moveTiles, reachableTiles } from './pathfinding';
-import { canUsePower, powerDirections, powerForecast, powerTargets, type PowerAim, type PowerForecast } from './powers';
+import { itemDef } from './items';
+import { canUsePower, powerDirections, powerForecast, powerIds, powerTargets, type PowerAim, type PowerForecast } from './powers';
 import type { Action, ActionResult, AiState, BattleEvent, BattleState, Forecast, GameData, Pos, Unit } from './types';
 
 interface Candidate {
@@ -57,15 +60,22 @@ function bestAttack(state: BattleState, unit: Unit, tiles: Pos[], data: GameData
  * Score of firing a power: a fight is scored like an attack (plus Devour's expected heal and Echo's repeat
  * strike); Scatter adds up the expected damage and lethal bonus over every target, with no counters.
  */
-export function powerScore(state: BattleState, unit: Unit, fc: PowerForecast): number {
+export function powerScore(state: BattleState, unit: Unit, fc: PowerForecast, data?: GameData): number {
+  // Hush and Pin are worth a little more than their damage: the status, weighted by its chance to land.
+  const statusValue = data?.balance.ai.statusValue ?? 0;
+  let status = 0;
+  if (fc.status !== null) for (const t of fc.targets) status += (statusValue * (fc.statusOnHit ? t.side.hit : 100)) / 100;
   if (fc.combat) {
     const a = fc.combat.attacker;
     const target = getUnit(state, fc.combat.defenderId);
     const dealt = (Math.min(target.hp, a.damage * a.strikes) * a.hit) / 100;
     const echo = fc.echoStrike ? (Math.min(target.hp, fc.echoStrike.damage) * fc.echoStrike.hit) / 100 : 0;
-    return fightScore(state, unit, fc.combat) + echo * 2 + Math.min(fc.healMax, dealt);
+    // Cleave's splash: the expected damage on every other foe beside the bearer.
+    let splash = 0;
+    for (const t of fc.targets.slice(1)) splash += ((Math.min(getUnit(state, t.unitId).hp, t.side.damage) * t.side.hit) / 100) * 2;
+    return fightScore(state, unit, fc.combat) + echo * 2 + Math.min(fc.healMax, dealt) + splash + status - fc.bloodPrice;
   }
-  let score = 0;
+  let score = status - fc.bloodPrice;
   for (const t of fc.targets) {
     const target = getUnit(state, t.unitId);
     score += ((Math.min(target.hp, t.side.damage) * t.side.hit) / 100) * 2;
@@ -75,23 +85,36 @@ export function powerScore(state: BattleState, unit: Unit, fc: PowerForecast): n
   return score;
 }
 
-/** The best power use from any of `tiles`, or null when the power is not ready or hits nothing. */
+/**
+ * The best power use from any of `tiles`, or null when no power is ready or none hits anything. Each power the
+ * bearer has is scored; the first power's action carries no `powerId`, so a Dormant blade plans as before.
+ */
 function bestPower(state: BattleState, unit: Unit, tiles: Pos[], data: GameData): Candidate | null {
   let best: Candidate | null = null;
-  for (const to of tiles) {
-    if (!canUsePower(state, unit.id, to, data)) continue;
-    const aims: PowerAim[] = [
-      ...powerTargets(state, unit.id, to, data).map((targetId) => ({ targetId })),
-      ...powerDirections(state, unit.id, to, data).map((dir) => ({ dir })),
-    ];
-    for (const aim of aims) {
-      const fc = powerForecast(state, unit.id, to, aim, data);
-      if (fc.targets.every((t) => t.side.hit <= 0 || t.side.damage <= 0)) continue;
-      const score = powerScore(state, unit, fc);
-      if (!best || score > best.score) best = { action: { type: 'power', unitId: unit.id, to, ...aim }, score };
+  powerIds(state, unit.id, data).forEach((powerId, i) => {
+    const pick = i === 0 ? {} : { powerId };
+    for (const to of tiles) {
+      if (!canUsePower(state, unit.id, to, data, powerId)) continue;
+      const aims: PowerAim[] = [
+        ...powerTargets(state, unit.id, to, data, powerId).map((targetId) => ({ targetId })),
+        ...powerDirections(state, unit.id, to, data, powerId).map((dir) => ({ dir })),
+      ];
+      for (const aim of aims) {
+        const fc = powerForecast(state, unit.id, to, aim, data, powerId);
+        if (fc.targets.every((t) => t.side.hit <= 0 || t.side.damage <= 0)) continue;
+        const score = powerScore(state, unit, fc, data);
+        if (!best || score > best.score) best = { action: { type: 'power', unitId: unit.id, to, ...aim, ...pick }, score };
+      }
     }
-  }
+  });
   return best;
+}
+
+/** A healing item to drink where it stands, for an AI unit low on HP, or null. */
+function drinkIfLow(unit: Unit, data: GameData): Action | null {
+  if (unit.team === 'player' || unit.hp * 100 >= unit.stats.hp * data.balance.ai.itemBelowPercent) return null;
+  const itemIndex = unit.inventory.findIndex((id) => (itemDef(id, data)?.heal ?? 0) > 0);
+  return itemIndex < 0 ? null : { type: 'item', unitId: unit.id, to: { ...unit.pos }, itemIndex };
 }
 
 /**
@@ -164,6 +187,8 @@ export function planUnitAction(state: BattleState, unitId: string, data: GameDat
   const viewState: BattleState = ai ? { ...state, units: state.units.map((u) => (u.id === unitId ? view : u)) } : state;
   const stay: Action = { type: 'wait', unitId, to: { ...unit.pos } };
 
+  const drink = ai ? null : drinkIfLow(unit, data);
+  if (drink) return drink;
   if (staffOf(unit, data)) return bestHeal(viewState, view, actionTiles(viewState, unitId, data), data) ?? stay;
   if (!attackWeaponOf(unit, data)) return stay;
 

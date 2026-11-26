@@ -78,7 +78,7 @@ export async function tapTile(page: Page, x: number, y: number): Promise<void> {
 
 /** Play one player action by taps: select, move, then Wait or Attack with Confirm. */
 export async function playByTaps(page: Page, action: Action): Promise<void> {
-  if (action.type === 'endPhase') return;
+  if (action.type === 'endPhase' || action.type === 'equip' || action.type === 'item') return;
   const s = await state(page);
   const unit = s.units.find((u) => u.id === action.unitId)!;
   await tapTile(page, unit.pos.x, unit.pos.y);

@@ -40,7 +40,7 @@ export function chapterName(id: string | null): string {
 }
 
 /** Where in a chapter a campaign stands, for Continue. */
-export const STAGE_TEXT: Record<ChapterStage, string> = { intro: 'Story', battle: 'Battle', outro: 'Story' };
+export const STAGE_TEXT: Record<ChapterStage, string> = { camp: 'Camp', intro: 'Story', battle: 'Battle', outro: 'Story' };
 
 export function formatTime(ms: number): string {
   return new Date(ms).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });

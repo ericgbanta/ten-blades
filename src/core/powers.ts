@@ -1,16 +1,19 @@
 // Blade powers: what a bearer's power does right now (Echo resolves to what it would re-cast), its targets, a
 // forecast that resolution rolls exactly, and the resolution itself. Pure; resolution works on the caller's copy.
 //
-// Implemented (src/data/blades.json): Echo (Widow's Hush), Devour (Gravemaw), Scatter (Thousand Needles).
+// Implemented (src/data/blades.json): the Dormant powers Echo (Widow's Hush), Devour (Gravemaw) and Scatter
+// (Thousand Needles), and the Awakened powers Hush, Cleave and Pin. A bearer whose blade is Awakened has two
+// powers; every query takes an optional `powerId` (the blade's first power when left out).
 
 import { forecastWith, rollHit, strikeSide } from './combat';
 import { activateHold, clash, defeat, onKill } from './clash';
 import { ActionError } from './errors';
-import { areHostile, attackWeaponOf, distance, findUnit, getUnit, inBounds, unitAt } from './grid';
+import { areHostile, attackWeaponOf, distance, findUnit, getUnit, inBounds, livingUnits, neighbors, unitAt } from './grid';
 import { combatXp, grantXp } from './leveling';
 import { attackTargets } from './pathfinding';
-import { bearerPower, changeResolve, gainFromStrikes, implementedPower, powerCost } from './resolve';
+import { bearerPower, bearerPowers, bloodPriceOf, changeResolve, gainFromStrikes, implementedPower, powerCost } from './resolve';
 import { rollPercent } from './rng';
+import { applyStatus, hasStatus } from './status';
 import type {
   BattleEvent,
   BattleState,
@@ -22,6 +25,7 @@ import type {
   PowerEffect,
   PowerSummary,
   PowerUse,
+  StatusKind,
   Unit,
 } from './types';
 
@@ -60,11 +64,21 @@ export function echoSource(state: BattleState, unitId: string, data: GameData): 
   return null;
 }
 
-/** The unit's power plan, or null when it holds no blade with an implemented power. */
-export function powerPlan(state: BattleState, unitId: string, data: GameData): PowerPlan | null {
+/** Ids of the powers the unit can pick from, in tier order (two for an Awakened blade). Empty for no blade. */
+export function powerIds(state: BattleState, unitId: string, data: GameData): string[] {
+  const u = findUnit(state, unitId);
+  return u ? bearerPowers(state, u, data).map((p) => p.id) : [];
+}
+
+/**
+ * The unit's plan for one of its powers (`powerId`, default its first), or null when it holds no blade with that
+ * power built and unlocked.
+ */
+export function powerPlan(state: BattleState, unitId: string, data: GameData, powerId?: string): PowerPlan | null {
   const u = findUnit(state, unitId);
   if (!u) return null;
-  const own = bearerPower(u, data);
+  const powers = bearerPowers(state, u, data);
+  const own = powerId === undefined ? powers[0] : powers.find((p) => p.id === powerId);
   if (!own) return null;
   const cost = powerCost(own.def, data);
   const base = { bladePowerId: own.id, cost };
@@ -83,13 +97,14 @@ function aimOf(e: PowerEffect): 'unit' | 'line' {
   return e.type === 'scatter' ? 'line' : 'unit';
 }
 
-/** Why the unit cannot fire its power at all right now (ignoring targets), or null if the gauge is ready. */
-export function powerBlock(state: BattleState, unitId: string, data: GameData): string | null {
+/** Why the unit cannot fire the power at all right now (ignoring targets), or null if the gauge is ready. */
+export function powerBlock(state: BattleState, unitId: string, data: GameData, powerId?: string): string | null {
   const u = findUnit(state, unitId);
   if (!u) return `No unit ${unitId}`;
-  const plan = powerPlan(state, unitId, data);
-  if (!plan) return `${u.id} has no power`;
+  const plan = powerPlan(state, unitId, data, powerId);
+  if (!plan) return powerId === undefined ? `${u.id} has no power` : `${u.id} cannot use ${powerId}`;
   if (!attackWeaponOf(u, data)) return `${u.id} has no attack weapon`;
+  if (hasStatus(u, 'silence')) return 'Silenced';
   if (u.resolve < plan.cost) return `Resolve ${u.resolve}/${plan.cost}`;
   return null;
 }
@@ -122,10 +137,22 @@ function standingAt(state: BattleState, unitId: string, from: Pos): BattleState 
 }
 
 /** Unit ids a unit-aimed power could hit from `from`. Empty for line powers or when the power is not ready. */
-export function powerTargets(state: BattleState, unitId: string, from: Pos, data: GameData): string[] {
-  if (powerBlock(state, unitId, data) !== null) return [];
-  const plan = powerPlan(state, unitId, data)!;
+export function powerTargets(state: BattleState, unitId: string, from: Pos, data: GameData, powerId?: string): string[] {
+  if (powerBlock(state, unitId, data, powerId) !== null) return [];
+  const plan = powerPlan(state, unitId, data, powerId)!;
   if (plan.aim !== 'unit') return [];
+  if (plan.effect.type === 'strike') {
+    // Its own reach, past the weapon's: every living foe at a distance in range.
+    const [min, max] = plan.effect.range;
+    const u = getUnit(state, unitId);
+    return livingUnits(state)
+      .filter((v) => v.id !== unitId && areHostile(u.team, v.team))
+      .filter((v) => {
+        const d = distance(from, v.pos);
+        return d >= min && d <= max;
+      })
+      .map((v) => v.id);
+  }
   if (plan.fallback && plan.effect.type === 'echo') {
     const [min, max] = plan.effect.fallback.range;
     const u = getUnit(state, unitId);
@@ -139,9 +166,9 @@ export function powerTargets(state: BattleState, unitId: string, from: Pos, data
 }
 
 /** Directions a line power could fire in from `from` (at least one hostile in the line). */
-export function powerDirections(state: BattleState, unitId: string, from: Pos, data: GameData): Direction[] {
-  if (powerBlock(state, unitId, data) !== null) return [];
-  const plan = powerPlan(state, unitId, data)!;
+export function powerDirections(state: BattleState, unitId: string, from: Pos, data: GameData, powerId?: string): Direction[] {
+  if (powerBlock(state, unitId, data, powerId) !== null) return [];
+  const plan = powerPlan(state, unitId, data, powerId)!;
   if (plan.effect.type !== 'scatter') return [];
   const unit = { ...getUnit(state, unitId), pos: from };
   const len = plan.effect.length;
@@ -149,8 +176,8 @@ export function powerDirections(state: BattleState, unitId: string, from: Pos, d
 }
 
 /** True if the power has any target from `from`. */
-export function canUsePower(state: BattleState, unitId: string, from: Pos, data: GameData): boolean {
-  return powerTargets(state, unitId, from, data).length > 0 || powerDirections(state, unitId, from, data).length > 0;
+export function canUsePower(state: BattleState, unitId: string, from: Pos, data: GameData, powerId?: string): boolean {
+  return powerTargets(state, unitId, from, data, powerId).length > 0 || powerDirections(state, unitId, from, data, powerId).length > 0;
 }
 
 /** One unit a power strikes: its numbers (resolution rolls exactly these). */
@@ -175,19 +202,35 @@ export interface PowerForecast {
   echoStrike: CombatSide | null;
   /** Most the bearer can heal (Devour), 0 otherwise. */
   healMax: number;
+  /** The status the power puts on its target (Hush, Pin), or null; with `statusOnHit` only when the strike lands. */
+  status: StatusKind | null;
+  statusOnHit: boolean;
+  /** HP the blade takes from its bearer after the power (an Awakened blade's price), 0 for none. */
+  bloodPrice: number;
 }
 
 /**
  * Preview a power fired from `from`. Throws ActionError when the power is not ready or the aim is not valid
  * (call it with ids from powerTargets or directions from powerDirections).
  */
-export function powerForecast(state: BattleState, unitId: string, from: Pos, aim: PowerAim, data: GameData): PowerForecast {
-  const block = powerBlock(state, unitId, data);
+export function powerForecast(state: BattleState, unitId: string, from: Pos, aim: PowerAim, data: GameData, powerId?: string): PowerForecast {
+  const block = powerBlock(state, unitId, data, powerId);
   if (block !== null) throw new ActionError(block);
-  const plan = powerPlan(state, unitId, data)!;
+  const plan = powerPlan(state, unitId, data, powerId)!;
   const at = standingAt(state, unitId, from);
-  const base = { plan, bearerId: unitId, from: { ...from }, combat: null, echoStrike: null, healMax: 0 };
+  const bearer = getUnit(state, unitId);
   const e = plan.effect;
+  const base = {
+    plan,
+    bearerId: unitId,
+    from: { ...from },
+    combat: null,
+    echoStrike: null,
+    healMax: 0,
+    status: e.type === 'strike' ? e.status : null,
+    statusOnHit: e.type === 'strike' ? e.onHit : false,
+    bloodPrice: Math.min(bloodPriceOf(state, bearer, data), Math.max(0, bearer.hp - 1)),
+  };
   if (plan.aim === 'line') {
     if (!('dir' in aim) || e.type !== 'scatter') throw new ActionError(`${plan.name} needs a direction`);
     const unit = getUnit(at, unitId);
@@ -201,16 +244,32 @@ export function powerForecast(state: BattleState, unitId: string, from: Pos, aim
     return { ...base, dir: aim.dir, tiles, targets };
   }
   if (!('targetId' in aim)) throw new ActionError(`${plan.name} needs a target`);
-  if (!powerTargets(state, unitId, from, data).includes(aim.targetId)) throw new ActionError(`${aim.targetId} is not a target of ${plan.name}`);
+  if (!powerTargets(state, unitId, from, data, powerId).includes(aim.targetId)) throw new ActionError(`${aim.targetId} is not a target of ${plan.name}`);
   const target = getUnit(state, aim.targetId);
-  const bonus = e.type === 'devour' ? e.bonusMight : 0;
+  if (e.type === 'strike') {
+    const side = strikeSide(at, unitId, target.id, data);
+    const struck = { ...side, damage: Math.floor((side.damage * e.damagePercent) / 100), strikes: 1 };
+    return { ...base, dir: null, tiles: [{ ...target.pos }], targets: [{ unitId: target.id, hp: target.hp, side: struck }] };
+  }
+  const bonus = e.type === 'devour' || e.type === 'cleave' ? e.bonusMight : 0;
   const combat = forecastWith(state, unitId, aim.targetId, from, bonus, data);
   const unit = getUnit(state, unitId);
+  // Cleave: every other foe next to the bearer takes a weaker blow after the fight.
+  const splash =
+    e.type === 'cleave'
+      ? neighbors(at, from)
+          .map((p) => unitAt(at, p))
+          .filter((v): v is Unit => v !== null && v.id !== target.id && v.id !== unitId && areHostile(unit.team, v.team))
+          .map((v) => {
+            const side = strikeSide(at, unitId, v.id, data);
+            return { unitId: v.id, hp: v.hp, side: { ...side, damage: Math.floor((side.damage * e.splashPercent) / 100), crit: 0, strikes: 1 } };
+          })
+      : [];
   return {
     ...base,
     dir: null,
-    tiles: [{ ...target.pos }],
-    targets: [{ unitId: target.id, hp: target.hp, side: combat.attacker }],
+    tiles: [{ ...target.pos }, ...splash.map((t) => ({ ...getUnit(state, t.unitId).pos }))],
+    targets: [{ unitId: target.id, hp: target.hp, side: combat.attacker }, ...splash],
     combat,
     echoStrike:
       e.type === 'echo'
@@ -235,8 +294,8 @@ function witnessesOf(s: BattleState, bearerId: string, at: Pos, data: GameData):
  * Fire `unit`'s power (already moved to its tile) in `s`, the caller's own copy, pushing the events. The
  * caller has validated the action. Spends the gauge, resolves, logs the use for Echo.
  */
-export function resolvePower(s: BattleState, unit: Unit, aim: PowerAim, data: GameData, events: BattleEvent[]): void {
-  const fc = powerForecast(s, unit.id, unit.pos, aim, data);
+export function resolvePower(s: BattleState, unit: Unit, aim: PowerAim, data: GameData, events: BattleEvent[], powerId?: string): void {
+  const fc = powerForecast(s, unit.id, unit.pos, aim, data, powerId);
   const plan = fc.plan;
   const summary: PowerSummary = {
     powerId: plan.powerId,
@@ -252,6 +311,8 @@ export function resolvePower(s: BattleState, unit: Unit, aim: PowerAim, data: Ga
     results: [],
     heal: 0,
     stacksAfter: null,
+    statuses: [],
+    bloodPrice: 0,
   };
   // The summary is filled in as the power resolves; the UI reads it when it plays `powerUsed`, after the fact.
   events.push({ type: 'powerUsed', summary });
@@ -285,19 +346,38 @@ export function resolvePower(s: BattleState, unit: Unit, aim: PowerAim, data: Ga
       }
       summary.stacksAfter = unit.devourStacks;
     }
+    if (e.type === 'cleave' && unit.alive && fc.targets.length > 1) volley(s, unit, fc.targets.slice(1), summary, null, data, events);
   } else {
-    scatter(s, unit, fc, summary, data, events);
+    volley(s, unit, fc.targets, summary, e.type === 'strike' && e.status ? { kind: e.status, onHit: e.onHit } : null, data, events);
   }
   s.powerLog.push({ powerId: plan.powerId, bearerId: unit.id, at: { ...unit.pos }, turn: s.turn, witnesses: witnessesOf(s, unit.id, unit.pos, data) });
   events.push({ type: 'powerEnded', powerId: plan.powerId, bearerId: unit.id });
+  // The curse's price: an Awakened blade drinks from its bearer after every power, never to death.
+  const price = unit.alive ? Math.min(fc.bloodPrice, unit.hp - 1) : 0;
+  if (price > 0) {
+    unit.hp -= price;
+    summary.bloodPrice = price;
+    events.push({ type: 'unitDamaged', unitId: unit.id, amount: price, hpAfter: unit.hp, cause: 'bloodPrice' });
+  }
 }
 
-/** Scatter: one strike on each target in line order, no counters. */
-function scatter(s: BattleState, unit: Unit, fc: PowerForecast, summary: PowerSummary, data: GameData, events: BattleEvent[]): void {
+/**
+ * One uncounterable strike on each target in order, with the forecast's numbers: Scatter's line, a Hush or Pin,
+ * Cleave's splash. A status lands on each living target struck (only on a hit with `onHit`).
+ */
+function volley(
+  s: BattleState,
+  unit: Unit,
+  targets: readonly PowerTargetForecast[],
+  summary: PowerSummary,
+  status: { kind: StatusKind; onHit: boolean } | null,
+  data: GameData,
+  events: BattleEvent[],
+): void {
   const strikes: { attackerId: string; defenderId: string; hit: boolean; crit: boolean }[] = [];
   const killed: Unit[] = [];
   let xp = 0;
-  for (const t of fc.targets) {
+  for (const t of targets) {
     const v = getUnit(s, t.unitId);
     const [hit, s1] = rollHit(s.rng, t.side.hit, data.balance);
     s.rng = s1;
@@ -316,6 +396,9 @@ function scatter(s: BattleState, unit: Unit, fc: PowerForecast, summary: PowerSu
     if (v.hp <= 0) {
       defeat(v, unit.id, events);
       killed.push(v);
+    } else if (status && (hit || !status.onHit)) {
+      applyStatus(s, v, status.kind, unit, events);
+      summary.statuses.push({ unitId: v.id, status: status.kind });
     }
     summary.results.push({ unitId: v.id, damage, hit, crit, hpAfter: v.hp, defeated: !v.alive });
     if (unit.team === 'player') xp += combatXp(unit.level, v.level, damage > 0, !v.alive, v.isBoss, data.balance);

@@ -25,6 +25,7 @@ export default tseslint.config(
       'src/art/mc/recolor.ts',
       'src/ui/menus/newGameDraft.ts',
       'src/story/**/*.ts',
+      'src/camp/**/*.ts',
     ],
     languageOptions: { globals: {} },
     rules: {

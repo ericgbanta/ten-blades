@@ -2,24 +2,63 @@
 // bearers have a gauge. The gauge fills when the bearer lands or takes hits, crits and kills (balance.resolve),
 // and a power spends it. Pure: helpers that change a unit work on the caller's own copy.
 
-import type { BattleEvent, BladeDef, GameData, PowerDef, PowerEffect, Unit } from './types';
+import { weaponDef } from './items';
+import type { BattleEvent, BattleState, BladeDef, GameData, PowerDef, PowerEffect, Unit } from './types';
 
 /** The blade a unit holds, or null. */
-export function bladeOf(unit: Unit, data: GameData): BladeDef | null {
-  if (unit.weaponId === null) return null;
-  const id = data.weapons[unit.weaponId]?.blade;
-  return id ? (data.blades[id] ?? null) : null;
+export function bladeOf(unit: Pick<Unit, 'weaponId'>, data: GameData): BladeDef | null {
+  const id = bladeIdOf(unit, data);
+  return id ? data.blades[id]! : null;
 }
 
 /** Id of the blade a unit holds, or null. */
-export function bladeIdOf(unit: Unit, data: GameData): string | null {
+export function bladeIdOf(unit: Pick<Unit, 'weaponId'>, data: GameData): string | null {
   if (unit.weaponId === null) return null;
-  const id = data.weapons[unit.weaponId]?.blade;
+  const id = weaponDef(unit.weaponId, data)?.blade;
   return id && data.blades[id] ? id : null;
 }
 
+/** A blade's tier in this battle: 1 (Dormant) unless the campaign awakened it. */
+export function bladeTier(state: Pick<BattleState, 'bladeTiers'>, bladeId: string): number {
+  return state.bladeTiers[bladeId] ?? 1;
+}
+
+/** The unit's blade tier, or 0 for a unit holding no blade. */
+export function unitBladeTier(state: Pick<BattleState, 'bladeTiers'>, unit: Pick<Unit, 'weaponId'>, data: GameData): number {
+  const id = bladeIdOf(unit, data);
+  return id ? bladeTier(state, id) : 0;
+}
+
+/**
+ * Every built power the unit's blade has at its tier, in tier order: the Dormant power first, then the one an
+ * Awakened (tier 2) or Unbound (tier 3) blade adds. Empty for a unit with no blade.
+ */
+export function bearerPowers(state: Pick<BattleState, 'bladeTiers'>, unit: Pick<Unit, 'weaponId'>, data: GameData): BearerPower[] {
+  const id = bladeIdOf(unit, data);
+  if (!id) return [];
+  const blade = data.blades[id]!;
+  const tier = bladeTier(state, id);
+  const out: BearerPower[] = [];
+  const first = implementedPower(blade.power, data);
+  if (first) out.push(first);
+  for (const t of blade.tiers) {
+    if (t.tier < 2 || t.tier > tier || !t.power) continue;
+    const p = implementedPower(t.power, data);
+    if (p && !out.some((x) => x.id === p.id)) out.push(p);
+  }
+  return out;
+}
+
+/** HP an Awakened blade takes from its bearer for each power fired (its current tier's price), 0 for none. */
+export function bloodPriceOf(state: Pick<BattleState, 'bladeTiers'>, unit: Pick<Unit, 'weaponId'>, data: GameData): number {
+  const id = bladeIdOf(unit, data);
+  if (!id) return 0;
+  const tier = bladeTier(state, id);
+  return data.blades[id]!.tiers.find((t) => t.tier === tier)?.bloodPrice ?? 0;
+}
+
 /** True if the unit holds a blade and so runs a gauge. */
-export function isBearer(unit: Unit, data: GameData): boolean {
+export function isBearer(unit: Pick<Unit, 'weaponId'>, data: GameData): boolean {
   return bladeOf(unit, data) !== null;
 }
 
@@ -29,8 +68,8 @@ export interface BearerPower {
   effect: PowerEffect;
 }
 
-/** The power of the blade a unit holds, when it is implemented; else null. */
-export function bearerPower(unit: Unit, data: GameData): BearerPower | null {
+/** The (Dormant) power of the blade a unit holds, when it is implemented; else null. */
+export function bearerPower(unit: Pick<Unit, 'weaponId'>, data: GameData): BearerPower | null {
   const blade = bladeOf(unit, data);
   if (!blade) return null;
   return implementedPower(blade.power, data);

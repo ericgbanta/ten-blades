@@ -1,6 +1,7 @@
 // Building units: from map placements (with the difficulty's changes for enemies), from party members, and
 // the new main character. Also the AI state for a placement or an event's AI spec.
 
+import { inventoryWith } from './items';
 import { averageStats } from './leveling';
 import { startingResolve } from './resolve';
 import {
@@ -53,14 +54,19 @@ function aiFromPlacement(p: UnitPlacement, difficulty: Difficulty, data: GameDat
   return aiStateFrom(spec, p.team, p.pos, difficulty, data);
 }
 
-/** Build a unit from map data. Enemies get the difficulty's level and stat changes. */
-export function unitFromPlacement(p: UnitPlacement, difficulty: Difficulty, data: GameData): Unit {
+/**
+ * Build a unit from map data. Enemies get the difficulty's level and stat changes, plus `levelShift` levels (a
+ * skirmish scaled to the party), never below 1.
+ */
+export function unitFromPlacement(p: UnitPlacement, difficulty: Difficulty, data: GameData, levelShift = 0): Unit {
   const cls = data.classes[p.classId];
   if (!cls) throw new Error(`Unknown class ${p.classId}`);
   const isEnemy = p.team === 'enemy';
-  const level = Math.min(p.level + (isEnemy ? data.balance.difficulty[difficulty].levelBonus : 0), data.balance.xp.levelCap);
+  const shifted = isEnemy ? Math.max(1, p.level + levelShift) : p.level;
+  const level = Math.min(shifted + (isEnemy ? data.balance.difficulty[difficulty].levelBonus : 0), data.balance.xp.levelCap);
   let stats = averageStats(p.classId, level, data);
   if (isEnemy) stats = applyDifficulty(stats, difficulty, data);
+  const weaponId = p.weaponId ?? cls.startingWeapon;
   const unit: Unit = {
     id: p.id,
     name: p.name,
@@ -70,7 +76,7 @@ export function unitFromPlacement(p: UnitPlacement, difficulty: Difficulty, data
     xp: 0,
     stats,
     hp: stats.hp,
-    weaponId: p.weaponId ?? cls.startingWeapon,
+    weaponId,
     pos: { ...p.pos },
     acted: false,
     alive: true,
@@ -81,6 +87,8 @@ export function unitFromPlacement(p: UnitPlacement, difficulty: Difficulty, data
     left: false,
     resolve: 0,
     devourStacks: 0,
+    inventory: [weaponId, ...(p.items ?? [])],
+    statuses: [],
   };
   unit.resolve = startingResolve(unit, data);
   return unit;
@@ -107,6 +115,8 @@ export function unitFromParty(m: PartyUnit, pos: Pos): Unit {
     left: false,
     resolve: 0,
     devourStacks: 0,
+    inventory: inventoryWith(m.weaponId, m.inventory),
+    statuses: [],
   };
 }
 
@@ -123,5 +133,6 @@ export function newMc(setup: BattleSetup, data: GameData): PartyUnit {
     stats: { ...cls.baseStats },
     weaponId: cls.startingWeapon,
     isLord: true,
+    inventory: [cls.startingWeapon],
   };
 }

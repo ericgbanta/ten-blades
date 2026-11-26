@@ -16,15 +16,32 @@ import {
   terrainAt,
   unitAt,
 } from './grid';
+import { classCanWield, itemDef, weaponDef } from './items';
 import { grantXp } from './leveling';
 import { DIRECTIONS, powerBlock, powerDirections, powerPlan, powerTargets, resolvePower, type PowerAim } from './powers';
-import { startingResolve } from './resolve';
+import { changeResolve, isBearer, startingResolve } from './resolve';
+import { expireStatuses } from './status';
 import { canTalk, runEvents } from './events';
 import { checkOutcome, endBattle, turnLimitReached } from './objectives';
 import { canMoveTo, pathTo } from './pathfinding';
 import { createRng } from './rng';
 import { newMc, unitFromParty, unitFromPlacement } from './units';
-import type { Action, ActionResult, Direction, McSlot, BattleEvent, BattleSetup, BattleState, GameData, MapData, PartyUnit, Pos, Team, Unit } from './types';
+import type {
+  Action,
+  ActionResult,
+  Direction,
+  McSlot,
+  BattleEvent,
+  BattleSetup,
+  BattleState,
+  GameData,
+  MapData,
+  PartyUnit,
+  Pos,
+  ReinforcementWave,
+  Team,
+  Unit,
+} from './types';
 
 export { ActionError, newMc, unitFromPlacement };
 
@@ -51,6 +68,7 @@ export function createBattle(map: MapData, setup: BattleSetup, seed: number, dat
     return w ? { ...mc, weaponId: w } : mc;
   };
   const others = party.filter((m) => !m.isLord);
+  const shift = setup.enemyLevelShift ?? 0;
   const units: Unit[] = [];
   let next = 0;
   for (const p of map.placements) {
@@ -58,8 +76,11 @@ export function createBattle(map: MapData, setup: BattleSetup, seed: number, dat
     else if (p.kind === 'party') {
       const m = others[next++];
       if (m) units.push(unitFromParty(m, p.pos));
-    } else units.push(unitFromPlacement(p, setup.difficulty, data));
+    } else units.push(unitFromPlacement(p, setup.difficulty, data, shift));
   }
+  // A scaled map's waves arrive scaled too: their enemy levels are shifted now, so the state needs nothing more.
+  const waves: ReinforcementWave[] = structuredClone(map.reinforcements.filter((w) => w.difficulties.includes(setup.difficulty)));
+  if (shift !== 0) for (const w of waves) for (const p of w.units) if (p.team === 'enemy') p.level = Math.max(1, p.level + shift);
   const ids = new Set<string>();
   const spawned = (map.events ?? []).flatMap((ev) => ev.effects.flatMap((fx) => (fx.type === 'spawn' ? fx.units.map((p) => p.id) : [])));
   for (const id of [...units.map((u) => u.id), ...map.reinforcements.flatMap((w) => w.units.map((p) => p.id)), ...spawned]) {
@@ -80,7 +101,7 @@ export function createBattle(map: MapData, setup: BattleSetup, seed: number, dat
     }
   }
   return {
-    version: 3,
+    version: 4,
     mapId: map.id,
     map: { width: map.width, height: map.height, terrain },
     units,
@@ -88,7 +109,7 @@ export function createBattle(map: MapData, setup: BattleSetup, seed: number, dat
     phase: 'player',
     rng: createRng(seed),
     objective: structuredClone(map.objective),
-    reinforcements: structuredClone(map.reinforcements.filter((w) => w.difficulties.includes(setup.difficulty))),
+    reinforcements: waves,
     options: { difficulty: setup.difficulty, permadeath: setup.permadeath },
     result: 'ongoing',
     started: false,
@@ -96,6 +117,7 @@ export function createBattle(map: MapData, setup: BattleSetup, seed: number, dat
     firedEvents: [],
     recruited: [],
     powerLog: [],
+    bladeTiers: { ...(setup.bladeTiers ?? {}) },
   };
 }
 
@@ -121,7 +143,7 @@ export function startBattle(state: BattleState, data: GameData): ActionResult {
 // Validation
 // ---------------------------------------------------------------------------
 
-const ACTION_TYPES = ['wait', 'attack', 'heal', 'talk', 'power', 'endPhase'];
+const ACTION_TYPES = ['wait', 'attack', 'heal', 'talk', 'power', 'item', 'equip', 'endPhase'];
 
 function isPos(v: unknown): v is Pos {
   if (typeof v !== 'object' || v === null) return false;
@@ -136,8 +158,14 @@ function shapeError(action: unknown): string | null {
   if (typeof a.type !== 'string' || !ACTION_TYPES.includes(a.type)) return `Unknown action type ${String(a.type)}`;
   if (a.type === 'endPhase') return null;
   if (typeof a.unitId !== 'string') return `${a.type} needs a unitId`;
+  if (a.type === 'equip' || a.type === 'item') {
+    if (!Number.isInteger(a.itemIndex)) return `${a.type} needs an itemIndex`;
+    if (a.type === 'equip') return null;
+  }
   if (!isPos(a.to)) return `${a.type} needs a target tile`;
+  if (a.type === 'item') return null;
   if (a.type === 'power') {
+    if (a.powerId !== undefined && typeof a.powerId !== 'string') return 'power has a bad powerId';
     if (a.targetId !== undefined && typeof a.targetId !== 'string') return 'power needs a targetId or a direction';
     if (a.dir !== undefined && !DIRECTIONS.includes(a.dir as never)) return `Unknown direction ${String(a.dir)}`;
     if ((a.targetId === undefined) === (a.dir === undefined)) return 'power needs a targetId or a direction';
@@ -157,10 +185,12 @@ export function validateAction(state: BattleState, action: Action, data: GameDat
   if (!unit || !unit.alive) return `No living unit ${action.unitId}`;
   if (unit.team !== state.phase) return `${unit.id} cannot act in the ${state.phase} phase`;
   if (unit.acted) return `${unit.id} has already acted`;
+  if (action.type === 'equip') return equipError(state, unit, action.itemIndex, data);
   if (!inBounds(state, action.to) || !canMoveTo(state, unit.id, action.to, data)) {
     return `${unit.id} cannot move to ${action.to.x},${action.to.y}`;
   }
   if (action.type === 'wait') return null;
+  if (action.type === 'item') return itemError(unit, action.itemIndex, data);
   if (action.type === 'power') return powerError(state, action.unitId, action.to, action, data);
   const target = findUnit(state, action.targetId);
   if (!target || !target.alive) return `No living target ${action.targetId}`;
@@ -187,19 +217,43 @@ export function validateAction(state: BattleState, action: Action, data: GameDat
 }
 
 /** Why a power action is illegal (the unit can act and reach `to`), or null. */
-function powerError(state: BattleState, unitId: string, to: Pos, aim: { targetId?: string; dir?: string }, data: GameData): string | null {
-  const block = powerBlock(state, unitId, data);
+function powerError(state: BattleState, unitId: string, to: Pos, aim: { targetId?: string; dir?: string; powerId?: string }, data: GameData): string | null {
+  const block = powerBlock(state, unitId, data, aim.powerId);
   if (block !== null) return block;
-  const plan = powerPlan(state, unitId, data)!;
+  const plan = powerPlan(state, unitId, data, aim.powerId)!;
   if (plan.aim === 'line') {
     if (aim.dir === undefined) return `${plan.name} needs a direction`;
-    if (!powerDirections(state, unitId, to, data).includes(aim.dir as never)) return `No enemy in the line ${aim.dir}`;
+    if (!powerDirections(state, unitId, to, data, aim.powerId).includes(aim.dir as never)) return `No enemy in the line ${aim.dir}`;
     return null;
   }
   if (aim.targetId === undefined) return `${plan.name} needs a target`;
   const target = findUnit(state, aim.targetId);
   if (!target || !target.alive) return `No living target ${aim.targetId}`;
-  if (!powerTargets(state, unitId, to, data).includes(target.id)) return `${target.id} is not a target of ${plan.name}`;
+  if (!powerTargets(state, unitId, to, data, aim.powerId).includes(target.id)) return `${target.id} is not a target of ${plan.name}`;
+  return null;
+}
+
+/** Why the unit cannot equip the entry at `index`, or null. */
+function equipError(state: BattleState, unit: Unit, index: number, data: GameData): string | null {
+  const id = unit.inventory[index];
+  if (id === undefined) return `${unit.id} has nothing in slot ${index}`;
+  const w = weaponDef(id, data);
+  if (!w) return `${id} is not a weapon`;
+  if (unit.weaponId === id) return `${unit.id} already holds ${w.name}`;
+  if (!classCanWield(data.classes[unit.classId], w)) return `${unit.name} cannot wield ${w.name}`;
+  if (state.result !== 'ongoing') return 'The battle is over';
+  return null;
+}
+
+/** Why the unit cannot use the entry at `index` on itself, or null. */
+function itemError(unit: Unit, index: number, data: GameData): string | null {
+  const id = unit.inventory[index];
+  if (id === undefined) return `${unit.id} has nothing in slot ${index}`;
+  const item = itemDef(id, data);
+  if (!item) return `${id} is not an item`;
+  const heals = item.heal > 0 && unit.hp < unit.stats.hp;
+  const fills = item.resolve > 0 && isBearer(unit, data) && unit.resolve < data.balance.resolve.max;
+  if (!heals && !fills) return item.heal > 0 ? `${unit.name} is not wounded` : `${item.name} would do nothing`;
   return null;
 }
 
@@ -244,8 +298,22 @@ export function applyAction(state: BattleState, action: Action, data: GameData):
     case 'power': {
       const u = getUnit(s, action.unitId);
       moveUnit(s, u, action.to, data, events);
-      resolvePower(s, u, aimOf(action), data, events);
+      resolvePower(s, u, aimOf(action), data, events, action.powerId);
       if (u.alive) finishUnit(u, events);
+      break;
+    }
+    case 'item': {
+      const u = getUnit(s, action.unitId);
+      moveUnit(s, u, action.to, data, events);
+      useItem(u, action.itemIndex, data, events);
+      finishUnit(u, events);
+      break;
+    }
+    case 'equip': {
+      // Free: no move, and the unit can still act.
+      const u = getUnit(s, action.unitId);
+      u.weaponId = u.inventory[action.itemIndex]!;
+      events.push({ type: 'weaponChanged', unitId: u.id, weaponId: u.weaponId });
       break;
     }
     case 'heal': {
@@ -291,6 +359,20 @@ function fight(s: BattleState, a: Unit, d: Unit, data: GameData, events: BattleE
   clash(s, a, d, forecast(s, a.id, d.id, a.pos, data), data, events);
 }
 
+/** Use up the item at `index`: its heal, then its Resolve. */
+function useItem(u: Unit, index: number, data: GameData, events: BattleEvent[]): void {
+  const id = u.inventory[index]!;
+  const item = itemDef(id, data)!;
+  u.inventory = u.inventory.filter((_, i) => i !== index);
+  events.push({ type: 'itemUsed', unitId: u.id, itemId: id });
+  const amount = Math.min(u.stats.hp - u.hp, item.heal);
+  if (amount > 0) {
+    u.hp += amount;
+    events.push({ type: 'unitHealed', unitId: u.id, sourceId: u.id, cause: 'item', amount, hpAfter: u.hp });
+  }
+  if (item.resolve > 0) changeResolve(u, item.resolve, data, events);
+}
+
 function heal(s: BattleState, u: Unit, t: Unit, data: GameData, events: BattleEvent[]): void {
   const staff = staffOf(u, data);
   if (!staff) throw new ActionError(`${u.id} has no staff`);
@@ -317,6 +399,7 @@ function advancePhase(s: BattleState, data: GameData, events: BattleEvent[]): vo
   }
   s.phase = next;
   events.push({ type: 'phaseChanged', phase: next, turn: s.turn });
+  expireStatuses(s, next, events);
   if (next === 'enemy') spawnReinforcements(s, data, events);
   terrainHeal(s, next, data, events);
 }

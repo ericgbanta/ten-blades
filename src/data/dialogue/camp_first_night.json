@@ -1,0 +1,16 @@
+{
+  "id": "camp_first_night",
+  "draft": true,
+  "backdrop": "camp",
+  "lines": [
+    { "speaker": "narrator", "text": "The fire is small, and {mc} keeps it that way. Hunters look for light." },
+    { "speaker": "mc", "side": "left", "expr": "neutral", "text": "You spoke on the road. Speak now, if you're going to." },
+    { "speaker": "blade", "text": "You sleep with your hand on my hilt. She did the same, at the end." },
+    { "speaker": "mc", "expr": "angry", "text": "Who was she?" },
+    { "speaker": "blade", "text": "Someone who carried me farther than she should have. Ask her bones, if you want more." },
+    { "speaker": "mc", "expr": "hurt", "text": "I buried her with a borrowed shovel and no name." },
+    { "speaker": "blade", "text": "There are nine of us left, scattered. Each one is louder than me. Find them before he does." },
+    { "speaker": "mc", "expr": "neutral", "text": "And if I'd rather throw you in the river?" },
+    { "speaker": "blade", "text": "Then you would wake up holding me. Feed the fire. You will need the warmth." }
+  ]
+}

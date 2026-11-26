@@ -5,7 +5,7 @@ import { battleSetup, newCampaign, suspendSave } from '../src/save/campaign';
 import type { CampaignSave, SaveContext, SuspendSave } from '../src/save/format';
 import { readCampaign, readSuspend } from '../src/save/load';
 import { validateCampaign, validateSuspend } from '../src/save/validate';
-import fixture from './fixtures/save-v4.json';
+import fixture from './fixtures/save-v5.json';
 import v2 from './fixtures/save-v2.json';
 
 const ctx: SaveContext = { data: gameData, chapters };
@@ -32,7 +32,7 @@ function errorOf(r: { ok: boolean; error?: string }): string {
 }
 
 describe('campaign validator', () => {
-  it('accepts a new campaign and the v4 fixture', () => {
+  it('accepts a new campaign and the v5 fixture', () => {
     expect(validateCampaign(campaign(), ctx)).toEqual({ ok: true, value: campaign() });
     expect(validateCampaign(fixture, ctx).ok).toBe(true);
   });
@@ -45,7 +45,7 @@ describe('campaign validator', () => {
   const cases: [string, (c: CampaignSave) => unknown, RegExp][] = [
     ['not an object', () => 'hello', /expected an object/],
     ['a list', () => [], /expected an object, found a list/],
-    ['wrong version', (c) => ({ ...c, version: 1 }), /^version: expected 4, found 1/],
+    ['wrong version', (c) => ({ ...c, version: 1 }), /^version: expected 5, found 1/],
     ['wrong kind', (c) => ({ ...c, kind: 'suspend' }), /not a campaign save/],
     ['missing field', (c) => broken(c, (o) => delete (o as Partial<CampaignSave>).gold), /^gold: missing/],
     ['unknown field', (c) => ({ ...c, cheat: true }), /^cheat: not a known field/],
@@ -70,7 +70,7 @@ describe('campaign validator', () => {
     ['bad timestamp', (c) => ({ ...c, createdAt: 'yesterday' }), /createdAt: expected a time/],
     ['bad flag', (c) => ({ ...c, flags: { x: null } }), /flags.x: expected true, false, a number or text/],
     ['no stage', (c) => broken(c, (o) => delete (o.progress as Partial<CampaignSave['progress']>).stage), /^progress.stage: missing/],
-    ['a bad stage', (c) => broken(c, (o) => ((o.progress as { stage: string }).stage = 'epilogue')), /progress.stage: expected one of intro, battle, outro/],
+    ['a bad stage', (c) => broken(c, (o) => ((o.progress as { stage: string }).stage = 'epilogue')), /progress.stage: expected one of camp, intro, battle, outro/],
     ['an unknown scene', (c) => broken(c, (o) => (o.progress.scenes = ['nope'])), /progress.scenes\[0\]: unknown scene "nope"/],
   ];
   const withScenes: SaveContext = { ...ctx, sceneIds: ['prologue_intro'] };

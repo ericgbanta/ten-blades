@@ -41,12 +41,12 @@ describe('chapter order', () => {
 describe('new campaign', () => {
   it('starts at the first chapter with nothing carried, and trims the name', () => {
     const c = start('classic');
-    expect(c).toMatchObject({ version: 4, kind: 'campaign', createdAt: 100, updatedAt: 100, party: [], fallen: [], gold: 0, shards: 0, flags: {}, blades: {} });
+    expect(c).toMatchObject({ version: 5, kind: 'campaign', createdAt: 100, updatedAt: 100, party: [], fallen: [], gold: 0, shards: 0, flags: {}, blades: {}, convoy: [], benched: [], wounded: {}, skirmishWins: {} });
     expect(c.mc.name).toBe('Ash');
     expect(c.mc.look).toEqual(DEFAULT_LOOK);
     expect(c.progress).toEqual({ current: 'prologue', completed: [], stage: 'intro', scenes: null });
     expect(currentChapter(c, chapters)?.mapId).toBe('prologue');
-    expect(battleSetup(c)).toEqual({ difficulty: 'normal', permadeath: 'classic', mc: { name: 'Ash', style: 'vanguard' }, party: [], flags: {} });
+    expect(battleSetup(c)).toEqual({ difficulty: 'normal', permadeath: 'classic', mc: { name: 'Ash', style: 'vanguard' }, party: [], flags: {}, bladeTiers: {} });
   });
 
   it('keeps the look the creator made, as a copy', () => {
@@ -80,8 +80,8 @@ describe('permadeath', () => {
 
 describe('completing a chapter', () => {
   const twoChapters: ChapterDef[] = [
-    { id: 'prologue', name: 'Prologue', title: 'P', mapId: 'prologue', intro: [], outro: [], after: [], next: 'ch1' },
-    { id: 'ch1', name: 'Chapter 1', title: 'One', mapId: 'prologue', intro: [], outro: [], after: [], next: null },
+    { id: 'prologue', name: 'Prologue', title: 'P', mapId: 'prologue', intro: [], outro: [], after: [], next: 'ch1', act: 1 },
+    { id: 'ch1', name: 'Chapter 1', title: 'One', mapId: 'prologue', intro: [], outro: [], after: [], next: null, act: 1 },
   ];
 
   it('carries the party, records losses, keeps the flags and moves on to the outro', () => {

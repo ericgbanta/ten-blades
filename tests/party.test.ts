@@ -78,7 +78,7 @@ describe('partyAfterBattle', () => {
     expect(p.level).toBe(2);
     const { survivors, fallen } = partyAfterBattle(s);
     expect(survivors).toEqual([
-      { id: 'p', name: 'p', classId: 'fighter', level: 2, xp: p.xp, stats: p.stats, weaponId: 'sure_axe', isLord: true },
+      { id: 'p', name: 'p', classId: 'fighter', level: 2, xp: p.xp, stats: p.stats, weaponId: 'sure_axe', isLord: true, inventory: ['sure_axe'] },
     ]);
     expect(fallen.map((m) => m.id)).toEqual(['q']);
     // The result is a copy, and it feeds straight into the next battle's party.

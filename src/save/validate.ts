@@ -2,7 +2,7 @@
 // against game data, and a few invariants. Returns a typed save or a readable error.
 // Run migrate() first; this only accepts SAVE_VERSION.
 
-import { STAT_KEYS, type BattleState, type GameData, type PartyUnit, type Pos } from '../core';
+import { STAT_KEYS, itemDef, weaponDef, type BattleState, type GameData, type PartyUnit, type Pos } from '../core';
 import { lookProblem } from '../art/mc/look';
 import {
   CHAPTER_STAGES,
@@ -54,7 +54,27 @@ export function validateBattleState(raw: unknown, data: GameData): Result<Battle
 // Campaign
 // ---------------------------------------------------------------------------
 
-const CAMPAIGN_KEYS = ['version', 'kind', 'createdAt', 'updatedAt', 'settings', 'mc', 'party', 'fallen', 'progress', 'flags', 'gold', 'shards', 'blades'];
+const CAMPAIGN_KEYS = [
+  'version',
+  'kind',
+  'createdAt',
+  'updatedAt',
+  'settings',
+  'mc',
+  'party',
+  'fallen',
+  'progress',
+  'flags',
+  'gold',
+  'shards',
+  'blades',
+  'convoy',
+  'benched',
+  'wounded',
+  'skirmishWins',
+];
+/** Most entries the convoy may hold in a save (the game's own cap is economy.convoyMax). */
+const MAX_CONVOY = 1000;
 
 function timestamp(v: unknown, path: string): number {
   if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) throw new ShapeError(path, 'expected a time in milliseconds');
@@ -111,7 +131,36 @@ function checkCampaign(raw: unknown, path: string, ctx: SaveContext): CampaignSa
     if (!blade) throw new ShapeError(p, `unknown blade "${id}"`);
     int(exactObj(rec, p, ['tier']).tier, join(p, 'tier'), 1, blade.tiers.length);
   }
+  const convoy = arr(o.convoy, join(path, 'convoy'));
+  if (convoy.length > MAX_CONVOY) throw new ShapeError(join(path, 'convoy'), `more than ${MAX_CONVOY} entries`);
+  convoy.forEach((e, i) => checkEntry(e, join(join(path, 'convoy'), i), ctx.data));
+  const partyIds = new Set(party.map((u) => u.id));
+  const benched = arr(o.benched, join(path, 'benched')).map((id, i) => str(id, join(join(path, 'benched'), i)));
+  for (const [i, id] of benched.entries()) if (!partyIds.has(id)) throw new ShapeError(join(join(path, 'benched'), i), `"${id}" is not in the party`);
+  if (new Set(benched).size !== benched.length) throw new ShapeError(join(path, 'benched'), 'a unit is listed twice');
+  for (const [id, act] of Object.entries(obj(o.wounded, join(path, 'wounded')))) {
+    if (!partyIds.has(id)) throw new ShapeError(join(join(path, 'wounded'), id), `"${id}" is not in the party`);
+    int(act, join(join(path, 'wounded'), id), 1, 99);
+  }
+  for (const [id, n] of Object.entries(obj(o.skirmishWins, join(path, 'skirmishWins')))) {
+    oneOf(id, join(join(path, 'skirmishWins'), id), chapterIds);
+    int(n, join(join(path, 'skirmishWins'), id), 0, MAX_COUNTER);
+  }
   return o as unknown as CampaignSave;
+}
+
+/** A weapon (any forge rank) or an item id. */
+function checkEntry(v: unknown, path: string, data: GameData): string {
+  const id = str(v, path);
+  if (!weaponDef(id, data) && !itemDef(id, data)) throw new ShapeError(path, `unknown weapon or item "${id}"`);
+  return id;
+}
+
+/** An inventory: known entries, no more than the slots, holding the equipped weapon. */
+function checkInventory(v: unknown, path: string, weaponId: unknown, data: GameData): void {
+  const inv = arr(v, path).map((e, i) => checkEntry(e, join(path, i), data));
+  if (inv.length > data.balance.inventory.slots) throw new ShapeError(path, `more than ${data.balance.inventory.slots} entries`);
+  if (typeof weaponId === 'string' && !inv.includes(weaponId)) throw new ShapeError(path, `the equipped "${weaponId}" is not in it`);
 }
 
 function checkSceneList(v: unknown, path: string, ctx: SaveContext): string[] {
@@ -155,11 +204,11 @@ function checkClass(v: unknown, path: string, data: GameData): string {
 function checkWeapon(v: unknown, path: string, data: GameData): void {
   if (v === null) return;
   const id = str(v, path);
-  if (!data.weapons[id]) throw new ShapeError(path, `unknown weapon "${id}"`);
+  if (!weaponDef(id, data)) throw new ShapeError(path, `unknown weapon "${id}"`);
 }
 
 function checkPartyUnit(raw: unknown, path: string, data: GameData, ids: Set<string>): PartyUnit {
-  const u = exactObj(raw, path, ['id', 'name', 'classId', 'level', 'xp', 'stats', 'weaponId', 'isLord']);
+  const u = exactObj(raw, path, ['id', 'name', 'classId', 'level', 'xp', 'stats', 'weaponId', 'isLord', 'inventory']);
   const id = str(u.id, join(path, 'id'));
   if (ids.has(id)) throw new ShapeError(join(path, 'id'), `unit "${id}" appears twice`);
   ids.add(id);
@@ -170,6 +219,7 @@ function checkPartyUnit(raw: unknown, path: string, data: GameData, ids: Set<str
   checkStats(u.stats, join(path, 'stats'));
   checkWeapon(u.weaponId, join(path, 'weaponId'), data);
   bool(u.isLord, join(path, 'isLord'));
+  checkInventory(u.inventory, join(path, 'inventory'), u.weaponId, data);
   return u as unknown as PartyUnit;
 }
 
@@ -178,7 +228,7 @@ function checkPartyUnit(raw: unknown, path: string, data: GameData, ids: Set<str
 // ---------------------------------------------------------------------------
 
 function checkSuspend(raw: unknown, ctx: SaveContext): SuspendSave {
-  const o = exactObj(raw, '', ['version', 'kind', 'savedAt', 'slot', 'campaign', 'mapId', 'battle', 'controller']);
+  const o = exactObj(raw, '', ['version', 'kind', 'savedAt', 'slot', 'campaign', 'mapId', 'battle', 'controller', 'skirmish']);
   version(o, '');
   if (o.kind !== 'suspend') throw new ShapeError('kind', 'this is not a suspended battle');
   timestamp(o.savedAt, 'savedAt');
@@ -194,6 +244,10 @@ function checkSuspend(raw: unknown, ctx: SaveContext): SuspendSave {
   const controller = exactObj(o.controller, 'controller', ['showDanger', 'scenes']);
   bool(controller.showDanger, 'controller.showDanger');
   checkSceneList(controller.scenes, 'controller.scenes', ctx);
+  if (o.skirmish !== null) {
+    const sk = str(o.skirmish, 'skirmish');
+    if (ctx.skirmishIds && !ctx.skirmishIds.includes(sk)) throw new ShapeError('skirmish', `unknown skirmish "${sk}"`);
+  }
   return o as unknown as SuspendSave;
 }
 
@@ -218,10 +272,34 @@ const BATTLE_KEYS = [
   'firedEvents',
   'recruited',
   'powerLog',
+  'bladeTiers',
 ];
-const UNIT_KEYS = ['id', 'name', 'classId', 'team', 'level', 'xp', 'stats', 'hp', 'weaponId', 'pos', 'acted', 'alive', 'ai', 'isBoss', 'isLord', 'tags', 'left', 'resolve', 'devourStacks'];
+const UNIT_KEYS = [
+  'id',
+  'name',
+  'classId',
+  'team',
+  'level',
+  'xp',
+  'stats',
+  'hp',
+  'weaponId',
+  'pos',
+  'acted',
+  'alive',
+  'ai',
+  'isBoss',
+  'isLord',
+  'tags',
+  'left',
+  'resolve',
+  'devourStacks',
+  'inventory',
+  'statuses',
+];
 const PLACEMENT_KEYS = ['kind', 'id', 'name', 'classId', 'team', 'level', 'pos'];
-const PLACEMENT_OPTIONAL = ['weaponId', 'ai', 'isBoss', 'isLord', 'tags'];
+const PLACEMENT_OPTIONAL = ['weaponId', 'ai', 'isBoss', 'isLord', 'tags', 'items'];
+const STATUS_KINDS = ['silence', 'pin'] as const;
 
 function checkPos(v: unknown, path: string, w: number, h: number): Pos {
   const p = exactObj(v, path, ['x', 'y']);
@@ -232,7 +310,7 @@ function checkPos(v: unknown, path: string, w: number, h: number): Pos {
 
 function checkBattle(raw: unknown, path: string, data: GameData): BattleState {
   const o = exactObj(raw, path, BATTLE_KEYS);
-  if (o.version !== 3) throw new ShapeError(join(path, 'version'), `unknown battle version ${String(o.version)}`);
+  if (o.version !== 4) throw new ShapeError(join(path, 'version'), `unknown battle version ${String(o.version)}`);
   const mapId = str(o.mapId, join(path, 'mapId'));
   const source = data.maps[mapId];
   if (!source) throw new ShapeError(join(path, 'mapId'), `unknown map "${mapId}"`);
@@ -284,6 +362,11 @@ function checkBattle(raw: unknown, path: string, data: GameData): BattleState {
       if (!ids.has(wid)) throw new ShapeError(join(join(p, 'witnesses'), j), `unknown unit "${wid}"`);
     });
   });
+  for (const [id, tier] of Object.entries(obj(o.bladeTiers, join(path, 'bladeTiers')))) {
+    const blade = data.blades[id];
+    if (!blade) throw new ShapeError(join(join(path, 'bladeTiers'), id), `unknown blade "${id}"`);
+    int(tier, join(join(path, 'bladeTiers'), id), 1, blade.tiers.length);
+  }
   return o as unknown as BattleState;
 }
 
@@ -316,6 +399,14 @@ function checkUnit(raw: unknown, path: string, data: GameData, ids: Set<string>,
   bool(u.isLord, join(path, 'isLord'));
   int(u.resolve, join(path, 'resolve'), 0, data.balance.resolve.max);
   int(u.devourStacks, join(path, 'devourStacks'), 0, 999);
+  checkInventory(u.inventory, join(path, 'inventory'), u.weaponId, data);
+  arr(u.statuses, join(path, 'statuses')).forEach((raw2, i) => {
+    const p = join(join(path, 'statuses'), i);
+    const st = exactObj(raw2, p, ['kind', 'by', 'turn']);
+    oneOf(st.kind, join(p, 'kind'), STATUS_KINDS);
+    oneOf(st.by, join(p, 'by'), TEAMS);
+    int(st.turn, join(p, 'turn'), 1, 10_000);
+  });
   if (u.ai === null) {
     if (team !== 'player') throw new ShapeError(join(path, 'ai'), 'enemy and ally units need an AI');
   } else {
@@ -361,6 +452,7 @@ function checkWave(raw: unknown, path: string, data: GameData, ids: Set<string>,
     if ('isBoss' in u) bool(u.isBoss, join(p, 'isBoss'));
     if ('isLord' in u) bool(u.isLord, join(p, 'isLord'));
     if ('tags' in u) checkTags(u.tags, join(p, 'tags'));
+    if ('items' in u) arr(u.items, join(p, 'items')).forEach((it, j) => checkEntry(it, join(join(p, 'items'), j), data));
     if ('ai' in u) {
       const ai = exactObj(u.ai, join(p, 'ai'), ['behavior'], ['tile', 'radius']);
       oneOf(ai.behavior, join(p, 'ai.behavior'), BEHAVIORS);

@@ -46,8 +46,8 @@ describe('createBattle', () => {
     expect(unit(fresh, 'mc')).toMatchObject({ name: 'Hero', classId: 'vanguard', isLord: true, weaponId: 'axe' });
     expect(fresh.units).toHaveLength(2);
 
-    const member = { id: 'ally1', name: 'Kit', classId: 'rogue', level: 3, xp: 40, stats: d.classes.rogue!.baseStats, weaponId: 'dagger', isLord: false };
-    const lord = { ...member, id: 'hero', name: 'Hero', classId: 'fighter', isLord: true, weaponId: 'axe' };
+    const member = { id: 'ally1', name: 'Kit', classId: 'rogue', level: 3, xp: 40, stats: d.classes.rogue!.baseStats, weaponId: 'dagger', isLord: false, inventory: ['dagger'] };
+    const lord = { ...member, id: 'hero', name: 'Hero', classId: 'fighter', isLord: true, weaponId: 'axe', inventory: ['axe'] };
     const s = createBattle(map, { ...SETUP, party: [member, lord] }, 1, d);
     expect(s.units.map((u) => [u.id, u.pos.x])).toEqual([
       ['hero', 0],

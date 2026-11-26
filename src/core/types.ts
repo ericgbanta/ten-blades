@@ -88,6 +88,31 @@ export interface WeaponDef {
   legendary: boolean;
   /** The legendary blade this weapon is (an id in blades.json). Its bearer runs a Resolve gauge and has its power. */
   blade?: string;
+  /** Merchant price in gold. Legendary blades have none: they cannot be bought or sold. */
+  price?: number;
+}
+
+/**
+ * A consumable (src/data/items.json). Used from the unit's inventory with the item action: it restores up to
+ * `heal` HP and adds `resolve` to a bearer's gauge, then it is gone. Items share inventory slots with weapons.
+ */
+export interface ItemDef {
+  name: string;
+  description: string;
+  price: number;
+  heal: number;
+  resolve: number;
+}
+
+/** A battle status (src/core/status.ts). Silenced: no counters and no powers. Pinned: cannot move. */
+export type StatusKind = 'silence' | 'pin';
+
+export interface StatusEffect {
+  kind: StatusKind;
+  /** The team that inflicted it. It wears off when that team's next phase begins, after the turn it was put on. */
+  by: Team;
+  /** The turn it was put on. */
+  turn: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -97,11 +122,33 @@ export interface WeaponDef {
 /** A blade's school: one of the triangle's, or `style` for Widow's Hush, which takes the MC's combat style. */
 export type BladeSchool = 'heavy' | 'swift' | 'arcane' | 'style';
 
+/** What a tier needs besides its shards: a chapter reached, an act reached, story flags. `text` says it in plain words. */
+export interface TierRequirement {
+  /** Reached once this chapter is the current one or is completed. */
+  chapter?: string;
+  /** Reached once the current chapter's act is at least this. */
+  act?: number;
+  flags?: StoryCondition[];
+  text: string;
+}
+
 export interface BladeTierDef {
   tier: number;
   name: string;
   /** What the tier adds. Tier 1 (Dormant) is the base power. */
   note: string;
+  /** The power this tier adds (tier 1's is the blade's `power`). */
+  power?: string;
+  /** Blade Shards it costs to reach this tier (tier 1 costs nothing). */
+  shards?: number;
+  requires?: TierRequirement;
+  /** Added to the bearer's stats once, when the blade reaches this tier (clamped to the stat caps). */
+  statBoost?: Partial<Stats>;
+  /**
+   * The curse's price from this tier on: every power the bearer fires costs this much HP, never below 1
+   * (docs/CAMP.md, The price of power).
+   */
+  bloodPrice?: number;
 }
 
 export interface BladeDef {
@@ -129,7 +176,17 @@ export interface BladeDef {
 export type PowerEffect =
   | { type: 'echo'; range: number; fallback: { range: [number, number]; damagePercent: number } }
   | { type: 'devour'; bonusMight: number; healPercent: number; healCap: number; attackPerKill: number; maxStacks: number }
-  | { type: 'scatter'; length: number; damagePercent: number };
+  | { type: 'scatter'; length: number; damagePercent: number }
+  /**
+   * strike: one blow at a hostile unit `range` tiles away (its own reach, not the weapon's) at `damagePercent` of
+   * normal damage, no counter. Then `status` (if any) lands on the target: always, or only on a hit with `onHit`.
+   */
+  | { type: 'strike'; range: [number, number]; damagePercent: number; status: StatusKind | null; onHit: boolean }
+  /**
+   * cleave: an attack in weapon range with `bonusMight` (counters as usual); if the bearer still stands, every
+   * other hostile unit next to it takes one strike at `splashPercent` of normal damage (no crit, no counter).
+   */
+  | { type: 'cleave'; bonusMight: number; splashPercent: number };
 
 export interface PowerDef {
   name: string;
@@ -205,6 +262,16 @@ export interface Balance {
   statCaps: Stats;
   difficulty: Record<Difficulty, DifficultyDef>;
   resolve: ResolveBalance;
+  /** Inventory slots per unit (weapons and items together). */
+  inventory: { slots: number };
+  /** Forge ranks for generic weapons: `+N` on a weapon id adds N times these, up to `max`. */
+  weaponRanks: { max: number; might: number; hit: number };
+  ai: {
+    /** An AI unit below this percent of its max HP drinks a healing item if it carries one. */
+    itemBelowPercent: number;
+    /** What the AI adds to a power's score for each status it would put on a foe. */
+    statusValue: number;
+  };
 }
 
 /** AI behavior names used in map data. */
@@ -236,6 +303,8 @@ export interface UnitPlacement {
   isLord?: boolean;
   /** Free labels that scripted events can match (`defeated` and `allDefeated` triggers). */
   tags?: string[];
+  /** Items it carries besides its weapon (item ids from items.json). */
+  items?: string[];
 }
 
 /** The MC's start tile. */
@@ -398,6 +467,8 @@ export interface GameData {
   /** The ten legendary blades and their powers (src/data/blades.json). */
   blades: Record<string, BladeDef>;
   powers: Record<string, PowerDef>;
+  /** Consumables (src/data/items.json). */
+  items: Record<string, ItemDef>;
 }
 
 // ---------------------------------------------------------------------------
@@ -415,6 +486,11 @@ export interface PartyUnit {
   stats: Stats;
   weaponId: string | null;
   isLord: boolean;
+  /**
+   * What the unit carries: weapon ids (a forged one as `<id>+<rank>`) and item ids, at most
+   * `balance.inventory.slots`. The equipped weapon is one of them.
+   */
+  inventory: string[];
 }
 
 export interface BattleSetup {
@@ -426,6 +502,10 @@ export interface BattleSetup {
   party?: PartyUnit[];
   /** The campaign's story flags, copied into the battle. */
   flags?: Flags;
+  /** Each blade's tier (1 Dormant, 2 Awakened, 3 Unbound) from the campaign. A blade not listed is at tier 1. */
+  bladeTiers?: Record<string, number>;
+  /** Levels added to every enemy placement and wave (a skirmish scaled to the party). Default 0. */
+  enemyLevelShift?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -470,6 +550,10 @@ export interface Unit {
   resolve: number;
   /** Kills that count for Devour's attack bonus this map (see PowerEffect devour). */
   devourStacks: number;
+  /** Weapons and items carried (version 4). `weaponId`, when set, is one of them. */
+  inventory: string[];
+  /** Statuses on the unit (version 4). */
+  statuses: StatusEffect[];
 }
 
 /** One use of a power, kept for Echo. */
@@ -494,7 +578,7 @@ export interface BattleMap {
 }
 
 export interface BattleState {
-  version: 3;
+  version: 4;
   mapId: string;
   map: BattleMap;
   /** All units, including fallen ones (alive false). Order is stable. */
@@ -517,6 +601,8 @@ export interface BattleState {
   recruited: string[];
   /** Every power used this battle, in order (version 3). */
   powerLog: PowerUse[];
+  /** Each blade's tier, from the campaign (version 4). A blade not listed is at tier 1. */
+  bladeTiers: Record<string, number>;
 }
 
 // ---------------------------------------------------------------------------
@@ -571,10 +657,26 @@ export interface PowerAction {
   to: Pos;
   targetId?: string;
   dir?: Direction;
+  /** Which of the bearer's powers (an Awakened blade has two). Defaults to the blade's first power. */
+  powerId?: string;
 }
 
-// Later phases add item actions here.
-export type Action = WaitAction | AttackAction | HealAction | TalkAction | PowerAction | EndPhaseAction;
+/** Move to `to` and use the item at `itemIndex` of the unit's inventory on itself. Uses the unit's action. */
+export interface ItemAction {
+  type: 'item';
+  unitId: string;
+  to: Pos;
+  itemIndex: number;
+}
+
+/** Equip the weapon at `itemIndex` of the unit's inventory. Free: the unit does not move and can still act. */
+export interface EquipAction {
+  type: 'equip';
+  unitId: string;
+  itemIndex: number;
+}
+
+export type Action = WaitAction | AttackAction | HealAction | TalkAction | PowerAction | ItemAction | EquipAction | EndPhaseAction;
 
 // ---------------------------------------------------------------------------
 // Events (flat, in order, for the UI to animate)
@@ -604,7 +706,7 @@ export type BattleEvent =
       type: 'unitHealed';
       unitId: string;
       sourceId: string | null;
-      cause: 'staff' | 'terrain' | 'event' | 'power';
+      cause: 'staff' | 'terrain' | 'event' | 'power' | 'item';
       amount: number;
       hpAfter: number;
     }
@@ -624,7 +726,8 @@ export type BattleEvent =
   | { type: 'flagSet'; flag: string; value: FlagValue }
   | { type: 'objectiveChanged'; objective: Objective }
   | { type: 'weaponChanged'; unitId: string; weaponId: string }
-  | { type: 'unitDamaged'; unitId: string; amount: number; hpAfter: number }
+  /** Damage from an event, or a power's blood price (`cause` bloodPrice). */
+  | { type: 'unitDamaged'; unitId: string; amount: number; hpAfter: number; cause?: 'bloodPrice' }
   | { type: 'unitLocked'; unitId: string; locked: boolean }
   // Powers (src/core/powers.ts)
   /** A power fires. Its strikes, falls, heals and gauge changes follow, then `powerEnded`. */
@@ -633,7 +736,12 @@ export type BattleEvent =
   /** A gauge changed: `amount` gained (or spent, negative). */
   | { type: 'resolveChanged'; unitId: string; amount: number; resolveAfter: number }
   /** Devour's kill bonus grew. */
-  | { type: 'devourStack'; unitId: string; stacks: number; attackBonus: number };
+  | { type: 'devourStack'; unitId: string; stacks: number; attackBonus: number }
+  // Items and statuses
+  /** An item was used up. Its heal and gauge changes follow. */
+  | { type: 'itemUsed'; unitId: string; itemId: string }
+  | { type: 'statusApplied'; unitId: string; status: StatusKind; byId: string }
+  | { type: 'statusCleared'; unitId: string; status: StatusKind };
 
 /** What a power did, announced up front so the UI can stage it. */
 export interface PowerSummary {
@@ -660,6 +768,10 @@ export interface PowerSummary {
   heal: number;
   /** Devour stacks after the power, or null when the power gives none. */
   stacksAfter: number | null;
+  /** Statuses the power put on its targets. */
+  statuses: { unitId: string; status: StatusKind }[];
+  /** HP the bearer paid to the blade (an Awakened blade's price), 0 if none. */
+  bloodPrice: number;
 }
 
 export interface ActionResult {

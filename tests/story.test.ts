@@ -223,14 +223,18 @@ describe('chapter flow', () => {
       c = finishScene(c, c.progress.scenes![0]!, { prologue_promise: true }, chapters, gameData, 5);
       expect(flowStep(c, chapters, gameData)).toMatchObject({ kind: 'scene', sceneId: 'prologue_binding' });
       c = finishScene(c, 'prologue_binding', {}, chapters, gameData, 6);
-      expect(c.progress).toEqual({ current: 'chapter1', completed: ['prologue'], stage: 'intro', scenes: null });
+      // The prologue ends in camp (chapters.json campAfter), before chapter 1.
+      expect(c.progress).toEqual({ current: 'chapter1', completed: ['prologue'], stage: 'camp', scenes: null });
       expect(c.flags.prologue_promise).toBe(true);
       expect(c.party.map((u) => u.id)).toEqual(['mc']);
       expect(c.party[0]!.weaponId).toBe(`widows_hush_${style}`);
+      // The blade takes the starting weapon's slot; the old weapon goes to the convoy.
+      expect(c.party[0]!.inventory).toEqual([`widows_hush_${style}`]);
+      expect(c.convoy).toEqual([gameData.classes[style]!.startingWeapon]);
       // The inherited blade goes on record, Dormant.
       expect(c.blades).toEqual({ widows_hush: { tier: 1 } });
-      expect(flowStep(c, chapters, gameData)).toMatchObject({ kind: 'unavailable', chapter: { id: 'chapter1' } });
-      expect(canPlay(c, chapters, gameData)).toBe(false);
+      expect(flowStep(c, chapters, gameData)).toMatchObject({ kind: 'camp', chapter: { id: 'chapter1' } });
+      expect(canPlay(c, chapters, gameData)).toBe(true);
       expect(validateCampaign(c, saveCtx).ok).toBe(true);
     }
   });

@@ -45,10 +45,10 @@ function summaryOf(events: BattleEvent[]): PowerSummary {
 const unit = (s: BattleState, id: string) => s.units.find((u) => u.id === id)!;
 
 describe('the blade data', () => {
-  it('lists the ten blades, three powers built and seven marked not built', () => {
+  it('lists the ten blades, three Dormant and three Awakened powers built and seven marked not built', () => {
     expect(Object.keys(gameData.blades)).toHaveLength(10);
     const built = Object.entries(gameData.powers).filter(([, p]) => p.implemented).map(([id]) => id);
-    expect(built.sort()).toEqual(['devour', 'echo', 'scatter']);
+    expect(built.sort()).toEqual(['cleave', 'devour', 'echo', 'hush', 'pin', 'scatter']);
     for (const b of Object.values(gameData.blades)) expect(gameData.powers[b.power]).toBeDefined();
     expect(validateGameData(gameData)).toEqual([]);
   });

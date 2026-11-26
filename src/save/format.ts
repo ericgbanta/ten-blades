@@ -9,7 +9,7 @@ export type { McLook, ChapterDef, Pronouns, FlagValue };
 export { PRONOUNS };
 
 /** The version every save is written at. Bump it and add a step in migrate.ts on any shape change. */
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 /** Campaign slots. The suspend save has its own slot and remembers which of these it belongs to. */
 export type SlotId = 1 | 2 | 3;
@@ -40,9 +40,12 @@ export interface McProfile {
   look: McLook;
 }
 
-/** Where in a chapter the campaign stands (src/story/flow.ts). */
-export type ChapterStage = 'intro' | 'battle' | 'outro';
-export const CHAPTER_STAGES: readonly ChapterStage[] = ['intro', 'battle', 'outro'];
+/**
+ * Where in a chapter the campaign stands (src/story/flow.ts). `camp` (version 5) is the camp before the chapter:
+ * the war map starts its intro.
+ */
+export type ChapterStage = 'camp' | 'intro' | 'battle' | 'outro';
+export const CHAPTER_STAGES: readonly ChapterStage[] = ['camp', 'intro', 'battle', 'outro'];
 
 export interface ChapterProgress {
   /** The chapter being played, or null once the story so far is finished. */
@@ -76,9 +79,20 @@ export interface CampaignSave {
   shards: number;
   /**
    * The legendary blades the party has held, by blade id (src/data/blades.json), with each blade's tier: 1
-   * (Dormant) until awakening arrives in phase 6. Added in version 4.
+   * Dormant, 2 Awakened, 3 Unbound (the forge). Added in version 4.
    */
   blades: Record<string, BladeRecord>;
+  /** The shared stash: weapon and item ids no one carries. Added in version 5. */
+  convoy: string[];
+  /** Party unit ids left out of the next deployment by choice (the barracks). Added in version 5. */
+  benched: string[];
+  /**
+   * Units that retreated badly wounded in Classic (plot-critical bearers who fell), by unit id, with the act they
+   * fell in. They cannot deploy until the act ends. Added in version 5.
+   */
+  wounded: Record<string, number>;
+  /** Side skirmishes won, by the chapter they were won in (the per-chapter cap). Added in version 5. */
+  skirmishWins: Record<string, number>;
 }
 
 export interface BladeRecord {
@@ -104,6 +118,8 @@ export interface SuspendSave {
   mapId: string;
   battle: BattleState;
   controller: SuspendController;
+  /** The side skirmish being played (an id in skirmishes.json), or null for the chapter's story map. Version 5. */
+  skirmish: string | null;
 }
 
 export type AnySave = CampaignSave | SuspendSave;
@@ -114,6 +130,8 @@ export interface SaveContext {
   chapters: readonly ChapterDef[];
   /** Dialogue scene ids; when given, scene ids in a save are checked against them. */
   sceneIds?: readonly string[];
+  /** Side skirmish ids; when given, a suspended skirmish is checked against them. */
+  skirmishIds?: readonly string[];
 }
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string };

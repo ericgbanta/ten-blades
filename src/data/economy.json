@@ -1,0 +1,48 @@
+{
+  "sellPercent": 50,
+  "upgradeCosts": [300, 600],
+  "convoyMax": 100,
+  "rewards": {
+    "prologue": {
+      "gold": 500,
+      "shards": 1,
+      "bonus": [
+        {"id": "swift", "kind": "turns", "turns": 5, "text": "Win by turn 5", "gold": 200, "shards": 0},
+        {"id": "none_lost", "kind": "noLoss", "text": "Lose no one", "gold": 0, "shards": 1}
+      ],
+      "drops": [{"unitId": "legionary_3", "item": "healing_salve"}]
+    }
+  },
+  "shops": {
+    "chapter1": {
+      "weapons": [
+        "iron_lance",
+        "iron_axe",
+        "iron_katana",
+        "iron_dagger",
+        "short_bow",
+        "ember_tome",
+        "warding_talisman",
+        "spirit_staff",
+        "mending_rod"
+      ],
+      "items": ["healing_salve", "mender_tonic", "grave_wine"]
+    },
+    "default": {
+      "weapons": [
+        "iron_lance",
+        "javelin",
+        "iron_axe",
+        "iron_greatsword",
+        "iron_katana",
+        "iron_dagger",
+        "short_bow",
+        "ember_tome",
+        "warding_talisman",
+        "spirit_staff",
+        "mending_rod"
+      ],
+      "items": ["healing_salve", "mender_tonic", "grave_wine"]
+    }
+  }
+}

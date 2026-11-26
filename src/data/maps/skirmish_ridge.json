@@ -1,0 +1,44 @@
+{
+  "id": "skirmish_ridge",
+  "name": "Ashfall Ridge",
+  "width": 11,
+  "height": 11,
+  "tiles": [
+    "F..HH..F..F",
+    "...H..==.T.",
+    ".F..==..H..",
+    "..==..F.HH.",
+    ".=..F...H.F",
+    ".=.HHH...F.",
+    "..=...H....",
+    "F..=....F..",
+    ".F..==....F",
+    "......==...",
+    "FF.....=.FF"
+  ],
+  "legend": {".": "plain", "=": "road", "F": "forest", "H": "hill", "T": "fort"},
+  "placements": [
+    {"kind": "mc", "pos": {"x": 2, "y": 9}},
+    {"kind": "party", "pos": {"x": 2, "y": 8}},
+    {"kind": "party", "pos": {"x": 4, "y": 9}},
+    {"kind": "party", "pos": {"x": 0, "y": 8}},
+    {"kind": "unit", "id": "warden_1", "name": "Warden", "classId": "soldier", "team": "player", "level": 2, "pos": {"x": 1, "y": 9}},
+    {"kind": "unit", "id": "warden_2", "name": "Warden", "classId": "ranger", "team": "player", "level": 2, "pos": {"x": 3, "y": 8}},
+    {"kind": "unit", "id": "deserter_1", "name": "Deserter", "classId": "hunter", "team": "enemy", "level": 1, "pos": {"x": 8, "y": 1}, "ai": {"behavior": "charge"}},
+    {"kind": "unit", "id": "deserter_2", "name": "Deserter", "classId": "legionary", "team": "enemy", "level": 1, "pos": {"x": 6, "y": 2}, "ai": {"behavior": "hold"}},
+    {"kind": "unit", "id": "deserter_3", "name": "Inquisitor", "classId": "inquisitor", "team": "enemy", "level": 1, "pos": {"x": 7, "y": 3}, "ai": {"behavior": "hold"}},
+    {"kind": "unit", "id": "deserter_4", "name": "Archer", "classId": "archer", "team": "enemy", "level": 1, "pos": {"x": 8, "y": 4}, "ai": {"behavior": "hold"}},
+    {"kind": "unit", "id": "deserter_5", "name": "Deserter", "classId": "hunter", "team": "enemy", "level": 1, "pos": {"x": 10, "y": 5}, "ai": {"behavior": "charge"}},
+    {"kind": "unit", "id": "deserter_6", "name": "Deserter Sergeant", "classId": "legionary", "team": "enemy", "level": 2, "pos": {"x": 9, "y": 1}, "ai": {"behavior": "guard", "radius": 1}, "items": ["healing_salve"]}
+  ],
+  "objective": {"type": "rout"},
+  "backdrop": "forest",
+  "reinforcements": [],
+  "props": [
+    {"id": "campfire", "x": 8, "y": 0},
+    {"id": "banner", "x": 10, "y": 1},
+    {"id": "dead_tree", "x": 5, "y": 4},
+    {"id": "graves", "x": 6, "y": 6},
+    {"id": "signpost", "x": 0, "y": 6}
+  ]
+}

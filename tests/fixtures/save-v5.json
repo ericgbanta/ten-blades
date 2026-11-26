@@ -1,0 +1,80 @@
+{
+  "version": 5,
+  "kind": "campaign",
+  "createdAt": 1764140000000,
+  "updatedAt": 1764160000000,
+  "settings": {
+    "difficulty": "normal",
+    "permadeath": "classic"
+  },
+  "mc": {
+    "name": "Ysolde Ærwyn",
+    "pronouns": "she",
+    "style": "duelist",
+    "look": {
+      "body": "broad",
+      "skin": "olive",
+      "hairStyle": "braid",
+      "hairColor": "auburn",
+      "eyes": "round",
+      "scar": "claws",
+      "accent": "teal"
+    }
+  },
+  "party": [
+    {
+      "id": "mc",
+      "name": "Ysolde Ærwyn",
+      "classId": "duelist",
+      "level": 2,
+      "xp": 20,
+      "stats": {
+        "hp": 21,
+        "str": 6,
+        "mag": 1,
+        "skl": 9,
+        "spd": 10,
+        "lck": 7,
+        "def": 6,
+        "res": 2,
+        "mov": 5
+      },
+      "weaponId": "widows_hush_duelist",
+      "isLord": true,
+      "inventory": [
+        "widows_hush_duelist",
+        "iron_katana+1",
+        "healing_salve"
+      ]
+    }
+  ],
+  "fallen": [],
+  "progress": {
+    "current": "chapter1",
+    "completed": [
+      "prologue"
+    ],
+    "stage": "camp",
+    "scenes": null
+  },
+  "flags": {
+    "prologue_promise": true,
+    "read_camp_first_night": true
+  },
+  "gold": 1250,
+  "shards": 3,
+  "blades": {
+    "widows_hush": {
+      "tier": 1
+    }
+  },
+  "convoy": [
+    "hunting_knife",
+    "mender_tonic"
+  ],
+  "benched": [],
+  "wounded": {},
+  "skirmishWins": {
+    "chapter1": 1
+  }
+}

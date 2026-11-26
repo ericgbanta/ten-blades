@@ -1,5 +1,6 @@
 // Grid helpers: positions, terrain lookup, unit lookup, team relations.
 
+import { weaponDef } from './items';
 import type { BattleState, GameData, Pos, Team, TerrainDef, Unit, WeaponDef } from './types';
 
 /** Manhattan distance between two tiles. */
@@ -99,7 +100,7 @@ export function areHostile(a: Team, b: Team): boolean {
 
 export function weaponOf(unit: Unit, data: GameData): WeaponDef | null {
   if (unit.weaponId === null) return null;
-  const w = data.weapons[unit.weaponId];
+  const w = weaponDef(unit.weaponId, data);
   if (!w) throw new Error(`Unknown weapon ${unit.weaponId}`);
   return w;
 }

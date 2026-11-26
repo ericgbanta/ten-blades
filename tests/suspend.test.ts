@@ -73,6 +73,8 @@ async function play(c: BattleController, a: Action): Promise<void> {
   if (a.type === 'endPhase') {
     c.requestEndTurn();
     if (c.view.confirmEnd !== null) c.confirmEndTurn();
+  } else if (a.type === 'item' || a.type === 'equip') {
+    throw new Error('play() covers moves, attacks and heals');
   } else {
     const unit = s.units.find((u) => u.id === a.unitId)!;
     c.tapTile(unit.pos);

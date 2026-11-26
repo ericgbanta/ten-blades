@@ -43,6 +43,8 @@ describe('level-ups', () => {
     isBoss: false,
     isLord: false,
     tags: [],
+    inventory: [],
+    statuses: [],
     left: false,
     resolve: 0,
     devourStacks: 0,

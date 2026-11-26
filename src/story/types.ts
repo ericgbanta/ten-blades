@@ -1,6 +1,7 @@
 // Story content types: dialogue scenes, speakers, chapters. The JSON lives in src/data (see docs/STORY.md).
 
 import type { Flags, McStyle, StoryCondition } from '../core';
+import type { CampDef, DeployRule } from '../camp/types';
 
 export type Pronouns = 'he' | 'she' | 'they';
 export const PRONOUNS: readonly Pronouns[] = ['he', 'she', 'they'];
@@ -136,4 +137,14 @@ export interface ChapterDef {
   /** The chapter that follows, or null at the end of the story so far. */
   next: string | null;
   draft?: boolean;
+  /** The act the chapter belongs to (1, 2 or 3). Wounded bearers sit out the rest of their act. */
+  act: number;
+  /** After this chapter the army makes camp before the next one (docs/CAMP.md). */
+  campAfter?: CampDef;
+  /** Side skirmishes on the war map while this is the next chapter, and how many may be won here. */
+  skirmishes?: { ids: string[]; cap: number };
+  /** Who may deploy on this chapter's map. */
+  deploy?: DeployRule;
+  /** Bearers the plot still needs here: in Classic they retreat badly wounded instead of dying. */
+  plotCritical?: string[];
 }

@@ -81,5 +81,17 @@
     "crit": 10,
     "kill": 25,
     "aiMargin": 2
+  },
+  "inventory": {
+    "slots": 5
+  },
+  "weaponRanks": {
+    "max": 2,
+    "might": 1,
+    "hit": 5
+  },
+  "ai": {
+    "itemBelowPercent": 35,
+    "statusValue": 6
   }
 }

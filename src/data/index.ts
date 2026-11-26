@@ -1,17 +1,22 @@
 // Loads every JSON file under src/data into one typed GameData object.
 // The core never imports JSON itself; callers pass `gameData` (or a test fixture) in.
 
-import type { Balance, BladeDef, ClassDef, GameData, MapData, MapEvent, PowerDef, TerrainDef, WeaponDef } from '../core/types';
+import type { Balance, BladeDef, ClassDef, GameData, ItemDef, MapData, MapEvent, PowerDef, TerrainDef, WeaponDef } from '../core/types';
 import type { ChapterDef } from '../story/types';
+import type { CampContent, EconomyDef, SkirmishData } from '../camp/types';
+import economyJson from './economy.json';
+import skirmishesJson from './skirmishes.json';
 import balance from './balance.json';
 import blades from './blades.json';
 import classes from './classes.json';
+import items from './items.json';
 import terrain from './terrain.json';
 import weapons from './weapons.json';
 import prologue from './maps/prologue.json';
 import prologueEvents from './maps/prologue.events.json';
 import skirmishTest from './maps/skirmish_test.json';
 import skirmishTestEvents from './maps/skirmish_test.events.json';
+import skirmishRidge from './maps/skirmish_ridge.json';
 import chaptersJson from './chapters.json';
 
 /**
@@ -30,10 +35,22 @@ export const gameData: GameData = {
   terrain: terrain as Record<string, TerrainDef>,
   weapons: weapons as unknown as Record<string, WeaponDef>,
   // skirmish_test is a large map for checking rendering and the camera; only the quick battle URL reaches it.
-  maps: { prologue: withEvents(prologue, prologueEvents), skirmish_test: withEvents(skirmishTest, skirmishTestEvents) },
+  // skirmish_ridge is the first side skirmish (src/data/skirmishes.json); it has no scripted events.
+  maps: {
+    prologue: withEvents(prologue, prologueEvents),
+    skirmish_test: withEvents(skirmishTest, skirmishTestEvents),
+    skirmish_ridge: skirmishRidge as unknown as MapData,
+  },
   blades: blades.blades as unknown as Record<string, BladeDef>,
   powers: blades.powers as unknown as Record<string, PowerDef>,
+  items: items as Record<string, ItemDef>,
 };
 
 /** The campaign script, in story order (src/data/chapters.json). Each chapter names the next. */
 export const chapters: readonly ChapterDef[] = chaptersJson as unknown as ChapterDef[];
+
+/** Camp content: the economy (rewards, shops, forge costs) and the side skirmishes (docs/CAMP.md). */
+export const campContent: CampContent = {
+  economy: economyJson as unknown as EconomyDef,
+  skirmishes: (skirmishesJson as unknown as SkirmishData).skirmishes,
+};

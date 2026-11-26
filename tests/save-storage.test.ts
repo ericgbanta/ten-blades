@@ -5,7 +5,7 @@ import { battleSetup, newCampaign, suspendSave } from '../src/save/campaign';
 import type { CampaignSave, SaveContext } from '../src/save/format';
 import { SaveQueue } from '../src/save/queue';
 import { MemoryBackend, createSaveStorage, memoryStorage } from '../src/save/storage';
-import v4 from './fixtures/save-v4.json';
+import v5 from './fixtures/save-v5.json';
 
 const ctx: SaveContext = { data: gameData, chapters };
 const campaign = (name = 'Ash'): CampaignSave =>
@@ -16,8 +16,8 @@ describe('save storage (in memory)', () => {
     const store = memoryStorage(ctx);
     expect(store.persistent).toBe(false);
     expect(await store.loadSlot(1)).toEqual({ ok: true, value: null });
-    await store.saveSlot(2, v4 as CampaignSave);
-    expect(await store.loadSlot(2)).toEqual({ ok: true, value: v4 });
+    await store.saveSlot(2, v5 as unknown as CampaignSave);
+    expect(await store.loadSlot(2)).toEqual({ ok: true, value: v5 });
     const slots = await store.listSlots();
     expect(slots.map((s) => [s.slot, s.save?.mc.name ?? null, s.error])).toEqual([
       [1, null, null],

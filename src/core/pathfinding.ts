@@ -20,6 +20,7 @@ import {
   tilesInRange,
   unitAt,
 } from './grid';
+import { moveBudget } from './status';
 import type { BattleState, GameData, Pos, Unit } from './types';
 
 /** A tile a unit can reach this turn. */
@@ -133,7 +134,7 @@ function less(a: [number, number], b: [number, number]): boolean {
 }
 
 function moveField(state: BattleState, unit: Unit, data: GameData): Field {
-  return dijkstra(state, unit, [unit.pos], unit.stats.mov, data);
+  return dijkstra(state, unit, [unit.pos], moveBudget(unit), data);
 }
 
 function reachFromField(state: BattleState, unit: Unit, field: Field): ReachTile[] {

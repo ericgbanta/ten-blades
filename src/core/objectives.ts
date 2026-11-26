@@ -96,6 +96,7 @@ export function partyAfterBattle(state: BattleState): PartyAfterBattle {
       stats: { ...u.stats },
       weaponId: u.weaponId,
       isLord: u.isLord,
+      inventory: [...u.inventory],
     };
     (u.alive ? out.survivors : u.left ? out.left : out.fallen).push(m);
   }

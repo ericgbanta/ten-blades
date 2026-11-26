@@ -11,6 +11,7 @@ import type {
   BattleState,
   ClassDef,
   GameData,
+  ItemDef,
   MapData,
   Objective,
   Placement,
@@ -59,6 +60,9 @@ const balance: Balance = {
     lunatic: { statMultiplier: 2, statBonus: { hp: 5 }, levelBonus: 2, aggressive: true },
   },
   resolve: { max: 100, start: 20, dealHit: 15, takeHit: 10, crit: 10, kill: 25, aiMargin: 2 },
+  inventory: { slots: 5 },
+  weaponRanks: { max: 2, might: 1, hit: 5 },
+  ai: { itemBelowPercent: 35, statusValue: 6 },
 };
 
 const cls = (school: ClassDef['school'], weaponKinds: string[], startingWeapon: string, base: Stats, growths: Stats): ClassDef => ({
@@ -111,10 +115,20 @@ const weapons: Record<string, WeaponDef> = {
 };
 
 const tier = (n: number) => ({ tier: n, name: `T${n}`, note: '' });
+/** Tier 2 adds a power, costs 3 shards, boosts the bearer and takes 2 HP per power. Tier 3 waits for act 3. */
+const awakened = (power: string) => ({
+  ...tier(2),
+  power,
+  shards: 3,
+  requires: { chapter: 'c2', text: 'Reach C2' },
+  statBoost: { str: 2, spd: 1 },
+  bloodPrice: 2,
+});
+const unbound = { ...tier(3), shards: 8, requires: { act: 3, text: 'Reach Act 3' }, bloodPrice: 4 };
 const blades: Record<string, BladeDef> = {
-  hush: { name: 'Hush', number: 1, school: 'style', wielder: 'mc', power: 'echo', tiers: [tier(1), tier(2), tier(3)] },
-  maw: { name: 'Maw', number: 2, school: 'heavy', wielder: 'brute', power: 'devour', tiers: [tier(1), tier(2), tier(3)] },
-  needles: { name: 'Needles', number: 3, school: 'swift', wielder: 'thief', power: 'scatter', tiers: [tier(1), tier(2), tier(3)] },
+  hush: { name: 'Hush', number: 1, school: 'style', wielder: 'mc', power: 'echo', tiers: [tier(1), awakened('silence'), unbound] },
+  maw: { name: 'Maw', number: 2, school: 'heavy', wielder: 'brute', power: 'devour', tiers: [tier(1), awakened('cleave'), unbound] },
+  needles: { name: 'Needles', number: 3, school: 'swift', wielder: 'thief', power: 'scatter', tiers: [tier(1), awakened('pin'), unbound] },
   storm: { name: 'Storm', number: 4, school: 'arcane', wielder: 'priestess', power: 'chain', tiers: [tier(1), tier(2), tier(3)] },
 };
 
@@ -129,6 +143,20 @@ const powers: Record<string, PowerDef> = {
   },
   scatter: { name: 'Scatter', description: '', implemented: true, cost: 80, effect: { type: 'scatter', length: 4, damagePercent: 70 } },
   chain: { name: 'Chain', description: '', implemented: false, cost: null, effect: null },
+  silence: {
+    name: 'Silence',
+    description: '',
+    implemented: true,
+    cost: 50,
+    effect: { type: 'strike', range: [1, 1], damagePercent: 100, status: 'silence', onHit: false },
+  },
+  cleave: { name: 'Cleave', description: '', implemented: true, cost: 60, effect: { type: 'cleave', bonusMight: 2, splashPercent: 50 } },
+  pin: { name: 'Pin', description: '', implemented: true, cost: 40, effect: { type: 'strike', range: [1, 3], damagePercent: 60, status: 'pin', onHit: true } },
+};
+
+const items: Record<string, ItemDef> = {
+  salve: { name: 'Salve', description: '', price: 100, heal: 10, resolve: 0 },
+  draught: { name: 'Draught', description: '', price: 200, heal: 0, resolve: 30 },
 };
 
 /** Fixture game data. Terrain: . plain, F forest (cost 2, +20 avoid, +1 def), T fort, # wall, ~ water. */
@@ -147,6 +175,7 @@ export function fixtureData(): GameData {
     maps: {},
     blades,
     powers,
+    items,
   });
 }
 
@@ -158,6 +187,7 @@ export interface UnitOpts {
   isLord?: boolean;
   name?: string;
   tags?: string[];
+  items?: string[];
 }
 
 /** A unit placement. Non-player units default to charge AI. */
@@ -169,6 +199,7 @@ export function place(id: string, classId: string, team: Team, x: number, y: num
   if (o.isBoss !== undefined) p.isBoss = o.isBoss;
   if (o.isLord !== undefined) p.isLord = o.isLord;
   if (o.tags !== undefined) p.tags = o.tags;
+  if (o.items !== undefined) p.items = o.items;
   return p;
 }
 

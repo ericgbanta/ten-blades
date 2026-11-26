@@ -5,8 +5,15 @@
       "wielder": "The MC, inherited from the Stranger", "power": "echo",
       "tiers": [
         { "tier": 1, "name": "Dormant", "note": "Echo." },
-        { "tier": 2, "name": "Awakened", "note": "A second power and a stat boost (phase 6)." },
-        { "tier": 3, "name": "Unbound", "note": "An ultimate power, at a cost (later)." }
+        {
+          "tier": 2, "name": "Awakened", "note": "Hush, a second power, and a keener edge.",
+          "power": "hush", "shards": 3, "requires": { "chapter": "chapter1", "text": "Reach Chapter 1" },
+          "statBoost": { "skl": 2, "spd": 1, "lck": 1 }, "bloodPrice": 2
+        },
+        {
+          "tier": 3, "name": "Unbound", "note": "An ultimate power, and a louder voice.",
+          "shards": 8, "requires": { "act": 3, "text": "Reach Act 3" }, "bloodPrice": 4
+        }
       ]
     },
     "gravemaw": {
@@ -14,8 +21,15 @@
       "wielder": "Hulking army deserter", "power": "devour",
       "tiers": [
         { "tier": 1, "name": "Dormant", "note": "Devour." },
-        { "tier": 2, "name": "Awakened", "note": "A second power and a stat boost (phase 6)." },
-        { "tier": 3, "name": "Unbound", "note": "An ultimate power, at a cost (later)." }
+        {
+          "tier": 2, "name": "Awakened", "note": "Cleave, a second power, and more weight behind it.",
+          "power": "cleave", "shards": 3, "requires": { "chapter": "chapter3", "text": "Reach Chapter 3" },
+          "statBoost": { "str": 2, "def": 1 }, "bloodPrice": 2
+        },
+        {
+          "tier": 3, "name": "Unbound", "note": "An ultimate power, and a louder voice.",
+          "shards": 8, "requires": { "act": 3, "text": "Reach Act 3" }, "bloodPrice": 4
+        }
       ]
     },
     "thousand_needles": {
@@ -23,8 +37,15 @@
       "wielder": "Young street thief", "power": "scatter",
       "tiers": [
         { "tier": 1, "name": "Dormant", "note": "Scatter." },
-        { "tier": 2, "name": "Awakened", "note": "A second power and a stat boost (phase 6)." },
-        { "tier": 3, "name": "Unbound", "note": "An ultimate power, at a cost (later)." }
+        {
+          "tier": 2, "name": "Awakened", "note": "Pin, a second power, and quicker hands.",
+          "power": "pin", "shards": 3, "requires": { "chapter": "chapter3", "text": "Reach Chapter 3" },
+          "statBoost": { "spd": 2, "skl": 1 }, "bloodPrice": 2
+        },
+        {
+          "tier": 3, "name": "Unbound", "note": "An ultimate power, and a louder voice.",
+          "shards": 8, "requires": { "act": 3, "text": "Reach Act 3" }, "bloodPrice": 4
+        }
       ]
     },
     "stormcall": {
@@ -106,6 +127,21 @@
       "name": "Scatter", "description": "The blade splits and hits every enemy in a line.",
       "implemented": true, "cost": null,
       "effect": { "type": "scatter", "length": 4, "damagePercent": 70 }
+    },
+    "hush": {
+      "name": "Hush", "description": "A whispered cut no foe can answer. It is silenced until your next turn: no counters, no powers.",
+      "implemented": true, "cost": 50,
+      "effect": { "type": "strike", "range": [1, 1], "damagePercent": 100, "status": "silence", "onHit": false }
+    },
+    "cleave": {
+      "name": "Cleave", "description": "A hungry swing at a foe in reach. Every other foe beside the bearer takes half.",
+      "implemented": true, "cost": 60,
+      "effect": { "type": "cleave", "bonusMight": 2, "splashPercent": 50 }
+    },
+    "pin": {
+      "name": "Pin", "description": "A needle thrown up to 3 tiles that nails the foe in place until your next turn.",
+      "implemented": true, "cost": 40,
+      "effect": { "type": "strike", "range": [1, 3], "damagePercent": 60, "status": "pin", "onHit": true }
     },
     "chain": { "name": "Chain", "description": "Lightning jumps between adjacent enemies.", "implemented": false, "cost": null, "effect": null },
     "bulwark": { "name": "Bulwark", "description": "Roots in place; adjacent allies take half damage.", "implemented": false, "cost": null, "effect": null },
