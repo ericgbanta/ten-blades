@@ -12,6 +12,7 @@ How the battle screen is put together (phase 2). The rules live in `src/core`; e
 | `src/battle/stage.ts` | The `Stage` interface the controller draws through. |
 | `src/game/MapScene.ts` | The Phaser scene. Implements `Stage`: terrain, highlights, tokens, camera, touch input and the in-map animations. |
 | `src/game/token.ts`, `terrainArt.ts`, `palette.ts` | Unit tokens, placeholder tiles drawn in code, and the colors. See Tokens below. |
+| `src/game/groundPlan.ts`, `ground.ts` | What to draw on each cell (variants, road, wall and shore pieces), as pure functions, and the painter that bakes it into cached textures. See Map rendering below. |
 | `src/game/camera.ts`, `gestures.ts` | Pure camera math (clamp, zoom around a point, reveal a tile) and the tap, pan and pinch tracker. |
 | `src/game/start.ts` | Boots Phaser and returns a small `GameHandle`. |
 | `src/ui/Battle.tsx` | The battle route: plays the campaign run (new, loaded or resumed) or a quick battle, builds the controller, mounts Phaser, renders the overlays, measures them for the camera. |
@@ -53,10 +54,26 @@ Timing: every animation length goes through `Timing.ms(base)`, scaled by the spe
 ## Map scene
 
 - One tile is 64 world units. The camera has its origin at the top left, so screen = (world - scroll) x zoom. The canvas is sized in device pixels and shown at CSS size.
-- Default zoom fits the map if tiles stay at least 46 CSS px, otherwise 46 px tiles and the player pans. Drag pans, pinch and the mouse wheel zoom. A press that moves more than 10 CSS px is a pan and never a tap.
+- Default zoom (`defaultTileCss`): the whole map if its tiles stay at least 36 CSS px, else the full width if that keeps them at 36 or more (the player pans up and down), else 44 px tiles. A 10 column map on a 375 px phone opens at about 37 px with the whole width in view; 12 columns need 432 px of width; the 14 column skirmish test map opens at 44 px. The view opens centered on the player's units (on an axis where the whole map fits, on the map), with the lord in view. Taps resolve to whole tiles with no gaps, so a 37 px tile is a 37 px tap target; the tap slop below keeps small drags from turning into taps on the wrong tile. Zooming out stops at the size that fits the whole map (or 44 px if that is larger); zooming in stops at 112 px. Drag pans, pinch and the mouse wheel zoom. A press that moves more than 10 CSS px is a pan and never a tap.
+- The bars are measured after Phaser starts, so until the player first taps, pans or zooms, every change of the covered insets frames the default view again; after that a change only clamps and keeps the selected tile in view. The clamp keeps the map inside the area the top bar and dock leave free, so no row sits under them at rest.
 - The overlays report the screen area they cover (`coveredInsets`); the camera clamps to the uncovered area and pans the selected tile into it when panels open. In landscape the dock becomes a column on the right.
-- Art: tiles use texture `tile.<terrainId>` and tokens `token.<classId>` when `src/art/assets.json` lists them; otherwise they are drawn in code. Adding an image to the manifest needs no code change.
+- Art: tokens use `token.<classId>` when `src/art/assets.json` lists it; otherwise they are drawn in code. The ground is described under Map rendering. Adding an image to the manifest needs no code change.
 - The previewed move walks the real token to the tile; Cancel snaps it home. When the action is confirmed, a token already standing on the destination skips the walk.
+
+## Map rendering
+
+The ground is planned per cell by `planGround` in `src/game/groundPlan.ts` (pure, tested in `tests/ground-plan.test.ts`) and painted once by `buildGround` in `src/game/ground.ts` into canvas textures of up to 20 by 20 tiles at 96 px per tile (the packed tile size), shown as one image each. A 14 by 18 map is one 1344 x 1728 texture, so the scene has a few ground images, one grid graphic, one image per prop and the units, however busy the ground looks. The pieces and how they were cut are described in `docs/ART_GENERATION.md`.
+
+- Variants: each cell of a terrain with a rule in `VARIANT_RULES` picks `tile.<terrain>` or `tile.<terrain>.<n>` by weight with a small hash of the map id and the cell (not the game RNG, so a map looks the same on every load and every seed). Plain is mostly the quiet base (16 to 2 to 3), water has an occasional reed tile, forests, hills and villages mix freely. An accent variant is not put beside the same accent on its left or above, and no variant fills a 2 by 2 block, when another choice exists.
+- Roads: a road cell is the plain tile plus pieces toward every road neighbour, toward a bridge or ford that runs its way, and off the map edge when the road continues from the other side (or has nothing else to join). A straight run is the whole straight piece (turned for north to south); anything else is an arm per joined side, the hub over the center, and a lip on each closed side, which gives corners, T junctions, crossings and dead ends.
+- Walls: a wall cell is the plain tile plus wall pieces toward walls, forts and villages (a garden wall meets the cottage), and off the edge where the wall continues. A straight east to west wall is the two straight halves; anything else adds the north and south arms as needed and a post on top, so corners, ends and junctions have a pillar. A lone wall is drawn as a short straight wall. Wall pieces are never turned, because the art shows the wall's south face.
+- Water: a water, bridge or ford cell gets a bank on each side that borders land (land is anything but water, bridge and ford; off the map counts as water so rivers run on), a small corner bank where only the diagonal neighbour is land, and then the land of each bank again so no inked lip shows inside land where two banks meet. A one tile river gets banks on both sides.
+- Bridges and fords: drawn over water and the banks, turned to run across the water between the land sides (`crossingRunsEastWest`).
+- Fallbacks: a road or wall with a missing piece uses its single `tile.<terrain>`; any terrain with no art at all gets the coded placeholder (`terrainArt.ts`), painted into the same texture.
+- Props: a map's optional `props` list (`{ id, x, y }`, ids from `src/data/props.json`) is drawn as images anchored at the lower middle of the tile, depth 10 plus row times 0.01 minus a little, so a unit on the same row stands in front and a tall prop covers the feet of a unit on the row behind. HP bars live on the overlay layer above both. A tall prop fades to 35 percent while a unit stands on its tile. Highlights stay under props and tokens; the grid is drawn at 30 percent black.
+- Measured in headless Chromium (software WebGL) at 375 x 667 and device scale 2, dragging the 14 by 18 skirmish map for four seconds: frames averaged 16.8 ms (median 16.7, 95th percentile 16.8), so 60 fps; with the CPU slowed four times, 28.9 ms average (median 33.3).
+
+`?test=1&quick=1&map=skirmish_test#/battle` opens the 14 by 18 skirmish test map, which has a river with a bridge and a ford, a walled fort, a village, forest belts, hills, roads, five player units and eight enemies. It is not in the chapter list.
 
 ## Tokens
 
@@ -98,6 +115,6 @@ With `test=1` in the URL (`?test=1&seed=7#/battle`), `window.__tb` offers:
 | `saved()` | Resolves true once every queued save write has finished, so a test can reload safely. |
 | `tokenTexture(unitId)` | The texture key a unit's map token shows (`token.mc` for the composed MC), or null for a placeholder. |
 
-URL overrides (query or after the hash route): `seed=N` fixes the seed of every battle, campaign ones included; without it each battle seeds from the clock. `quick=1` on the battle route (`?test=1&quick=1&seed=7#/battle`) plays an unsaved quick battle, which also takes `style=vanguard|duelist|spiritblade`, `difficulty=normal|hard|lunatic` and `mode=classic|casual`. Without `quick=1` and without a campaign run (for example after a page reload), the battle route goes back to the title, where Continue resumes the suspended battle.
+URL overrides (query or after the hash route): `seed=N` fixes the seed of every battle, campaign ones included; without it each battle seeds from the clock. `quick=1` on the battle route (`?test=1&quick=1&seed=7#/battle`) plays an unsaved quick battle, which also takes `style=vanguard|duelist|spiritblade`, `difficulty=normal|hard|lunatic`, `mode=classic|casual` and `map=<id>` (any map in `gameData.maps`; an unknown id plays the prologue). Without `quick=1` and without a campaign run (for example after a page reload), the battle route goes back to the title, where Continue resumes the suspended battle.
 
 `e2e/battle.spec.ts` uses the hook on a quick battle to play a turn by taps (select, move, wait, end turn, forecast, attack, enemy phase) and to play the whole prologue to the victory screen.

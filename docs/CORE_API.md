@@ -151,7 +151,26 @@ for (let a = planAiAction(state, gameData); a; a = planAiAction(state, gameData)
 
 ## Data
 
-`gameData` (from `src/data/index.ts`) bundles `balance.json`, `terrain.json`, `classes.json`, `weapons.json` and the maps. Every balance number is in `balance.json`, including the hit roll mode (`1rn` or `2rn`). Terrain move costs are given per movement type, so new movement types only need new keys. A weapon with `heal` above 0 is a staff: it heals and never attacks or counters. `validateGameData(gameData)` checks every cross reference, that the balance divisors (`combat.hitLckDiv`, `combat.critSklDiv`, `xp.hitDiv`, `xp.perLevel`) are above 0, and the objective rules above. A unit test runs it, and another checks that every foot-passable tile on every map can be reached from the MC slot.
+`gameData` (from `src/data/index.ts`) bundles `balance.json`, `terrain.json`, `classes.json`, `weapons.json` and the maps (`prologue`, and `skirmish_test`, a 14 by 18 map only the quick battle URL reaches). Every balance number is in `balance.json`, including the hit roll mode (`1rn` or `2rn`). Terrain move costs are given per movement type, so new movement types only need new keys. A weapon with `heal` above 0 is a staff: it heals and never attacks or counters. `validateGameData(gameData)` checks every cross reference, that the balance divisors (`combat.hitLckDiv`, `combat.critSklDiv`, `xp.hitDiv`, `xp.perLevel`) are above 0, and the objective rules above. A unit test runs it, and another checks that every foot-passable tile on every map can be reached from the MC slot.
+
+### Terrain
+
+| Id | Foot cost | Avoid | Def | Res | Heal | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| plain, road | 1 | 0 | 0 | 0 | 0 | Road is drawn differently but plays as plain. |
+| forest | 2 | 20 | 1 | 0 | 0 | |
+| hill | 3 | 30 | 2 | 0 | 0 | |
+| fort | 2 | 20 | 2 | 2 | 20% | Heals at the start of its team's phase. |
+| village | 1 | 10 | 0 | 0 | 0 | |
+| water, wall | impassable | | | | | |
+| bridge | 1 | 0 | 0 | 0 | 0 | A way over water. |
+| ford | 2 | -10 | 0 | 0 | 0 | Shallow water: slow to wade, and a unit standing in it is easier to hit. |
+
+The numbers live in `terrain.json`; this table is a summary. `tests/crossings.test.ts` checks the bridge and ford.
+
+### Map files
+
+A map in `src/data/maps/<id>.json` has `id`, `name`, `width`, `height`, `tiles` (one string per row) with a `legend` from tile character to terrain id, `placements`, `objective`, `reinforcements`, and an optional `props` list of `{ id, x, y }`. Props are decorative: the rules ignore them. `validateGameData` only checks that each prop has a plain id, sits on the map and does not share a tile with another prop; which prop suits which terrain, and that no tall prop stands on a unit's start tile, is checked by `checkProps` in `tools/maps/tiled.ts` (used by the Tiled import and by `tests/maps-tiled.test.ts`) against `src/data/props.json`. Maps are drawn in Tiled and imported with `npm run maps`; see `docs/MAPS.md`.
 
 ## Errors
 

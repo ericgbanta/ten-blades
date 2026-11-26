@@ -55,6 +55,9 @@ The raw sheets expected, by name:
 | `busts-militia.png`, `busts-imperial.png` | 2x2 neutral busts: soldier, ranger, adept, medic; legionary, hunter, inquisitor, archer. |
 | `tokens-named.png`, `tokens-militia.png`, `tokens-imperial.png` | One row of chibi map tokens: stranger, gravemaw, captain; the four militia; the four imperial. |
 | `tiles-<set>.png` | A 4x2 grid of square terrain tiles on `#00ff00` green with green gaps, in order plain, road, forest, hill, fort, village, water, wall. Set so far: `village`. |
+| `tiles-village2.png` | 4x2 variant tiles: plain (bare earth), plain (flowers), forest (pines and log), forest (pines and dead tree), hill (ridge), water (reeds), village (cottage with woodpile), village (barn). |
+| `tiles-connect.png` | 4x2 flat connector tiles seen from straight above: road straight (east to west), road crossroads, wall straight, wall junction with pillar, shore edge (bank along the top), shore corner (bank in the top left), wooden bridge (east to west), ford. |
+| `props-village.png` | 4x3 cut-out props with a small contact shadow: fence, cart, barrels, rubble; banner, well, haystack, dead tree; campfire, signpost, gravestones, wheel. |
 | `backdrop-<name>.png` | One full-screen battle backdrop. Name so far: `village`. |
 
 How it works. Keying: the amount by which green exceeds red and blue says how much of a pixel is background, edge pixels are unmixed from the green (so no fringe or halo, and the anti-aliased edge stays), and enclosed pockets that reach strong green anywhere are keyed too (between an arm and the body, hair gaps). A pale yellow-green glow never reaches that level, so lantern light survives. Splitting: each connected piece goes to the grid cell that holds most of it, so a long weapon, a flying arrow or a smoke wisp stays with its character; specks under 40 px are dropped and reported. Specks and straddling pieces are printed as the script runs.
@@ -74,7 +77,23 @@ Tiles and backdrops are not keyed. `pack_tiles` finds the tile rectangles from t
 | `src/art/tiles/` | `<terrainId>.webp`, one per id in `src/data/terrain.json` | 96 x 96, opaque |
 | `src/art/backdrops/` | `<name>.webp` | 1152 x 768, opaque |
 
-Ids in the manifest: `battle.<id>.<pose>`, `portrait.<id>.<expr>`, `token.<classId>`, `tile.<terrainId>` and `backdrop.<name>`. Battle and portrait ids use the sheet id (stranger, gravemaw, captain, soldier, and so on). Tokens use the class id the map asks for: the Stranger is `token.wanderer`, the Hunter-Captain is `token.hunter_captain`, and Gravemaw's bearer, who has no class yet, is `token.gravemaw_bearer`. Each entry holds `path` (relative to `src/art`), `width`, `height` and `bbox` ([x, y, w, h] of the visible art); battle entries add `groundY`, `anchorX` and `scale`. `imageUrl(id)` gives the bundled URL and `imageMeta(id)` the entry. `src/art/manifest.ts` bundles every `.webp` under `src/art` with `import.meta.glob`, so new folders need no change there. `tests/art-manifest.test.ts` checks every entry's file exists and ids are well formed.
+Ids in the manifest: `battle.<id>.<pose>`, `portrait.<id>.<expr>`, `token.<classId>`, `tile.<terrainId>` and `backdrop.<name>`, plus the map pass's `tile.<terrain>.<n>`, `tile.<connector>`, `piece.<group>.<name>` and `prop.<name>` (below). Battle and portrait ids use the sheet id (stranger, gravemaw, captain, soldier, and so on). Tokens use the class id the map asks for: the Stranger is `token.wanderer`, the Hunter-Captain is `token.hunter_captain`, and Gravemaw's bearer, who has no class yet, is `token.gravemaw_bearer`. Each entry holds `path` (relative to `src/art`), `width`, `height` and `bbox` ([x, y, w, h] of the visible art); battle entries add `groundY`, `anchorX` and `scale`. `imageUrl(id)` gives the bundled URL and `imageMeta(id)` the entry. `src/art/manifest.ts` bundles every `.webp` under `src/art` with `import.meta.glob`, so new folders need no change there. `tests/art-manifest.test.ts` checks every entry's file exists and ids are well formed.
+
+### Map tiles, pieces and props
+
+`python3 tools/art/pack.py <raw_dir> map props tiled` packs the map art added in the map pass (it needs `tiles-village.png` too, as the color reference). All tile work happens at 384 px, four times the packed size, and is reduced to 96 at the end.
+
+- Variants: `tiles-village2.png` becomes `tile.<terrain>.<n>` (`tile.plain.2`, `tile.plain.3`, `tile.forest.2`, `tile.forest.3`, `tile.hill.2`, `tile.water.2`, `tile.village.2`, `tile.village.3`). `tile.<terrain>` stays variant 1.
+- Connectors: `tiles-connect.png` becomes `tile.road.straight`, `tile.road.cross`, `tile.wall.straight`, `tile.wall.cross`, `tile.shore.edge`, `tile.shore.corner`, `tile.bridge` and `tile.ford`. `tile.bridge` and `tile.ford` are also the terrain tiles for those terrains (the Tiled tileset and the fallback use them).
+- Pieces: overlays with soft alpha cut from the connectors, which the map turns and stacks per cell (see `docs/UI_NOTES.md`). `piece.road.straight` and `piece.road.arm` (the road band, whole or from the center to the east edge, moved so the band sits exactly on the middle row and turns cleanly), `piece.road.hub` (plain dirt from the crossroads center) and `piece.road.lip` (the north ink edge of the road, a little wider than the hub). `piece.wall.east` and `piece.wall.west` (halves of the straight wall, moved onto the junction's horizontal wall), `piece.wall.north`, `piece.wall.south` and `piece.wall.post` (from the junction tile; walls are never turned, because the art shows the wall's south face). `piece.shore.bank` (bank and inked lip along the north edge), `piece.shore.land` (the bank without the lip) and `piece.shore.inner` (the quarter-round bank). `piece.bridge.deck` (the planks) and `piece.ford.deck` (the five stepping stones and their ripple rings), both centered on the middle row. Walls are found as the rows or columns that are mostly not grass; roads by red over green; water by blue over red.
+- Color matching: the two new sheets came out a little off the first tileset (the variants about 6 levels brighter and warmer in red, the connectors about 3 levels darker), which showed as a checkerboard where tiles from two sheets met. The packer fits, per sheet and per channel, an affine map that gives the sheet's grass pixels the mean and spread of the reference plain tile, and another for water against the reference water tile (spread changes are limited to 8 percent either way so ink and contrast stay). Each pixel takes the water map in proportion to how blue it is. The shifts are printed and stored in `tools/art/packed.json` under `_map_tiles`.
+- Props: keyed like characters, split 4x3, cropped and scaled by one shared factor (`PROP_SCALE`, with a few per-prop factors in `PROP_SCALE_BY`), then placed bottom centered on a 96 or 128 px canvas with 4 px under the contact shadow. Each `prop.<name>` entry has `anchorX` and `groundY`, the point the map puts on the lower middle of a tile. Which terrain each prop may stand on, and whether it is small or tall, is in `src/data/props.json`.
+- Tiled: `tiled` writes `tools/maps/tiles.png` (one base tile per terrain, in `terrain.json` order) and `tools/maps/tiles.tsj`, the tileset for drawing maps (see `docs/MAPS.md`).
+
+| Folder | Files | Canvas |
+| --- | --- | --- |
+| `src/art/tiles/` | `<terrain>-<n>.webp`, `road-straight.webp` and the other connectors, `piece-<group>-<name>.webp` | 96 x 96; tiles opaque, pieces with alpha |
+| `src/art/props/` | `<name>.webp` | 96 x 96, or 128 x 128 for a prop that does not fit |
 
 ## The main character
 
@@ -117,5 +136,9 @@ Manifest ids: `mc.<body>.bust`, `mc.<body>.face.<eyes>.<expr>`, `mc.<body>.scar.
 
 | MC test (Lean body: base, faces, two hairs sheets, chibis, side hair, vanguard poses) | 6 | All usable first try. Judged good enough to build the full set. |
 | MC full set (eye shapes, hairs 5 to 8, scars, chibi styles and hairs, duelist and spiritblade poses, the whole Broad body, side hairs 5 to 8) | 22 | All usable first try. 28 MC generations in total. Built by `tools/art/mc_build.py` into 651 files, about 2.2 MB. |
+
+| Tile variants 1 (`tiles-village2`) | 1 | Eight variants. Usable first try. Grass about 6 levels brighter than the first tileset, corrected in the packer. |
+| Connectors 1 (`tiles-connect`) | 1 | Road, wall, shore, bridge and ford tiles, flat and centered as asked. Usable first try. Grass about 3 levels darker, corrected in the packer. The road band sat 12 px (of 384) below center and is moved by the packer. |
+| Props 1 (`props-village`) | 1 | Twelve props. Usable first try. |
 
 Not made yet: other tilesets and backdrops, icons.
