@@ -1,0 +1,31 @@
+{
+  "id": "prologue_outro",
+  "backdrop": "village",
+  "lines": [
+    { "fx": "fadeIn" },
+    { "speaker": "narrator", "text": "The last hunter runs for the trees and does not come back. Smoke drifts over {village}." },
+    { "enter": "stranger", "side": "right", "expr": "hurt" },
+    { "speaker": "mc", "side": "left", "expr": "hurt", "text": "It's over. Let me see the wound." },
+    { "speaker": "stranger", "expr": "hurt", "text": "Leave it. It was over before I reached your gate." },
+    { "speaker": "stranger", "text": "Six days I carried this sword with a hole in my side. It wanted to come here. I never asked why." },
+    { "speaker": "mc", "expr": "neutral", "text": "Who are you?" },
+    { "speaker": "stranger", "text": "No one you need to know. Listen instead." },
+    { "speaker": "stranger", "expr": "angry", "text": "{emperor} will send more. He wants this blade, and the nine others like it." },
+    { "speaker": "stranger", "text": "Do not let him have it. Whatever it tells you, do not let him have it." },
+    { "speaker": "mc", "text": "Whatever it tells me?" },
+    {
+      "choice": [
+        { "text": "\"I'll carry it north. I promise.\"", "set": { "prologue_promise": true }, "goto": "promised" },
+        { "text": "Say nothing.", "set": { "prologue_promise": false }, "goto": "silent" }
+      ]
+    },
+    { "label": "promised" },
+    { "speaker": "stranger", "expr": "smile", "text": "North, then. And trust no one who asks to hold it." },
+    { "goto": "end" },
+    { "label": "silent" },
+    { "speaker": "stranger", "expr": "neutral", "text": "Good. Promises are heavy. I made too many of them." },
+    { "label": "end" },
+    { "speaker": "narrator", "text": "Her breathing slows, then stops. Her fingers loosen on the hilt." },
+    { "leave": "stranger" }
+  ]
+}

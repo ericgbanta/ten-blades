@@ -1,3 +1,60 @@
 [
-  { "id": "prologue", "name": "Prologue", "mapId": "prologue" }
+  {
+    "id": "prologue",
+    "name": "Prologue",
+    "title": "The Border Village",
+    "mapId": "prologue",
+    "intro": [{ "scenes": ["prologue_intro"] }],
+    "outro": [
+      {
+        "when": [{ "type": "flag", "flag": "stranger_fell" }, { "type": "permadeath", "mode": "classic" }],
+        "scenes": ["prologue_outro_fell", "prologue_binding"]
+      },
+      { "scenes": ["prologue_outro", "prologue_binding"] }
+    ],
+    "after": [
+      {
+        "leave": ["stranger"],
+        "mcWeapon": {
+          "vanguard": "widows_hush_vanguard",
+          "duelist": "widows_hush_duelist",
+          "spiritblade": "widows_hush_spiritblade"
+        }
+      }
+    ],
+    "next": "chapter1"
+  },
+  {
+    "id": "chapter1",
+    "name": "Chapter 1",
+    "title": "Hunted",
+    "mapId": null,
+    "intro": [{ "scenes": ["ch1_intro"] }],
+    "outro": [],
+    "after": [],
+    "next": "chapter2",
+    "draft": true
+  },
+  {
+    "id": "chapter2",
+    "name": "Chapter 2",
+    "title": "The Deserter's Blade",
+    "mapId": null,
+    "intro": [{ "scenes": ["ch2_intro"] }],
+    "outro": [],
+    "after": [],
+    "next": "chapter3",
+    "draft": true
+  },
+  {
+    "id": "chapter3",
+    "name": "Chapter 3",
+    "title": "Thousand Needles",
+    "mapId": null,
+    "intro": [{ "scenes": ["ch3_intro"] }],
+    "outro": [],
+    "after": [],
+    "next": null,
+    "draft": true
+  }
 ]

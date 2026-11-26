@@ -1,0 +1,12 @@
+{
+  "id": "ch2_intro",
+  "draft": true,
+  "backdrop": "camp",
+  "lines": [
+    { "speaker": "narrator", "text": "The deserter waits at the ford with a sword as long as a man is tall." },
+    { "speaker": "gravemaw", "side": "right", "expr": "angry", "text": "Another one with a voice in the hilt. Draw it. We'll see whose is hungrier." },
+    { "speaker": "blade", "text": "Gravemaw. It remembers me." },
+    { "speaker": "mc", "side": "left", "text": "I didn't come to fight you." },
+    { "speaker": "gravemaw", "text": "Nobody does. Draw." }
+  ]
+}

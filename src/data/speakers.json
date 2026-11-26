@@ -1,0 +1,11 @@
+{
+  "mc": { "name": "{mc}", "portrait": "mc" },
+  "narrator": { "name": "", "portrait": null, "voice": "narration" },
+  "blade": { "name": "", "portrait": null, "voice": "whisper" },
+  "stranger": { "name": "The Stranger", "portrait": "stranger" },
+  "captain": { "name": "Hunter-Captain", "portrait": "captain" },
+  "villager": { "name": "Villager", "portrait": null },
+  "deserter": { "name": "Deserter", "portrait": "hunter" },
+  "gravemaw": { "name": "The Deserter", "portrait": "gravemaw" },
+  "needles": { "name": "The Thief", "portrait": "needles" }
+}

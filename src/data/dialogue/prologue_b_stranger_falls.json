@@ -1,0 +1,9 @@
+{
+  "id": "prologue_b_stranger_falls",
+  "battle": true,
+  "lines": [
+    { "speaker": "stranger", "expr": "hurt", "text": "Not here. Not yet." },
+    { "speaker": "narrator", "text": "She goes down on one knee, then onto her side. Her sword does not leave her hand." },
+    { "speaker": "mc", "expr": "hurt", "text": "Stay down. I'll finish this." }
+  ]
+}

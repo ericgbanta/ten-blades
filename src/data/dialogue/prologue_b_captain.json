@@ -1,0 +1,11 @@
+{
+  "id": "prologue_b_captain",
+  "battle": true,
+  "lines": [
+    { "speaker": "narrator", "text": "A voice carries from the tree line, flat and unhurried." },
+    { "speaker": "captain", "side": "right", "text": "Take the woman alive if you can. The sword comes back whatever it costs." },
+    { "speaker": "captain", "expr": "angry", "text": "And the one fighting beside her. {They} {has|have} seen too much now." },
+    { "speaker": "stranger", "side": "left", "expr": "angry", "text": "That voice. He has hunted me since the mountains." },
+    { "speaker": "stranger", "text": "He will not come out while his hunters still stand. Cut them down." }
+  ]
+}

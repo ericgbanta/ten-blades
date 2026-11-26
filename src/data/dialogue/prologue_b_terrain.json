@@ -1,0 +1,9 @@
+{
+  "id": "prologue_b_terrain",
+  "battle": true,
+  "lines": [
+    { "speaker": "stranger", "text": "Use the trees. A blade finds you less often among the trunks." },
+    { "speaker": "mc", "expr": "smile", "text": "I grew up in those woods. I know every root." },
+    { "speaker": "stranger", "text": "Then fight from them, or from high ground. Open road is where people die." }
+  ]
+}

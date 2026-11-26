@@ -1,0 +1,9 @@
+{
+  "id": "prologue_b_wounded",
+  "battle": true,
+  "lines": [
+    { "speaker": "stranger", "expr": "hurt", "text": "The old wound is open again. It does not matter." },
+    { "speaker": "mc", "expr": "angry", "text": "It matters if you fall here." },
+    { "speaker": "stranger", "expr": "hurt", "text": "Then end this quickly." }
+  ]
+}

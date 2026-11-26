@@ -1,0 +1,24 @@
+{
+  "id": "prologue_intro",
+  "backdrop": "village",
+  "lines": [
+    { "fx": "fadeIn" },
+    { "speaker": "narrator", "text": "{Village} sits at the far edge of the {empire}, where the roads give out and the forest begins." },
+    { "speaker": "narrator", "text": "Nobody comes here on purpose. That is why {mc} stayed." },
+    { "speaker": "villager", "side": "right", "text": "{mc}! There's a woman on the north road. She's bleeding through her cloak." },
+    { "speaker": "mc", "side": "left", "text": "Bandits?" },
+    { "speaker": "villager", "text": "Worse, I think. She came out of the trees at a run, and she won't stop for anyone." },
+    { "leave": "villager" },
+    { "enter": "stranger", "side": "right", "expr": "hurt" },
+    { "speaker": "stranger", "expr": "hurt", "text": "Get indoors, all of you. They are close behind me." },
+    { "speaker": "mc", "text": "Who is behind you?" },
+    { "speaker": "stranger", "expr": "angry", "text": "Imperial hunters. Eight when I left the pass. Six now." },
+    { "speaker": "mc", "text": "You can barely stand." },
+    { "speaker": "stranger", "expr": "neutral", "text": "I can stand long enough. Can you hold a blade?" },
+    { "speaker": "mc", "expr": "angry", "text": "This is my home. I won't hide in it." },
+    { "speaker": "stranger", "text": "Then stay at my side, and keep your feet." },
+    { "speaker": "narrator", "text": "Torches move between the trees. A horn sounds, close and low." },
+    { "fx": "shake" },
+    { "speaker": "stranger", "expr": "angry", "text": "Here they come." }
+  ]
+}

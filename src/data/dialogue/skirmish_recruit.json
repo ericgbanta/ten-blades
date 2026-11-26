@@ -1,0 +1,9 @@
+{
+  "id": "skirmish_recruit",
+  "battle": true,
+  "lines": [
+    { "speaker": "deserter", "side": "right", "text": "Stay back. I've no quarrel with you." },
+    { "speaker": "mc", "side": "left", "text": "You're wearing their colors, and you aren't fighting." },
+    { "speaker": "deserter", "text": "I stopped being one of them when they burned the mill at Askel. Point me at them." }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "prologue_b_start",
+  "battle": true,
+  "lines": [
+    { "speaker": "stranger", "text": "Listen. Choose your ground first, then your enemy." },
+    { "speaker": "stranger", "text": "Close on one of them and strike. Never stand where three of them can reach you." },
+    { "speaker": "stranger", "text": "Before you swing, weigh it. Know what the blow costs them, and what it costs you." },
+    { "speaker": "mc", "text": "And if it costs too much?" },
+    { "speaker": "stranger", "text": "Then you wait, and make them come to you." }
+  ]
+}

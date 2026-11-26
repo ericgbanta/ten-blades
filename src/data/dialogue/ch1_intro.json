@@ -1,0 +1,11 @@
+{
+  "id": "ch1_intro",
+  "draft": true,
+  "backdrop": "forest",
+  "lines": [
+    { "speaker": "narrator", "text": "Three days north of {village}, the hunters are still behind {mc}." },
+    { "speaker": "blade", "text": "They follow me. Not you." },
+    { "speaker": "mc", "side": "left", "expr": "angry", "text": "Then be quiet, and they might lose us." },
+    { "speaker": "narrator", "text": "Ahead stands an old border fort. Someone has lit a fire inside." }
+  ]
+}

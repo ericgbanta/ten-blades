@@ -1,0 +1,19 @@
+{
+  "id": "prologue_binding",
+  "backdrop": "village",
+  "lines": [
+    { "speaker": "narrator", "text": "{mc} reaches to lay the sword on her chest. The sword moves first." },
+    { "fx": "flash" },
+    { "speaker": "narrator", "text": "It turns in her hand and slides across the stones, and its hilt comes to rest in {mc}'s palm." },
+    { "speaker": "narrator", "text": "It is warm. {Their} fingers close on it, and will not open again." },
+    { "fx": "shake" },
+    { "speaker": "narrator", "text": "The steel runs like water in {their} grip and sets in a new shape. It is not her sword anymore." },
+    { "speaker": "blade", "text": "There you are." },
+    { "speaker": "mc", "side": "left", "expr": "angry", "text": "Who said that?" },
+    { "speaker": "blade", "text": "She ran so far. You will run farther." },
+    { "speaker": "narrator", "text": "On the north road, more torches. A second horn answers the first." },
+    { "speaker": "mc", "expr": "neutral", "text": "They'll burn {village} looking for this. Better they follow me." },
+    { "speaker": "narrator", "text": "{mc} leaves before dawn, with a dead woman's sword and no idea what it is." },
+    { "fx": "fadeOut" }
+  ]
+}
