@@ -4,84 +4,59 @@
   "width": 10,
   "height": 12,
   "tiles": [
-    "FF..H..FF.",
-    "F.......F.",
-    "..H.FF....",
-    "~~.....H..",
-    "~..F.....F",
-    ".....~~...",
-    ".F...~..F.",
-    "...#...#..",
-    ".#V#...T..",
-    ".....F....",
-    "F.......#.",
-    "FF......#V"
+    "FF..H.=FF.",
+    "F.....=.F.",
+    "..H.FF=...",
+    "~~....=H..",
+    "~..F..==.F",
+    ".....~~=..",
+    ".F...~==F.",
+    "...#..=#..",
+    ".#V#===T..",
+    "..===F=...",
+    "F.....=.#.",
+    "FF....=.#V"
   ],
-  "legend": {
-    ".": "plain",
-    "F": "forest",
-    "H": "hill",
-    "~": "water",
-    "#": "wall",
-    "V": "village",
-    "T": "fort"
-  },
+  "legend": {".": "plain", "=": "road", "F": "forest", "H": "hill", "~": "water", "#": "wall", "V": "village", "T": "fort"},
   "placements": [
-    { "kind": "mc", "pos": { "x": 4, "y": 10 } },
-    {
-      "kind": "unit", "id": "stranger", "name": "The Stranger", "classId": "wanderer", "team": "player",
-      "level": 1, "pos": { "x": 5, "y": 10 }
-    },
-    {
-      "kind": "unit", "id": "hunter_1", "name": "Hunter", "classId": "hunter", "team": "enemy",
-      "level": 1, "pos": { "x": 3, "y": 1 }, "ai": { "behavior": "charge" }
-    },
-    {
-      "kind": "unit", "id": "legionary_1", "name": "Legionary", "classId": "legionary", "team": "enemy",
-      "level": 1, "pos": { "x": 6, "y": 1 }, "ai": { "behavior": "charge" }
-    },
-    {
-      "kind": "unit", "id": "hunter_2", "name": "Hunter", "classId": "hunter", "team": "enemy",
-      "level": 1, "pos": { "x": 1, "y": 4 }, "ai": { "behavior": "hold" }
-    },
-    {
-      "kind": "unit", "id": "legionary_2", "name": "Legionary", "classId": "legionary", "team": "enemy",
-      "level": 2, "pos": { "x": 7, "y": 3 }, "ai": { "behavior": "hold" }
-    },
-    {
-      "kind": "unit", "id": "hunter_3", "name": "Hunter", "classId": "hunter", "team": "enemy",
-      "level": 1, "pos": { "x": 8, "y": 5 }, "ai": { "behavior": "charge" }
-    },
-    {
-      "kind": "unit", "id": "legionary_3", "name": "Legion Sergeant", "classId": "legionary", "team": "enemy",
-      "level": 2, "pos": { "x": 4, "y": 0 }, "ai": { "behavior": "guard", "radius": 2 }
-    }
+    {"kind": "mc", "pos": {"x": 4, "y": 10}},
+    {"kind": "unit", "id": "stranger", "name": "The Stranger", "classId": "wanderer", "team": "player", "level": 1, "pos": {"x": 5, "y": 10}},
+    {"kind": "unit", "id": "hunter_1", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 1, "pos": {"x": 3, "y": 1}, "ai": {"behavior": "charge"}},
+    {"kind": "unit", "id": "legionary_1", "name": "Legionary", "classId": "legionary", "team": "enemy", "level": 1, "pos": {"x": 6, "y": 1}, "ai": {"behavior": "charge"}},
+    {"kind": "unit", "id": "hunter_2", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 1, "pos": {"x": 1, "y": 4}, "ai": {"behavior": "hold"}},
+    {"kind": "unit", "id": "legionary_2", "name": "Legionary", "classId": "legionary", "team": "enemy", "level": 2, "pos": {"x": 7, "y": 3}, "ai": {"behavior": "hold"}},
+    {"kind": "unit", "id": "hunter_3", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 1, "pos": {"x": 8, "y": 5}, "ai": {"behavior": "charge"}},
+    {"kind": "unit", "id": "legionary_3", "name": "Legion Sergeant", "classId": "legionary", "team": "enemy", "level": 2, "pos": {"x": 4, "y": 0}, "ai": {"behavior": "guard", "radius": 2}}
   ],
-  "objective": { "type": "rout" },
+  "objective": {"type": "rout"},
   "reinforcements": [
     {
       "turn": 3,
       "difficulties": ["hard", "lunatic"],
       "units": [
-        {
-          "kind": "unit", "id": "hunter_r1", "name": "Hunter", "classId": "hunter", "team": "enemy",
-          "level": 1, "pos": { "x": 0, "y": 2 }, "ai": { "behavior": "charge" }
-        },
-        {
-          "kind": "unit", "id": "hunter_r2", "name": "Hunter", "classId": "hunter", "team": "enemy",
-          "level": 1, "pos": { "x": 9, "y": 1 }, "ai": { "behavior": "charge" }
-        }
+        {"kind": "unit", "id": "hunter_r1", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 1, "pos": {"x": 0, "y": 2}, "ai": {"behavior": "charge"}},
+        {"kind": "unit", "id": "hunter_r2", "name": "Hunter", "classId": "hunter", "team": "enemy", "level": 1, "pos": {"x": 9, "y": 1}, "ai": {"behavior": "charge"}}
       ]
     },
     {
       "turn": 4,
       "difficulties": ["lunatic"],
       "units": [
-        {
-          "kind": "unit", "id": "legionary_r1", "name": "Legionary", "classId": "legionary", "team": "enemy",
-          "level": 2, "pos": { "x": 5, "y": 0 }, "ai": { "behavior": "charge" }
-        }
+        {"kind": "unit", "id": "legionary_r1", "name": "Legionary", "classId": "legionary", "team": "enemy", "level": 2, "pos": {"x": 5, "y": 0}, "ai": {"behavior": "charge"}}
       ]
     }
+  ],
+  "props": [
+    {"id": "dead_tree", "x": 3, "y": 2},
+    {"id": "campfire", "x": 8, "y": 2},
+    {"id": "well", "x": 1, "y": 7},
+    {"id": "cart", "x": 5, "y": 7},
+    {"id": "banner", "x": 8, "y": 7},
+    {"id": "rubble", "x": 9, "y": 7},
+    {"id": "haystack", "x": 0, "y": 8},
+    {"id": "graves", "x": 9, "y": 8},
+    {"id": "fence", "x": 1, "y": 9},
+    {"id": "signpost", "x": 7, "y": 9},
+    {"id": "fence", "x": 9, "y": 10}
   ]
 }

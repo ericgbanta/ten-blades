@@ -46,7 +46,8 @@ function newBattle(setup: BattleSetup, mapId: string, launch: LaunchOptions): Ba
 
 function QuickBattle({ launch }: { launch: LaunchOptions }) {
   const [attempt, setAttempt] = useState(0);
-  const initial = useMemo(() => newBattle(launch.setup, FIRST_MAP_ID, launch), [launch, attempt]);
+  const mapId = launch.mapId && gameData.maps[launch.mapId] ? launch.mapId : FIRST_MAP_ID;
+  const initial = useMemo(() => newBattle(launch.setup, mapId, launch), [launch, mapId, attempt]);
   return (
     <BattleRun
       key={attempt}

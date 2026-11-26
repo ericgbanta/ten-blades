@@ -22,6 +22,8 @@ export interface LaunchOptions {
   test: boolean;
   /** True for a quick battle (`quick=1`): no slot, nothing saved. */
   quick: boolean;
+  /** Map id for a quick battle (`map=<id>`), or null for the first map. Unknown ids fall back to the first map. */
+  mapId: string | null;
 }
 
 const STYLES: readonly McStyle[] = ['vanguard', 'duelist', 'spiritblade'];
@@ -51,6 +53,7 @@ export function parseLaunch(search: string, hash: string): LaunchOptions {
     seed,
     test: params.get('test') === '1',
     quick: params.get('quick') === '1',
+    mapId: /^[a-z0-9_]+$/.test(params.get('map') ?? '') ? params.get('map') : null,
   };
 }
 

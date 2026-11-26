@@ -1,0 +1,127 @@
+{
+ "type": "tileset",
+ "version": "1.10",
+ "tiledversion": "1.10.2",
+ "name": "terrain",
+ "tilewidth": 96,
+ "tileheight": 96,
+ "tilecount": 10,
+ "columns": 5,
+ "margin": 0,
+ "spacing": 0,
+ "image": "tiles.png",
+ "imagewidth": 480,
+ "imageheight": 192,
+ "tiles": [
+  {
+   "id": 0,
+   "type": "plain",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "plain"
+    }
+   ]
+  },
+  {
+   "id": 1,
+   "type": "road",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "road"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "type": "forest",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "forest"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "type": "hill",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "hill"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "type": "fort",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "fort"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "type": "village",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "village"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "type": "water",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "water"
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "type": "wall",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "wall"
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "type": "bridge",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "bridge"
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "type": "ford",
+   "properties": [
+    {
+     "name": "terrain",
+     "type": "string",
+     "value": "ford"
+    }
+   ]
+  }
+ ]
+}

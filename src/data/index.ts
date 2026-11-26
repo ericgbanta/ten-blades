@@ -7,6 +7,7 @@ import classes from './classes.json';
 import terrain from './terrain.json';
 import weapons from './weapons.json';
 import prologue from './maps/prologue.json';
+import skirmishTest from './maps/skirmish_test.json';
 import chaptersJson from './chapters.json';
 import type { ChapterDef } from '../save/format';
 
@@ -17,7 +18,8 @@ export const gameData: GameData = {
   classes: classes as Record<string, ClassDef>,
   terrain: terrain as Record<string, TerrainDef>,
   weapons: weapons as unknown as Record<string, WeaponDef>,
-  maps: { prologue: prologue as unknown as MapData },
+  // skirmish_test is a large map for checking rendering and the camera; only the quick battle URL reaches it.
+  maps: { prologue: prologue as unknown as MapData, skirmish_test: skirmishTest as unknown as MapData },
 };
 
 /** The story order of chapters. Phase 4 grows this into full chapter data. */
