@@ -42,6 +42,8 @@ interface Actor {
 export class FightScene extends Phaser.Scene implements FightStage {
   private layout!: FightLayout;
   private actors = new Map<string, Actor>();
+  /** The arrow painted in each bow strike texture (see paintedArrow), found once. */
+  private arrows = new Map<string, { cropW: number; x: number; y: number } | null>();
   private objects: Phaser.GameObjects.GameObject[] = [];
   private finish: (() => void) | null = null;
   private opts: FightPlayOptions | null = null;
@@ -330,10 +332,11 @@ export class FightScene extends Phaser.Scene implements FightStage {
       // Scatter's targets stand in a row across their half, a little smaller; their bearer steps back to the edge.
       const many = crowd(f.side);
       const other = crowd(f.side === 'left' ? 'right' : 'left');
-      const slotScale = many > 1 ? 0.8 : 1;
+      // In portrait the half is narrow: three targets stand smaller and further apart, so they do not overlap.
+      const slotScale = many > 2 && !L.landscape ? 0.66 : many > 1 ? 0.8 : 1;
       const scale = (figure / POSE_CANVAS.figure) * slotScale;
       // Distances from the side's own edge, as a fraction of the band.
-      const span = L.landscape ? [0.44, 0.3, 0.16] : [0.48, 0.32, 0.16];
+      const span = L.landscape ? (many > 2 ? [0.44, 0.3, 0.16] : [0.42, 0.22]) : many > 2 ? [0.6, 0.38, 0.16] : [0.52, 0.22];
       const edge = L.landscape ? 0.26 : 0.2;
       let frac: number;
       if (many > 1) frac = span[f.slot] ?? 0.16;
@@ -369,6 +372,72 @@ export class FightScene extends Phaser.Scene implements FightStage {
     // Placeholders have one picture: lean it per pose instead.
     const lean: Record<BattlePose, number> = { idle: 0, windup: -8, strike: 12, hit: -14 };
     a.img.setAngle(a.art.kind === 'placeholder' || !has ? lean[pose] * a.facing : 0);
+    // A bow's strike art already shows the arrow in flight in front of the bow; the scene flies its own arrow from
+    // there, so the painted one is cropped away (it would show twice).
+    const cut = pose === 'strike' && a.f.fx === 'arrow' && has && a.art.kind === 'sheet' ? this.paintedArrow(key) : null;
+    if (cut) a.img.setCrop(0, 0, cut.cropW, h);
+    else if (a.img.isCropped) a.img.setCrop();
+  }
+
+  /**
+   * The arrow painted in flight in front of a bow in a strike pose, found once per texture: from the right edge,
+   * a thin run of columns (the arrow) and then a gap of empty columns before the bow. Null when there is none.
+   * `cropW` keeps everything left of the gap; `x`, `y` are the arrow's middle, in texture px.
+   */
+  private paintedArrow(key: string): { cropW: number; x: number; y: number } | null {
+    if (this.arrows.has(key)) return this.arrows.get(key)!;
+    let found: { cropW: number; x: number; y: number } | null = null;
+    try {
+      const src = this.textures.get(key).getSourceImage() as HTMLImageElement | HTMLCanvasElement;
+      const w = src.width;
+      const h = src.height;
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      const ctx = c.getContext('2d', { willReadFrequently: true })!;
+      ctx.drawImage(src, 0, 0);
+      const px = ctx.getImageData(0, 0, w, h).data;
+      // Opaque rows of each column (top, bottom), or null for an empty column.
+      const col = (x: number): [number, number] | null => {
+        let top = -1;
+        let bottom = -1;
+        for (let y = 0; y < h; y++) {
+          if (px[(y * w + x) * 4 + 3]! > 40) {
+            if (top < 0) top = y;
+            bottom = y;
+          }
+        }
+        return top < 0 ? null : [top, bottom];
+      };
+      let x = w - 1;
+      while (x > 0 && !col(x)) x--;
+      const tip = x;
+      let top = h;
+      let bottom = 0;
+      for (let c2 = col(x); x > 0 && c2; c2 = col(--x)) {
+        top = Math.min(top, c2[0]);
+        bottom = Math.max(bottom, c2[1]);
+      }
+      const tail = x + 1;
+      let gap = 0;
+      while (x > 0 && !col(x)) {
+        x--;
+        gap++;
+      }
+      // An arrow: at least 20 px long, at most 14 px tall, with at least 2 empty columns before the bow.
+      if (tip - tail >= 20 && bottom - top <= 14 && gap >= 2) found = { cropW: x + 1 + Math.floor(gap / 2), x: (tail + tip) / 2, y: (top + bottom) / 2 };
+    } catch {
+      found = null;
+    }
+    this.arrows.set(key, found);
+    return found;
+  }
+
+  /** How far a fighter's art reaches in front of its feet in a pose, in device px (from the manifest's bbox). */
+  private front(a: Actor, pose: BattlePose): number {
+    const meta = a.art.kind === 'sheet' ? imageMeta(this.poseKey(a.art, a.unit.team, pose)) : undefined;
+    const reach = meta?.bbox ? meta.bbox[0] + meta.bbox[2] - (meta.anchorX ?? POSE_CANVAS.anchorX) : pose === 'strike' ? 216 : 60;
+    return reach * a.scale;
   }
 
   /** A point on a fighter: its chest (0.55 of the figure up) or head top, in device px. */
@@ -449,9 +518,11 @@ export class FightScene extends Phaser.Scene implements FightStage {
     this.raise(a);
     let toX = a.homeX + a.facing * this.px(6);
     if (step.motion === 'melee' && !this.calm()) {
-      // Cross most of the gap, stopping short of the foe.
+      // Cross the gap until the weapon reaches into the foe, without the bodies running into each other: strike
+      // poses reach far forward (a lunge, a long blade), so the stop depends on the art's own reach.
       const gap = Math.abs(t.c.x - a.homeX);
-      toX = a.homeX + a.facing * Math.max(0, gap - this.px(this.layout.figure) * 0.55);
+      const travel = Math.min(gap - this.px(this.layout.figure) * 0.55, gap - this.front(a, 'strike') * 0.8 - this.front(t, 'idle') * 0.3);
+      toX = a.homeX + a.facing * Math.max(0, travel);
     } else if (!this.calm()) {
       toX = a.homeX - a.facing * this.px(6); // a little recoil
     }
@@ -496,6 +567,16 @@ export class FightScene extends Phaser.Scene implements FightStage {
     const dur = this.ms(step.dur);
     const s = this.px(1);
     if (step.fx === 'arrow') {
+      // Leave from where the strike art had its arrow, so the painted arrow seems to fly on.
+      const painted = a.art.kind === 'sheet' ? this.paintedArrow(this.poseKey(a.art, a.unit.team, 'strike')) : null;
+      if (painted) {
+        const key = this.poseKey(a.art, a.unit.team, 'strike');
+        const meta = imageMeta(key);
+        const ax = meta?.anchorX ?? POSE_CANVAS.anchorX;
+        const gy = meta?.groundY ?? POSE_CANVAS.groundY;
+        from.x = a.c.x + a.facing * (painted.x - ax) * a.scale;
+        from.y = a.c.y + (painted.y - gy) * a.scale;
+      }
       const g = this.keep(this.add.graphics().setDepth(7));
       g.lineStyle(3 * s, 0xe8dcc0, 1).lineBetween(-22 * s, 0, 10 * s, 0);
       g.fillStyle(0xd8d8d8, 1).fillTriangle(10 * s, -5 * s, 10 * s, 5 * s, 20 * s, 0);
