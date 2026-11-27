@@ -67,6 +67,8 @@ export class MapScene extends Phaser.Scene implements Stage {
   private pendingOverlay: Overlay | null = null;
   /** Set by the first tap, pan or zoom; until then a layout change refits the default view. */
   private interacted = false;
+  /** Under prefers-reduced-motion the camera cuts instead of easing, and target marks do not pulse. */
+  private readonly reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
   /** Tall props, faded while a unit stands on their tile. */
   private tallProps: { image: Phaser.GameObjects.Image; x: number; y: number }[] = [];
 
@@ -112,7 +114,7 @@ export class MapScene extends Phaser.Scene implements Stage {
     this.drawGoal(s);
     this.highlights = this.add.graphics().setDepth(5);
     this.targetMarks = this.add.graphics().setDepth(6);
-    this.tweens.add({ targets: this.targetMarks, alpha: 0.45, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    if (!this.reducedMotion) this.tweens.add({ targets: this.targetMarks, alpha: 0.45, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.input.addPointer(2);
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.gestures.down(p.id, p.x, p.y));
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onGesture(this.gestures.move(p.id, p.x, p.y)));
@@ -306,7 +308,7 @@ export class MapScene extends Phaser.Scene implements Stage {
     const c = clampPose(target, w, h, this.clampView(target.zoom));
     const cam = this.cameras.main;
     if (Math.abs(c.scrollX - cam.scrollX) < 1 && Math.abs(c.scrollY - cam.scrollY) < 1) return Promise.resolve();
-    if (ms <= 0) {
+    if (ms <= 0 || this.reducedMotion) {
       cam.setScroll(c.scrollX, c.scrollY);
       return Promise.resolve();
     }

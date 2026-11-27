@@ -60,7 +60,7 @@ export function Dialogue(props: DialogueProps): JSX.Element {
 
   const line = st.at.kind === 'line' ? st.at.line : null;
   const full = line ? resolveText(line.text, text) : '';
-  const shown = reveal.of === st ? reveal.n : reducedMotion ? full.length : 0;
+  const shown = reducedMotion ? full.length : reveal.of === st ? reveal.n : 0;
   const complete = !line || shown >= full.length;
   const voice = line ? speakers[line.speaker]?.voice : undefined;
 
