@@ -82,9 +82,10 @@ function Blades({ camp, onMsg }: { camp: CampView; onMsg: (m: Msg) => void }) {
 function BladeCard({ v, camp, onAwaken }: { v: BladeView; camp: CampView; onAwaken: () => void }) {
   const c = camp.campaign;
   const max = v.blade.tiers.length;
-  const next = v.next;
+  // A next tier with no cost or condition yet (Unbound, for now) is listed as locked, with no Awaken button.
+  const next = v.next && v.next.def.shards !== undefined && v.next.def.requires ? v.next : null;
   const nextPowers = next ? powersAtTier(v.bladeId, next.def.tier, campCtx).filter((p) => !v.powers.some((q) => q.id === p.id)) : [];
-  const later = v.blade.tiers.filter((t) => t.tier > v.tier + 1);
+  const later = v.blade.tiers.filter((t) => t.tier > v.tier + (next ? 1 : 0));
   return (
     <article class={`blade-card framed${v.tier >= 2 ? ' awakened' : ''}`} aria-label={`${v.blade.name}, ${v.tierName}`}>
       <header class="blade-head">
@@ -135,10 +136,13 @@ function BladeCard({ v, camp, onAwaken }: { v: BladeView; camp: CampView; onAwak
               <span class="visually-hidden">{next.met ? ' (met)' : ' (not yet)'}</span>
             </span>
           </p>
-          <button type="button" class="btn primary wide" disabled={next.block !== null} onClick={onAwaken}>
-            Awaken
-          </button>
-          {next.block && next.block !== next.requirement && <p class="menu-note">{next.block}</p>}
+          {/* Until the story condition holds (Unbound waits for Act 3) the tier shows what it asks, with no button. */}
+          {next.met && (
+            <button type="button" class="btn primary wide" disabled={next.block !== null} onClick={onAwaken}>
+              Awaken
+            </button>
+          )}
+          {next.met && next.block && <p class="menu-note">{next.block}</p>}
         </section>
       )}
       {later.map((t) => (

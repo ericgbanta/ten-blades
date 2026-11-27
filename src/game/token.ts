@@ -305,6 +305,13 @@ export class UnitToken extends Phaser.GameObjects.Container {
     this.drawBody();
   }
 
+  /** The school pip of a placeholder follows the weapon in hand (it changes when the unit equips another). */
+  setSchool(school: School): void {
+    if (school === this.look.school) return;
+    this.look.school = school;
+    this.drawBody();
+  }
+
   setMaxHp(maxHp: number): void {
     if (maxHp === this.maxHp) return;
     this.maxHp = maxHp;

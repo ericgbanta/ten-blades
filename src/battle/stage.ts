@@ -27,6 +27,8 @@ export interface Stage {
    * move, so the map is exactly as it was plus the outcome. Without it the controller plays them instantly.
    */
   settle?(events: readonly BattleEvent[], state: BattleState): void;
+  /** Redraw what tokens show of their units' gear (the school pip after an equip), without moving anything. */
+  refresh?(state: BattleState): void;
 }
 
 

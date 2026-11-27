@@ -62,6 +62,26 @@ describe('the Items panel', () => {
     expect(c.view.forecast!.attacker.hit).toBe(forecast(c.view.state, 'p', 'e', pos(1, 0), data).attacker.hit);
     expect(c.view.forecast!.attacker.hit).toBe(100);
   });
+
+  it('after an equip the map redraws the gear its tokens show, without a sync that would move the token home', () => {
+    const c = new BattleController(battle(), data, { sleep: () => Promise.resolve() });
+    const refreshed: string[] = [];
+    let syncs = 0;
+    c.attachStage({
+      sync: () => syncs++,
+      setOverlay: () => undefined,
+      preview: () => undefined,
+      play: () => Promise.resolve(),
+      refresh: (st) => refreshed.push(st.units[0]!.weaponId!),
+    });
+    const before = syncs;
+    c.tapTile(pos(0, 0));
+    c.tapTile(pos(1, 0));
+    c.command('items');
+    c.command('equip:1');
+    expect(refreshed).toEqual(['sure_axe']);
+    expect(syncs).toBe(before);
+  });
 });
 
 describe('two powers in the menu', () => {

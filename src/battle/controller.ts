@@ -349,6 +349,7 @@ export class BattleController {
     this.state = r.state;
     this.pending = [];
     this.checkpoint();
+    this.stage?.refresh?.(this.state);
     this.selection = next;
     this.refreshOverlay();
     this.changed();

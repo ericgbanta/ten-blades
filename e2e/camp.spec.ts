@@ -152,6 +152,9 @@ test('camp: every facility opens; buy, equip, deploy; awaken; the second power i
   expect(c.blades.widows_hush).toEqual({ tier: 2 });
   expect(c.shards).toBe(0);
   await expect(page.locator('.blade-card .medal.awakened')).toHaveCount(1);
+  // Unbound waits for Act 3: it shows its condition, and no Awaken button until that holds.
+  await expect(page.getByRole('region', { name: 'Next tier: Unbound' })).toContainText('Reach Act 3');
+  await expect(page.getByRole('button', { name: 'Awaken', exact: true })).toHaveCount(0);
   await shot(page, '09-forge-after');
   await page.getByRole('tab', { name: 'Weapons' }).tap();
   await shot(page, '10-forge-weapons');

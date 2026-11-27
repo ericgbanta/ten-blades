@@ -3,7 +3,7 @@
 // controller tells it what to draw; it holds no rules.
 
 import Phaser from 'phaser';
-import { isBearer, unitBladeTier, weaponDef, type BattleEvent, type BattleState, type GameData, type Pos, type Unit } from '../core';
+import { isBearer, unitBladeTier, weaponDef, type BattleEvent, type BattleState, type GameData, type Pos, type School, type Unit } from '../core';
 import { imageMeta, imageUrl } from '../art/manifest';
 import propDefs from '../data/props.json';
 import type { Overlay } from '../battle/selection';
@@ -377,14 +377,13 @@ export class MapScene extends Phaser.Scene implements Stage {
     let t = this.tokens.get(u.id);
     if (!t) {
       const cls = this.gameData.classes[u.classId];
-      const weapon = u.weaponId ? (weaponDef(u.weaponId, this.gameData) ?? undefined) : undefined;
       const key = u.isLord && u.team === 'player' && this.textures.exists(MC_TOKEN_KEY) ? MC_TOKEN_KEY : `token.${u.classId}`;
       t = new UnitToken(
         this,
         {
           team: u.team,
           initial: (cls?.name ?? u.name).charAt(0).toUpperCase(),
-          school: weapon?.school ?? cls?.school ?? 'none',
+          school: this.schoolOf(u),
           isLord: u.isLord,
           isBoss: u.isBoss,
           texture: this.textures.exists(key) ? key : null,
@@ -400,6 +399,18 @@ export class MapScene extends Phaser.Scene implements Stage {
       this.tokens.set(u.id, t);
     }
     return t;
+  }
+
+  /** The school a token shows: the weapon in hand's, else the class's. */
+  private schoolOf(u: Unit): School {
+    const weapon = u.weaponId ? weaponDef(u.weaponId, this.gameData) : undefined;
+    return weapon?.school ?? this.gameData.classes[u.classId]?.school ?? 'none';
+  }
+
+  /** Redraw what a token shows of its unit's gear (after an equip), without moving anything. */
+  refresh(state: BattleState): void {
+    this.lastState = state;
+    for (const u of state.units) this.tokens.get(u.id)?.setSchool(this.schoolOf(u));
   }
 
   /** The texture a unit's token shows (null for a placeholder or no token yet). For the test hook. */
@@ -428,6 +439,7 @@ export class MapScene extends Phaser.Scene implements Stage {
       t.setDepth(10 + u.pos.y * 0.01);
       t.setActed(u.acted);
       t.setTeam(u.team);
+      t.setSchool(this.schoolOf(u));
       t.setMaxHp(u.stats.hp);
       void t.tweenHp(u.hp, 0);
       this.syncResolve(t, u);
