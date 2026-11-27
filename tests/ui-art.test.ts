@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { STAT_KEYS, type School, type Unit } from '../src/core';
-import { WEAPON_ICON, portraitId, schoolIcon, weaponIcon } from '../src/ui/artMap';
+import { WEAPON_ICON, entryIcon, portraitId, schoolIcon, weaponIcon } from '../src/ui/artMap';
 import classes from '../src/data/classes.json';
 import weapons from '../src/data/weapons.json';
+import items from '../src/data/items.json';
+import { gameData } from '../src/data';
 import prologue from '../src/data/maps/prologue.json';
 
 const images = JSON.parse(readFileSync(join(__dirname, '..', 'src', 'art', 'assets.json'), 'utf8')).images as Record<
@@ -27,6 +29,19 @@ describe('UI art', () => {
       expect(images[`icon.${icon}`], `${id} -> ${icon}`).toBeDefined();
     }
     for (const icon of Object.values(WEAPON_ICON)) expect(images[`icon.${icon}`]).toBeDefined();
+  });
+
+  it('gives every item its own colour icon, and every other entry its weapon icon', () => {
+    const want: Record<string, string> = { healing_salve: 'salve', mender_tonic: 'tonic', grave_wine: 'wine' };
+    for (const id of Object.keys(items)) {
+      expect(entryIcon(id, gameData), id).toBe(want[id] ?? entryIcon(id, gameData));
+      expect(images[`icon.${entryIcon(id, gameData)}`], id).toBeDefined();
+    }
+    expect(entryIcon('healing_salve', gameData)).toBe('salve');
+    expect(entryIcon('mender_tonic', gameData)).toBe('tonic');
+    expect(entryIcon('grave_wine', gameData)).toBe('wine');
+    expect(entryIcon('iron_lance', gameData)).toBe('lance');
+    for (const n of ['bandage', 'key', 'torch', 'whetstone', 'pouch', 'buckler', 'bone_charm', 'scroll', 'horn_flask']) expect(images[`icon.${n}`], n).toBeDefined();
   });
 
   it('maps weapon kinds as chosen, legendary blades to the ten-blade star', () => {

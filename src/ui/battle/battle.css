@@ -1627,7 +1627,27 @@
   margin: 2px 0 0;
   font-size: var(--fs-sm);
   color: var(--c-bone-dim);
+}
+
+.spoils-found {
   font-style: italic;
+}
+
+.spoils-list {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.spoils-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  color: var(--c-bone);
 }
 
 /* ---- Items panel ------------------------------------------------------------------------------------- */

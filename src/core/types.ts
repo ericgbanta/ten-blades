@@ -97,6 +97,8 @@ export interface WeaponDef {
  * `heal` HP and adds `resolve` to a bearer's gauge, then it is gone. Items share inventory slots with weapons.
  */
 export interface ItemDef {
+  /** The item's icon in the art manifest (`icon.<name>`). Display only. */
+  icon?: string;
   name: string;
   description: string;
   price: number;

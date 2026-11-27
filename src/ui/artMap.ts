@@ -2,7 +2,7 @@
 // Pure lookups over the manifest, so they are tested without a DOM (tests/ui-art.test.ts).
 
 import { imageMeta } from '../art/manifest';
-import type { School, StatKey, Unit, WeaponDef } from '../core';
+import { itemDef, weaponDef, type GameData, type School, type StatKey, type Unit, type WeaponDef } from '../core';
 
 export type IconName =
   | StatKey
@@ -20,7 +20,20 @@ export type IconName =
   | 'staff'
   | 'shard'
   | 'coins'
-  | 'tenblade';
+  | 'tenblade'
+  // Coloured item and gear icons (icons-items2): the three consumables are wired through items.json, the rest wait for use.
+  | 'salve'
+  | 'tonic'
+  | 'wine'
+  | 'bandage'
+  | 'key'
+  | 'torch'
+  | 'whetstone'
+  | 'pouch'
+  | 'buckler'
+  | 'bone_charm'
+  | 'scroll'
+  | 'horn_flask';
 
 /** Icon per weapon kind (`kind` in src/data/weapons.json). Legendary blades show the ten-blade star. */
 export const WEAPON_ICON: Record<string, IconName> = {
@@ -42,6 +55,14 @@ const SCHOOL_FALLBACK: Record<School, IconName> = { heavy: 'greatsword', swift: 
 
 export function weaponIcon(w: Pick<WeaponDef, 'kind' | 'school'>): IconName {
   return WEAPON_ICON[w.kind] ?? SCHOOL_FALLBACK[w.school];
+}
+
+/** The icon of an inventory entry: a weapon's by kind, a consumable's from its `icon` in items.json (the pouch when the
+ * data names none). */
+export function entryIcon(id: string, data: GameData): IconName {
+  const w = weaponDef(id, data);
+  if (w) return weaponIcon(w);
+  return (itemDef(id, data)?.icon as IconName | undefined) ?? 'pouch';
 }
 
 export function schoolIcon(s: School): IconName | null {

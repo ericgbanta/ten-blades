@@ -8,7 +8,7 @@ import type { Team, Unit } from '../core';
 import { portraitId, type IconName } from './artMap';
 import { McFace } from './mc/McPicture';
 
-export { WEAPON_ICON, portraitId, schoolIcon, weaponIcon, type IconName } from './artMap';
+export { WEAPON_ICON, entryIcon, portraitId, schoolIcon, weaponIcon, type IconName } from './artMap';
 
 /** Kit entries carry 9-slice data in the manifest. */
 type KitEntry = ArtEntry & { slice?: number[]; hole?: number[] };

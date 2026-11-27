@@ -6,7 +6,7 @@ import { STAT_KEYS, itemDef, weaponDef } from '../../core';
 import type { Rewards } from '../../camp/rewards';
 import { gameData } from '../../data';
 import type { LevelUpPopup } from '../../battle/controller';
-import { Divider, Icon } from '../kit';
+import { Divider, Icon, entryIcon } from '../kit';
 import { PHASE_LABEL, STAT_LABEL } from './text';
 
 export function PhaseBanner({ phase, turn }: { phase: Team; turn: number }) {
@@ -73,7 +73,7 @@ export interface EndButton {
 
 /** The battle's pay on the end screen: gold, shards, each bonus objective met or missed, and the drops. */
 function Spoils({ r }: { r: Rewards }) {
-  const items = r.items.map((id) => itemDef(id, gameData)?.name ?? weaponDef(id, gameData)?.name ?? id);
+  const items = r.items.map((id) => ({ id, name: itemDef(id, gameData)?.name ?? weaponDef(id, gameData)?.name ?? id }));
   return (
     <section class="spoils framed" aria-label="Spoils">
       <h3 class="spoils-h">Spoils</h3>
@@ -105,7 +105,19 @@ function Spoils({ r }: { r: Rewards }) {
           ))}
         </ul>
       )}
-      {items.length > 0 && <p class="spoils-items">Found: {items.join(', ')} (to the convoy)</p>}
+      {items.length > 0 && (
+        <div class="spoils-items">
+          <span class="spoils-found">Found, to the convoy:</span>
+          <ul class="spoils-list">
+            {items.map((it, i) => (
+              <li key={`${it.id}:${i}`}>
+                <Icon name={entryIcon(it.id, gameData)} size={26} />
+                <span>{it.name}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }

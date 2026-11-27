@@ -3,8 +3,8 @@
 
 Usage:  python3 tools/art/pack_ui.py <raw_dir> [kit] [icons]
 
-<raw_dir> holds the raw generated PNGs: ui-kit.png (3x2), icons-stats.png (4x3) and icons-items.png (4x3). With no
-names both groups are packed. Keying and splitting reuse tools/art/pack.py. Writes src/art/ui and src/art/icons,
+<raw_dir> holds the raw generated PNGs: ui-kit.png (3x2), icons-stats.png (4x3), icons-items.png (4x3) and
+icons-items2.png (4x3, in colour). With no names both groups are packed. Keying and splitting reuse tools/art/pack.py. Writes src/art/ui and src/art/icons,
 merges the `ui.*` and `icon.*` entries into src/art/assets.json (nothing else in it is touched) and writes a
 report, tools/art/packed-ui.json.
 
@@ -25,6 +25,8 @@ from pack import ART, alpha_bbox, key, paste, resize, save_webp, split_cells  # 
 
 STAT_ICONS = ['hp', 'str', 'mag', 'skl', 'spd', 'lck', 'def', 'res', 'mov', 'heavy', 'swift', 'arcane']
 ITEM_ICONS = ['greatsword', 'axe', 'lance', 'sabre', 'dagger', 'bow', 'tome', 'talisman', 'staff', 'shard', 'coins', 'tenblade']
+# icons-items2.png: coloured consumables and gear (the other icon sheets are bone white), packed as icon.<name> the same way.
+ITEM2_ICONS = ['salve', 'tonic', 'wine', 'bandage', 'key', 'torch', 'whetstone', 'pouch', 'buckler', 'bone_charm', 'scroll', 'horn_flask']
 ICON = 96          # square icon canvas; the UI shows icons at 16 to 28 CSS px
 ICON_PAD = 2       # px left around the icon on that canvas (tight, so the emblem stays big at 20 px)
 EMBLEM = 192       # the ten-blade star again, larger, for the title screen (ui.emblem)
@@ -190,6 +192,8 @@ def main():
         pack_icons(raw, 'stats', STAT_ICONS, assets, report)
         print('icons items')
         pack_icons(raw, 'items', ITEM_ICONS, assets, report)
+        print('icons items2')
+        pack_icons(raw, 'items2', ITEM2_ICONS, assets, report)
     if want('kit'):
         print('ui kit')
         pack_kit(raw, assets, report)

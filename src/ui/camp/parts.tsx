@@ -5,7 +5,7 @@ import type { JSX } from 'preact';
 import { itemDef, weaponDef, type PartyUnit, type WeaponDef } from '../../core';
 import { gameData } from '../../data';
 import type { CampaignSave } from '../../save/format';
-import { Icon, Medallion, weaponIcon, type IconName } from '../kit';
+import { Icon, Medallion, entryIcon as entryIconFor, type IconName } from '../kit';
 
 /** Gold and Blade Shards: chips on the hub, or a compact pair for a screen's header (`compact`). */
 export function Purse({ c, compact }: { c: CampaignSave; compact?: boolean }): JSX.Element {
@@ -40,9 +40,7 @@ export function entryName(id: string): string {
 }
 
 export function entryIcon(id: string): IconName {
-  const w = weaponDef(id, gameData);
-  if (w) return weaponIcon(w);
-  return (itemDef(id, gameData)?.heal ?? 0) > 0 ? 'hp' : 'tenblade';
+  return entryIconFor(id, gameData);
 }
 
 /** A weapon's numbers in one short line: Mt, Hit, Crit, Rng (Heals for a staff). */

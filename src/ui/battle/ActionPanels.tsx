@@ -1,10 +1,10 @@
 // The action menu, the combat forecast and the heal preview.
 
 import { Fragment } from 'preact';
-import { itemDef, weaponDef, type BattleState, type CombatSide, type Direction, type Forecast, type GameData, type PowerForecast, type TriangleEdge, type Unit } from '../../core';
+import { weaponDef, type BattleState, type CombatSide, type Direction, type Forecast, type GameData, type PowerForecast, type TriangleEdge, type Unit } from '../../core';
 import type { McLook } from '../../art/mc/look';
 import type { Command, ItemOption, MenuOption, PowerOption, TargetMode } from '../../battle/selection';
-import { Icon, Medallion, schoolIcon, weaponIcon, type IconName } from '../kit';
+import { Icon, Medallion, entryIcon, schoolIcon, weaponIcon, type IconName } from '../kit';
 import { HpBar, ResolveGauge } from './UnitCard';
 import { SCHOOL_LABEL, triangleMark } from './text';
 
@@ -365,12 +365,11 @@ export function ItemsPanel({ unit, items, run, data }: { unit: Unit; items: Item
       </p>
       <ul class="inv-list">
         {items.map((o) => {
-          const w = o.kind === 'weapon' ? weaponDef(o.id, data) : null;
-          const icon: IconName = w ? weaponIcon(w) : (itemDef(o.id, data)?.heal ?? 0) > 0 ? 'hp' : 'tenblade';
+          const icon: IconName = entryIcon(o.id, data);
           const label = o.kind === 'weapon' ? (o.equipped ? 'Equipped' : 'Equip') : 'Use';
           return (
             <li key={o.index} class={`inv-row${o.equipped ? ' equipped' : ''}`}>
-              <Icon name={icon} size={22} />
+              <Icon name={icon} size={26} />
               <span class="inv-name">
                 <span>{o.name}</span>
                 {o.reason && !o.equipped && <span class="inv-why">{o.reason}</span>}

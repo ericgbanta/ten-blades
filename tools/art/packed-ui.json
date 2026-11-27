@@ -23,6 +23,30 @@
   "path": "icons/axe.webp",
   "width": 96
  },
+ "icon.bandage": {
+  "bbox": [
+   2,
+   15,
+   92,
+   66
+  ],
+  "bytes": 3988,
+  "height": 96,
+  "path": "icons/bandage.webp",
+  "width": 96
+ },
+ "icon.bone_charm": {
+  "bbox": [
+   8,
+   2,
+   79,
+   92
+  ],
+  "bytes": 4866,
+  "height": 96,
+  "path": "icons/bone_charm.webp",
+  "width": 96
+ },
  "icon.bow": {
   "bbox": [
    6,
@@ -33,6 +57,18 @@
   "bytes": 4392,
   "height": 96,
   "path": "icons/bow.webp",
+  "width": 96
+ },
+ "icon.buckler": {
+  "bbox": [
+   2,
+   2,
+   91,
+   92
+  ],
+  "bytes": 4930,
+  "height": 96,
+  "path": "icons/buckler.webp",
   "width": 96
  },
  "icon.coins": {
@@ -95,6 +131,18 @@
   "path": "icons/heavy.webp",
   "width": 96
  },
+ "icon.horn_flask": {
+  "bbox": [
+   2,
+   9,
+   92,
+   77
+  ],
+  "bytes": 3882,
+  "height": 96,
+  "path": "icons/horn_flask.webp",
+  "width": 96
+ },
  "icon.hp": {
   "bbox": [
    2,
@@ -105,6 +153,18 @@
   "bytes": 4296,
   "height": 96,
   "path": "icons/hp.webp",
+  "width": 96
+ },
+ "icon.key": {
+  "bbox": [
+   2,
+   5,
+   92,
+   86
+  ],
+  "bytes": 3586,
+  "height": 96,
+  "path": "icons/key.webp",
   "width": 96
  },
  "icon.lance": {
@@ -155,6 +215,18 @@
   "path": "icons/mov.webp",
   "width": 96
  },
+ "icon.pouch": {
+  "bbox": [
+   2,
+   5,
+   92,
+   85
+  ],
+  "bytes": 4478,
+  "height": 96,
+  "path": "icons/pouch.webp",
+  "width": 96
+ },
  "icon.res": {
   "bbox": [
    2,
@@ -177,6 +249,30 @@
   "bytes": 2684,
   "height": 96,
   "path": "icons/sabre.webp",
+  "width": 96
+ },
+ "icon.salve": {
+  "bbox": [
+   2,
+   9,
+   92,
+   77
+  ],
+  "bytes": 4440,
+  "height": 96,
+  "path": "icons/salve.webp",
+  "width": 96
+ },
+ "icon.scroll": {
+  "bbox": [
+   2,
+   13,
+   92,
+   69
+  ],
+  "bytes": 3716,
+  "height": 96,
+  "path": "icons/scroll.webp",
   "width": 96
  },
  "icon.shard": {
@@ -285,6 +381,54 @@
   "bytes": 4812,
   "height": 96,
   "path": "icons/tome.webp",
+  "width": 96
+ },
+ "icon.tonic": {
+  "bbox": [
+   24,
+   2,
+   47,
+   92
+  ],
+  "bytes": 2998,
+  "height": 96,
+  "path": "icons/tonic.webp",
+  "width": 96
+ },
+ "icon.torch": {
+  "bbox": [
+   9,
+   2,
+   77,
+   92
+  ],
+  "bytes": 3600,
+  "height": 96,
+  "path": "icons/torch.webp",
+  "width": 96
+ },
+ "icon.whetstone": {
+  "bbox": [
+   2,
+   7,
+   92,
+   81
+  ],
+  "bytes": 2992,
+  "height": 96,
+  "path": "icons/whetstone.webp",
+  "width": 96
+ },
+ "icon.wine": {
+  "bbox": [
+   24,
+   2,
+   48,
+   92
+  ],
+  "bytes": 2704,
+  "height": 96,
+  "path": "icons/wine.webp",
   "width": 96
  },
  "ui.button": {
