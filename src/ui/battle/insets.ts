@@ -9,10 +9,12 @@ interface Box {
 
 /**
  * How much of each side of the viewport the overlay boxes cover. Wide boxes are
- * top or bottom bars; narrow ones are side columns (the landscape dock).
+ * top or bottom bars; narrow ones are side columns (the landscape dock). `safe` is the
+ * device's safe-area insets, which count as covered on their own.
  */
-export function coveredInsets(vw: number, vh: number, boxes: Box[]): Insets {
-  const out: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
+export function coveredInsets(vw: number, vh: number, boxes: Box[], safe: Insets = { top: 0, right: 0, bottom: 0, left: 0 }): Insets {
+  // The safe areas (notch, home indicator) count as covered too, so no tile rests under them.
+  const out: Insets = { ...safe };
   for (const b of boxes) {
     const w = b.right - b.left;
     if (w <= 0 || b.bottom - b.top <= 0) continue;

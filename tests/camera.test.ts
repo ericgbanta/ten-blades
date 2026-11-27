@@ -107,4 +107,12 @@ describe('coveredInsets', () => {
     ]);
     expect(landscape).toEqual({ top: 57, right: 300, bottom: 0, left: 0 });
   });
+
+  it('counts the safe areas as covered: the notch side and the home indicator in landscape', () => {
+    const boxes = [
+      { left: 0, top: 0, right: 667, bottom: 57 },
+      { left: 367, top: 57, right: 667, bottom: 375 },
+    ];
+    expect(coveredInsets(667, 375, boxes, { top: 0, right: 47, bottom: 21, left: 47 })).toEqual({ top: 57, right: 300, bottom: 21, left: 47 });
+  });
 });

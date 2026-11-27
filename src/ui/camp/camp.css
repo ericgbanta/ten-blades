@@ -1153,6 +1153,8 @@
     max-height: 100vh;
     max-height: 100dvh;
     padding-top: calc(10px + var(--safe-t));
+    /* The scene holds the left edge (and its inset); the body only needs the right one. */
+    padding-left: 16px;
   }
 
   /* Icon on the left, name and line beside it, so all four plates read the same. */
@@ -1181,7 +1183,9 @@
     white-space: nowrap;
   }
 
+  /* Two plates side by side while they fit (a notch or a narrow phone leaves less room), else one per row. */
   .facility-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 8px;
   }
 }

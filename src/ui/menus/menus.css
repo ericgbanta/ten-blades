@@ -952,9 +952,18 @@
     flex-direction: row;
   }
 
-  .choices-list .choice {
+  .choices:not(.compact) .choices-list .choice {
     flex: 1;
     justify-content: flex-start;
+  }
+
+  /* The creator's option column is narrow: its combat styles stay one under another. */
+  .creator .choices-list {
+    flex-direction: column;
+  }
+
+  .creator .choices-list .choice {
+    flex: none;
   }
 
   .title {
@@ -974,7 +983,7 @@
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
-    width: min(620px, 92vw);
+    width: min(620px, 100%);
   }
 
   .title-menu .btn {

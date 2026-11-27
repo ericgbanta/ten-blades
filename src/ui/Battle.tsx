@@ -212,6 +212,8 @@ function BattleRun({ initial, launch, look, text, scenes, pendingScenes, showDan
   const host = useRef<HTMLDivElement>(null);
   const top = useRef<HTMLDivElement>(null);
   const dock = useRef<HTMLDivElement>(null);
+  /** An empty box padded by the safe-area insets, read to keep the map out from under the notch and home bar. */
+  const probe = useRef<HTMLDivElement>(null);
   const game = useRef<GameHandle | null>(null);
   const insets = useRef<Insets>({ top: 0, right: 0, bottom: 0, left: 0 });
   const [quitting, setQuitting] = useState(false);
@@ -250,7 +252,10 @@ function BattleRun({ initial, launch, look, text, scenes, pendingScenes, showDan
           const b = el.getBoundingClientRect();
           return { left: b.left - base.left, top: b.top - base.top, right: b.right - base.left, bottom: b.bottom - base.top };
         });
-      const next = coveredInsets(base.width, base.height, boxes);
+      const p = probe.current ? getComputedStyle(probe.current) : null;
+      const px = (v: string | undefined) => parseFloat(v ?? '') || 0;
+      const safe = { top: px(p?.paddingTop), right: px(p?.paddingRight), bottom: px(p?.paddingBottom), left: px(p?.paddingLeft) };
+      const next = coveredInsets(base.width, base.height, boxes, safe);
       r.style.setProperty('--hud-top', `${top.current?.offsetHeight ?? 0}px`);
       const prev = insets.current;
       if (next.top === prev.top && next.right === prev.right && next.bottom === prev.bottom && next.left === prev.left) return;
@@ -276,6 +281,7 @@ function BattleRun({ initial, launch, look, text, scenes, pendingScenes, showDan
   return (
     <div class={`battle${view.fight ? ' fighting' : ''}`} ref={root}>
       <div class="battle-host" ref={host} />
+      <div class="safe-probe" ref={probe} aria-hidden="true" />
       <div class="hud-top" ref={top}>
         <TopBar view={view} onSpeed={setSpeed} onScenes={setScenes} onQuit={() => setQuitting(true)} />
       </div>

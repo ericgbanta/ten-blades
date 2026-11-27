@@ -35,6 +35,18 @@
   padding-right: calc(var(--sp-2) + var(--safe-r));
 }
 
+/* Read by Battle.tsx: its padding is the device's safe-area insets. */
+.safe-probe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
+  padding: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
+}
+
 .hud-top {
   top: 0;
   padding-top: calc(5px + var(--safe-t));
@@ -903,7 +915,17 @@
 
   .dock .hud-row.bottom {
     flex-wrap: wrap;
+    flex-shrink: 0;
     margin-top: auto;
+  }
+
+  /* A tall panel (items, a long power forecast, the level-up card) scrolls inside the column, so Danger and End
+     turn stay above the home indicator. */
+  .dock > :not(.hud-row) {
+    flex-shrink: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .dock .tile-info {
