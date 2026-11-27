@@ -9,6 +9,7 @@ import { buy, buyPrice, sell, sellPrice, shopStock, type Holder } from '../../ca
 import { gameData } from '../../data';
 import { Icon } from '../kit';
 import { Screen } from '../menus/Screen';
+import { shortNames } from './shortNames';
 import { campCtx } from '../saves';
 import { Purse, StatusLine, UnitMedal, entryIcon, entryLine, entryName } from './parts';
 import type { CampView } from './useCamp';
@@ -85,13 +86,14 @@ function Users({ camp, w }: { camp: CampView; w: WeaponDef | null }) {
   const c = camp.campaign;
   if (!w) return <span class="users any">Anyone can use it</span>;
   const yes = c.party.filter((u) => classCanWield(gameData.classes[u.classId], w));
+  const short = shortNames(c.party.map((u) => u.name));
   return (
     <span class="users" aria-label={yes.length ? `Usable by ${yes.map((u) => u.name).join(', ')}` : 'No one in the company can use it'}>
-      {c.party.map((u) => {
+      {c.party.map((u, i) => {
         const ok = yes.includes(u);
         return (
           <span key={u.id} class={`user-pip${ok ? ' ok' : ''}`} aria-hidden="true" title={u.name}>
-            {u.name.charAt(0)}
+            {short[i]}
           </span>
         );
       })}

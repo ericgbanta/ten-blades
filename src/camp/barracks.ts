@@ -177,3 +177,25 @@ export function setBenched(c: CampaignSave, unitId: string, benched: boolean, ct
   const list = c.benched.filter((id) => id !== unitId);
   return okv({ ...c, benched: benched ? [...list, unitId] : list });
 }
+
+/**
+ * Send `inId` (benched or with no room) in place of `outId` (deploying): the two swap places in the roster and
+ * `outId` stays in camp, so `inId` takes exactly the slot `outId` had.
+ */
+export function swapDeploy(c: CampaignSave, inId: string, outId: string, ctx: CampCtx, skirmishId: string | null): Result<CampaignSave> {
+  const info = deployInfo(c, ctx, skirmishId);
+  if (!info) return no('There is no battle to deploy for');
+  const a = info.units.find((e) => e.unit.id === inId);
+  const b = info.units.find((e) => e.unit.id === outId);
+  if (!a || !b) return no('No such unit');
+  if (a.status === 'wounded') return no(`${a.unit.name} is wounded`);
+  if (a.status === 'deploy') return no(`${a.unit.name} already deploys`);
+  if (b.status !== 'deploy') return no(`${b.unit.name} is not deploying`);
+  if (b.unit.isLord || info.required.includes(outId)) return no(`${b.unit.name} must deploy`);
+  const party = [...c.party];
+  const i = party.findIndex((u) => u.id === inId);
+  const j = party.findIndex((u) => u.id === outId);
+  // Only the order of non-lord units decides who fills a slot; the lord's place does not matter.
+  if (i > j) [party[i], party[j]] = [party[j]!, party[i]!];
+  return okv({ ...c, party, benched: [...c.benched.filter((id) => id !== inId && id !== outId), outId] });
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, createBattle, planUnitAction, runAiPhase, type AiState, type BattleState, type PartyUnit } from '../src/core';
 import { campContent, chapters, gameData } from '../src/data';
-import { deployInfo, equip, fromConvoy, isWounded, reorder, scalingShift, setBenched, toConvoy } from '../src/camp/barracks';
+import { deployInfo, equip, fromConvoy, isWounded, reorder, scalingShift, setBenched, swapDeploy, toConvoy } from '../src/camp/barracks';
 import { campBackdrop, facilityOpen, facilityOpensText, leaveCamp, readTalk, routeNodes, skirmishList, startableChapter, talkList } from '../src/camp/camp';
 import type { CampCtx } from '../src/camp/ctx';
 import { awaken, awakenBlock, bladeViews, forgeWeapon, UNBOUND_FLAG, unboundCount, upgradeBlock, upgradeCost } from '../src/camp/forge';
@@ -280,6 +280,20 @@ describe('the barracks', () => {
     expect(deployInfo({ ...c, progress: { ...c.progress, current: 'chapter3' } }, ctx, null)!.max).toBe(6);
     // A chapter with no map has no story deployment.
     expect(deployInfo({ ...c, progress: { ...c.progress, current: 'chapter4' } }, ctx, null)).toBeNull();
+  });
+
+  it('swaps a unit with no room in for one that deploys, in its slot, in one step', () => {
+    const c = ok(swapDeploy(bigParty(), 'di', 'ana', ctx, 'ridge'));
+    expect(c.party.map((u) => u.id)).toEqual(['mc', 'di', 'bo', 'cy', 'ana']);
+    expect(c.benched).toEqual(['ana']);
+    expect(deployInfo(c, ctx, 'ridge')!.deployed.map((u) => u.id)).toEqual(['mc', 'di', 'bo', 'cy']);
+    // A benched unit comes back the same way, and the one it replaces is benched.
+    const back = ok(swapDeploy(c, 'ana', 'cy', ctx, 'ridge'));
+    expect(back.benched).toEqual(['cy']);
+    expect(deployInfo(back, ctx, 'ridge')!.deployed.map((u) => u.id)).toEqual(['mc', 'di', 'bo', 'ana']);
+    expect(why(swapDeploy(bigParty(), 'di', 'mc', ctx, 'ridge'))).toMatch(/must deploy/);
+    expect(why(swapDeploy(bigParty(), 'ana', 'bo', ctx, 'ridge'))).toMatch(/already deploys/);
+    expect(why(swapDeploy({ ...bigParty(), wounded: { di: 1 } }, 'di', 'ana', ctx, 'ridge'))).toMatch(/wounded/);
   });
 });
 

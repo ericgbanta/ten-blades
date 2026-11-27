@@ -280,6 +280,13 @@ test("camp: locked facilities say when they open; a full company deploys up to t
   await expect(page.getByText('4 of 4 deploying')).toBeVisible();
   expect((await campaign(page)).benched).toEqual(['ana']);
   await expect(page.getByText('Stays in camp')).toBeVisible();
+  // With every place taken, Ana swaps straight back in for Bo.
+  await page.getByRole('button', { name: 'Swap Ana in' }).tap();
+  await expect(page.getByText('in place of whom?')).toBeVisible();
+  await shot(page, '12c-deploy-swap');
+  await page.getByRole('button', { name: 'Send Ana in place of Bo' }).tap();
+  expect((await campaign(page)).benched).toEqual(['bo']);
+  await expect(page.getByText('4 of 4 deploying')).toBeVisible();
   await page.setViewportSize({ width: 430, height: 932 });
   await backToCampFrom(page);
   await shot(page, '16-camp-430');

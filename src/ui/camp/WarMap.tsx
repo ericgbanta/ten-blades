@@ -2,7 +2,7 @@
 // that comes before a battle. The rules are src/camp/camp.ts and src/camp/barracks.ts.
 
 import { useMemo, useState } from 'preact/hooks';
-import { deployInfo, setBenched, reorder, type DeployStatus } from '../../camp/barracks';
+import { deployInfo, setBenched, reorder, swapDeploy, type DeployStatus } from '../../camp/barracks';
 import { leaveCamp, routeNodes, skirmishList, type SkirmishEntry } from '../../camp/camp';
 import type { RewardDef } from '../../camp/types';
 import { campContent, gameData } from '../../data';
@@ -110,6 +110,8 @@ export function Deploy({ camp, target }: { camp: CampView; target: string }) {
   const info = deployInfo(c, campCtx, skirmishId);
   const [msg, setMsg] = useState<{ text: string; bad: boolean } | null>(null);
   const [lore, setLore] = useState(false);
+  /** A unit with no room, picked to go in place of someone who deploys (the next tap picks who). */
+  const [swapIn, setSwapIn] = useState<string | null>(null);
   const reduced = useMemo(prefersReducedMotion, []);
   if (!info) {
     return (
@@ -150,6 +152,13 @@ export function Deploy({ camp, target }: { camp: CampView; target: string }) {
     const err = camp.apply((cc) => setBenched(cc, id, bench, campCtx, skirmishId));
     setMsg(err ? { text: err, bad: true } : null);
   };
+  const swap = (inId: string, outId: string) => {
+    const err = camp.apply((cc) => swapDeploy(cc, inId, outId, campCtx, skirmishId));
+    setMsg(err ? { text: err, bad: true } : null);
+    setSwapIn(null);
+  };
+  const full = count >= info.max;
+  const swapping = swapIn ? info.units.find((e) => e.unit.id === swapIn)?.unit ?? null : null;
   // Units the map itself puts on your side (the Ridge's wardens), who fight but do not join.
   const guests = map.placements.filter((p) => p.kind === 'unit' && p.team === 'player').length;
   const avg = info.deployed.length ? Math.round(info.deployed.reduce((n, u) => n + u.level, 0) / info.deployed.length) : 1;
@@ -163,6 +172,16 @@ export function Deploy({ camp, target }: { camp: CampView; target: string }) {
         </p>
         {guests > 0 && <p class="deploy-guests">{guests === 1 ? 'One ally of the map fights' : `${guests} allies of the map fight`} beside you.</p>}
       </header>
+      {swapping && (
+        <p class="deploy-swap" role="status">
+          <span>
+            Send <strong>{swapping.name}</strong> in place of whom?
+          </span>
+          <button type="button" class="btn small quiet" onClick={() => setSwapIn(null)}>
+            Cancel
+          </button>
+        </p>
+      )}
       <ul class="deploy-list">
         {info.units.map(({ unit: u, status }, i) => {
           const locked = u.isLord || info.required.includes(u.id);
@@ -176,17 +195,33 @@ export function Deploy({ camp, target }: { camp: CampView; target: string }) {
                   <span class={`deploy-status ${status}`}>{locked && status === 'deploy' ? 'Must go' : STATUS_TEXT[status]}</span>
                 </span>
               </span>
-              {!locked && (
+              {!locked && swapping && (
                 <span class="row-btns">
-                  <button
-                    type="button"
-                    class={`btn small${status === 'benched' ? '' : ' quiet'}`}
-                    disabled={status === 'wounded'}
-                    aria-label={status === 'benched' ? `Send ${u.name}` : `Keep ${u.name} in camp`}
-                    onClick={() => toggle(u.id, status !== 'benched')}
-                  >
-                    {status === 'benched' ? 'Send' : 'Stay'}
-                  </button>
+                  {status === 'deploy' && (
+                    <button type="button" class="btn small primary" aria-label={`Send ${swapping.name} in place of ${u.name}`} onClick={() => swap(swapping.id, u.id)}>
+                      Here
+                    </button>
+                  )}
+                </span>
+              )}
+              {!locked && !swapping && (
+                <span class="row-btns">
+                  {/* With every place taken, a unit left out swaps in directly for someone who goes. */}
+                  {full && (status === 'full' || status === 'benched') ? (
+                    <button type="button" class="btn small" aria-label={`Swap ${u.name} in`} onClick={() => setSwapIn(u.id)}>
+                      Swap
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      class={`btn small${status === 'benched' ? '' : ' quiet'}`}
+                      disabled={status === 'wounded'}
+                      aria-label={status === 'benched' ? `Send ${u.name}` : `Keep ${u.name} in camp`}
+                      onClick={() => toggle(u.id, status !== 'benched')}
+                    >
+                      {status === 'benched' ? 'Send' : 'Stay'}
+                    </button>
+                  )}
                   {i > 0 && (
                     <button type="button" class="btn quiet order" aria-label={`Move ${u.name} up`} onClick={() => camp.apply((cc) => reorder(cc, u.id, -1))}>
                       ▲

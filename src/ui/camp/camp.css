@@ -433,10 +433,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
+  /* A round pip for one letter; a pill when two names need more letters to tell apart. */
+  min-width: 18px;
   height: 18px;
+  padding: 0 3px;
+  border-radius: 9px;
   border: 1px solid var(--c-line);
-  border-radius: 50%;
   font-family: var(--font-display);
   font-size: 0.62rem;
   color: var(--c-muted);
@@ -1081,6 +1083,18 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.deploy-swap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--c-gold-dim);
+  border-radius: var(--r-2);
+  background: var(--c-panel);
 }
 
 .deploy-row {
