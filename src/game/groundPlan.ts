@@ -42,6 +42,12 @@ export const VARIANT_RULES: Record<string, VariantRule> = {
   forest: { weights: [1, 1, 1] },
   hill: { weights: [2, 1] },
   village: { weights: [1, 1, 1] },
+  cobble: { weights: [7, 1, 1], quiet: 1 },
+  flagstone: { weights: [3, 3, 1] },
+  rubble: { weights: [1, 1] },
+  // Houses are picked by pickRoof: the weights only say which variants exist (1 chimney, 2 ridge left to right,
+  // 3 ridge top to bottom with a dormer, 4 flat tower roof).
+  building: { weights: [1, 4, 3, 0] },
 };
 
 export const N = 1;
@@ -108,6 +114,10 @@ export function pickVariants(g: GroundInput, has: (key: string) => boolean): num
       const t = g.terrain[i]!;
       const rule = VARIANT_RULES[t];
       if (!rule) continue;
+      if (t === 'building') {
+        out[i] = pickRoof(g, x, y, out, has);
+        continue;
+      }
       const avail = rule.weights.map((w, k) => (has(variantKey(t, k + 1)) ? w : 0));
       const total = avail.reduce((a, b) => a + b, 0);
       if (total <= 0) continue;
@@ -133,6 +143,39 @@ export function pickVariants(g: GroundInput, has: (key: string) => boolean): num
     }
   }
   return out;
+}
+
+/**
+ * The roof of a house tile. Roofs keep one ridge direction along a run: a tile takes its west neighbour's ridge, else
+ * its north neighbour's, else a hashed pick, so a block of houses reads as one roof and not a patchwork. Ridge left
+ * to right (variant 2, or the rare chimney roof, variant 1) and top to bottom (variant 3, with a dormer) are picked
+ * about 4 to 3; a chimney is never next to another chimney, and in a block a dormer roof is never beside or below another. A house tile with no
+ * house neighbour, or one that flanks a gate, gets the flat tower roof (variant 4) when it exists.
+ */
+export function pickRoof(g: GroundInput, x: number, y: number, out: readonly number[], has: (key: string) => boolean): number {
+  const at = (dx: number, dy: number): string | null => terrainAt(g, x + dx, y + dy);
+  const roofAt = (dx: number, dy: number): number => (at(dx, dy) === 'building' && dx <= 0 && dy <= 0 ? out[(y + dy) * g.width + x + dx]! : 0);
+  const house = (dx: number, dy: number): boolean => at(dx, dy) === 'building';
+  const ok = (n: number): boolean => has(variantKey('building', n));
+  if (!ok(2) || !ok(3)) return 1;
+  const alone = !house(-1, 0) && !house(1, 0) && !house(0, -1) && !house(0, 1);
+  const gateFlank = (at(-1, 0) === 'gate' || at(1, 0) === 'gate') && !house(0, -1) && !house(0, 1);
+  if (ok(4) && (alone || gateFlank)) return 4;
+  const left = roofAt(-1, 0);
+  const above = roofAt(0, -1);
+  const lr = (n: number): boolean => n === 1 || n === 2;
+  let ridge: 'lr' | 'tb';
+  if ((house(-1, 0) || house(1, 0)) && !house(0, -1) && !house(0, 1)) ridge = 'lr';
+  else if ((house(0, -1) || house(0, 1)) && !house(-1, 0) && !house(1, 0)) ridge = 'tb';
+  else if (left > 0 && left !== 4) ridge = lr(left) ? 'lr' : 'tb';
+  else if (above > 0 && above !== 4) ridge = lr(above) ? 'lr' : 'tb';
+  else ridge = hash01(`${g.mapId}:${x}:${y}:ridge`) < 4 / 7 ? 'lr' : 'tb';
+  if (ridge === 'tb') {
+    // A dormer is not repeated beside or below another in a block (a plain run keeps its ridge top to bottom).
+    const run = !house(-1, 0) && !house(1, 0);
+    return !run && (left === 3 || above === 3) ? 2 : 3;
+  }
+  return hash01(`${g.mapId}:${x}:${y}:chimney`) < 0.12 && left !== 1 && above !== 1 && ok(1) ? 1 : 2;
 }
 
 /** Whether a bridge or ford runs east to west (true) or north to south: across the water, between the land sides. */

@@ -60,6 +60,18 @@
     95.0
    ]
   },
+  "stone2": {
+   "scale": [
+    0.9829999804496765,
+    1.059000015258789,
+    1.065999984741211
+   ],
+   "shift": [
+    -2.5,
+    1.7999999523162842,
+    1.100000023841858
+   ]
+  },
   "village2": {
    "grass": {
     "scale": [
@@ -1824,6 +1836,42 @@
   ],
   "width": 96
  },
+ "tile.building.2": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 3724,
+  "height": 96,
+  "path": "tiles/building-2.webp",
+  "width": 96
+ },
+ "tile.building.3": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 3956,
+  "height": 96,
+  "path": "tiles/building-3.webp",
+  "width": 96
+ },
+ "tile.building.4": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 3676,
+  "height": 96,
+  "path": "tiles/building-4.webp",
+  "width": 96
+ },
  "tile.canal": {
   "bbox": [
    0,
@@ -1860,6 +1908,30 @@
   ],
   "width": 96
  },
+ "tile.cobble.2": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 4500,
+  "height": 96,
+  "path": "tiles/cobble-2.webp",
+  "width": 96
+ },
+ "tile.cobble.3": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 4554,
+  "height": 96,
+  "path": "tiles/cobble-3.webp",
+  "width": 96
+ },
  "tile.crates": {
   "bbox": [
    0,
@@ -1894,6 +1966,30 @@
    334,
    334
   ],
+  "width": 96
+ },
+ "tile.flagstone.2": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 2932,
+  "height": 96,
+  "path": "tiles/flagstone-2.webp",
+  "width": 96
+ },
+ "tile.flagstone.3": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 3420,
+  "height": 96,
+  "path": "tiles/flagstone-3.webp",
   "width": 96
  },
  "tile.ford": {
@@ -2116,6 +2212,18 @@
    335,
    334
   ],
+  "width": 96
+ },
+ "tile.rubble.2": {
+  "bbox": [
+   0,
+   0,
+   96,
+   96
+  ],
+  "bytes": 4308,
+  "height": 96,
+  "path": "tiles/rubble-2.webp",
   "width": 96
  },
  "tile.shore.corner": {

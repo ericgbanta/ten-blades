@@ -6,7 +6,7 @@ import { gameData } from '../src/data';
 
 const images = JSON.parse(readFileSync(join(__dirname, '..', 'src', 'art', 'assets.json'), 'utf8')).images as Record<string, unknown>;
 const has = (k: string) => k in images;
-const CHARS: Record<string, string> = { '.': 'plain', '=': 'road', '#': 'wall', '~': 'water', B: 'bridge', f: 'ford', T: 'fort', F: 'forest', V: 'village', c: 'canal', o: 'cobble', G: 'gate', X: 'building' };
+const CHARS: Record<string, string> = { '.': 'plain', '=': 'road', '#': 'wall', '~': 'water', B: 'bridge', f: 'ford', T: 'fort', F: 'forest', V: 'village', c: 'canal', o: 'cobble', G: 'gate', X: 'building', _: 'flagstone' };
 
 function grid(rows: string[], mapId = 'test'): GroundInput {
   return { mapId, width: rows[0]!.length, height: rows.length, terrain: rows.join('').split('').map((c) => CHARS[c]!) };
@@ -110,6 +110,39 @@ describe('variants', () => {
       }
     }
     expect(new Set(v).size).toBe(3);
+  });
+});
+
+describe('stone variants and roofs', () => {
+  const roof = (g: GroundInput): number[] => pickVariants(g, has);
+  it('mixes cobble and flagstone variants deterministically, mostly cobble variant 1', () => {
+    const g = grid(Array.from({ length: 10 }, () => 'o'.repeat(10)), 'saltmarket');
+    const v = pickVariants(g, has);
+    expect(v).toEqual(pickVariants(g, has));
+    expect(v.filter((n) => n === 1).length / v.length).toBeGreaterThan(0.6);
+    expect(new Set(v).size).toBeGreaterThan(1);
+    expect(new Set(pickVariants(grid(Array.from({ length: 8 }, () => '_'.repeat(8))), has)).size).toBe(3);
+  });
+  it('keeps one ridge direction along a run of houses and the chimney rare', () => {
+    // A row of houses has its ridge running along it (variant 1 or 2); a column has it top to bottom (variant 3).
+    const row = roof(grid(['ooooooooo', 'XXXXXXXXX', 'ooooooooo'], 'a'));
+    expect(row.slice(9, 18).every((n) => n === 1 || n === 2)).toBe(true);
+    const col = roof(grid(['oXo', 'oXo', 'oXo', 'oXo', 'oXo'], 'a'));
+    expect([1, 4, 7, 10, 13].map((i) => col[i])).toEqual([3, 3, 3, 3, 3]);
+    const long = roof(grid(['X'.repeat(200), 'o'.repeat(200)], 'chimneys'));
+    const chimneys = long.slice(0, 200).filter((n) => n === 1);
+    expect(chimneys.length).toBeLessThan(40);
+    long.slice(0, 199).forEach((n, i) => expect(n === 1 && long[i + 1] === 1).toBe(false));
+  });
+  it('gives a block of houses one ridge direction, a lone house or a gate flank the tower roof', () => {
+    const block = roof(grid(['ooooo', 'oXXXo', 'oXXXo', 'oXXXo', 'ooooo'], 'b')).filter((_, i) => [6, 7, 8, 11, 12, 13, 16, 17, 18].includes(i));
+    expect(new Set(block.map((n) => (n === 3 ? 'tb' : 'lr'))).size).toBeLessThanOrEqual(2);
+    expect(roof(grid(['ooo', 'oXo', 'ooo']))[4]).toBe(4);
+    expect(roof(grid(['XGGX', 'oooo']))[0]).toBe(4);
+    expect(roof(grid(['XGGX', 'XooX']))[0]).not.toBe(4);
+  });
+  it('uses only variants that exist', () => {
+    expect(pickVariants(grid(['XXX', 'XXX']), (k) => k === 'tile.building').every((n) => n === 1)).toBe(true);
   });
 });
 

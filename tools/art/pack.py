@@ -347,11 +347,18 @@ def pack_backdrop(raw, name, report, assets):
 # tiles-village2.png: 4x2 variant tiles, packed as tile.<terrain>.<n> (tile.<terrain> stays variant 1).
 VARIANT_SHEET = 'village2'
 VARIANTS = [('plain', 2), ('plain', 3), ('forest', 2), ('forest', 3), ('hill', 2), ('water', 2), ('village', 2), ('village', 3)]
+# tiles-stone2.png: 4x2 variants of the town and ruin tiles, packed as tile.<terrain>.<n>. Color-matched to tiles-stone.
+STONE_VARIANT_SHEET = 'stone2'
+STONE_VARIANTS = [('cobble', 2), ('cobble', 3), ('flagstone', 2), ('flagstone', 3), ('building', 2), ('building', 3), ('building', 4), ('rubble', 2)]
 # tiles-connect.png: 4x2 flat connector tiles, packed as tile.<name>. bridge and ford are also terrain tiles.
 CONNECT_SHEET = 'connect'
 CONNECTORS = ['road.straight', 'road.cross', 'wall.straight', 'wall.cross', 'shore.edge', 'shore.corner', 'bridge', 'ford']
 # props-village.png: 4x3 cut-out props, packed as prop.<name>.
 PROPS = ['fence', 'cart', 'barrels', 'rubble', 'banner', 'well', 'haystack', 'dead_tree', 'campfire', 'signpost', 'graves', 'wheel']
+# props-town.png: 4x3 cut-out props for towns and ruins, packed as prop.<name> the same way.
+TOWN_PROPS = ['street_lamp', 'fountain', 'hand_cart', 'shop_sign', 'fish_baskets', 'standard', 'bench', 'notice_board',
+              'column_stump', 'fallen_statue', 'brazier', 'spear_rack']
+PROP_SHEETS = [('props-village', PROPS), ('props-town', TOWN_PROPS)]
 PROP_SCALE = 0.3                  # source px to packed px; a source tile is about 330 px, so a tile is about 100 px
 PROP_SCALE_BY = {'cart': 0.85, 'well': 0.9, 'haystack': 0.85, 'dead_tree': 1.05, 'banner': 1.0, 'barrels': 0.85, 'graves': 0.85}
 PROP_MARGIN = 4                   # px below the contact shadow on the prop canvas
@@ -421,6 +428,17 @@ def color_match(tiles, ref_grass, ref_water):
     note = {k: {'shift': np.round((m[2] - m[0]) * 255, 1).tolist(), 'scale': np.round(np.clip(m[3] / np.maximum(m[1], 1e-3), 0.92, 1.08), 3).tolist()}
             for k, m in maps.items()}
     return out, note
+
+
+def stone_color_match(tiles, ref_tiles):
+    """Shift a stone variant sheet so its paving (cobble and flagstone tiles, the first four) has the mean and spread
+    of the reference sheet's cobble and flagstone, per channel. The same map is applied to the whole sheet, since the
+    drift (a warmer cast) is a property of the generation, not of one tile. Spread changes are limited like color_match."""
+    sm = np.concatenate([t.reshape(-1, 3) for t in tiles[:4]])
+    rm = np.concatenate([t.reshape(-1, 3) for t in ref_tiles])
+    k = np.clip(rm.std(0) / np.maximum(sm.std(0), 1e-3), 0.92, 1.08)
+    out = [np.clip((t - sm.mean(0)) * k + rm.mean(0), 0, 1) for t in tiles]
+    return out, {'shift': np.round((rm.mean(0) - sm.mean(0)) * 255, 1).tolist(), 'scale': np.round(k, 3).tolist()}
 
 
 def save_tile(rgb, rel, assets, report, extra=None):
@@ -623,6 +641,15 @@ def pack_map_tiles(raw, report, assets):
         print(f'  {VARIANT_SHEET} color shift {note}')
         for (tid, n), t in zip(VARIANTS, tiles):
             save_tile(t, f'tiles/{tid}-{n}.webp', assets, report)
+    spath = os.path.join(raw, f'tiles-{STONE_VARIANT_SHEET}.png')
+    bpath = os.path.join(raw, 'tiles-stone.png')
+    if os.path.exists(spath) and os.path.exists(bpath):
+        stone = grid_tiles(bpath)
+        tiles, note = stone_color_match(grid_tiles(spath), [stone[0], stone[1]])
+        notes[STONE_VARIANT_SHEET] = note
+        print(f'  {STONE_VARIANT_SHEET} color shift {note}')
+        for (tid, n), t in zip(STONE_VARIANTS, tiles):
+            save_tile(t, f'tiles/{tid}-{n}.webp', assets, report)
     cpath = os.path.join(raw, f'tiles-{CONNECT_SHEET}.png')
     if os.path.exists(cpath):
         tiles, note = color_match(grid_tiles(cpath), ref_grass, ref_water)
@@ -642,14 +669,19 @@ def pack_map_tiles(raw, report, assets):
 
 
 def pack_props(raw, report, assets):
-    """Map props from props-village.png: keyed, split, cropped to the art and scaled by one shared factor (a few
+    """Map props from props-village.png and props-town.png: keyed, split, cropped to the art and scaled by one shared factor (a few
     props by their own factor), then placed bottom centered on a 96 or 128 px canvas. `anchorX` and `groundY` give
     the point under the contact shadow that the map puts on the lower middle of a tile."""
-    path = os.path.join(raw, 'props-village.png')
+    for sheet, names in PROP_SHEETS:
+        pack_prop_sheet(raw, sheet, names, report, assets)
+
+
+def pack_prop_sheet(raw, sheet, names, report, assets):
+    path = os.path.join(raw, f'{sheet}.png')
     if not os.path.exists(path):
         return
-    cells, _ = split_cells(key(path), 3, 4, name='props-village')
-    for name, cell in zip(PROPS, cells):
+    cells, _ = split_cells(key(path), 3, 4, name=sheet)
+    for name, cell in zip(names, cells):
         b = alpha_bbox(cell)
         crop = cell[b[1]:b[3], b[0]:b[2]]
         k = PROP_SCALE * PROP_SCALE_BY.get(name, 1.0)
