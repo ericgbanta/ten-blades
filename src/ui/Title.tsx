@@ -4,6 +4,7 @@ import { startRun } from './saves';
 import { useSaves } from './menus/Screen';
 import { chapterName, STAGE_TEXT } from './menus/copy';
 import { Divider } from './kit';
+import { UpdatePrompt } from './UpdatePrompt';
 import './menus/menus.css';
 
 export function Title() {
@@ -56,6 +57,7 @@ export function Title() {
         </a>
       </nav>
       {saves?.suspendError && <p class="title-note">{saves.suspendError}</p>}
+      <UpdatePrompt />
     </main>
   );
 }

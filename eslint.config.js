@@ -43,6 +43,11 @@ export default tseslint.config(
     },
   },
   {
+    // The service worker template: worker globals, and the two constants the build puts in front of it.
+    files: ['tools/pwa/sw.js'],
+    languageOptions: { globals: { ...globals.serviceworker, VERSION: 'readonly', PRECACHE: 'readonly' } },
+  },
+  {
     // An underscore marks a parameter kept for a hook's signature.
     rules: { '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }] },
   },

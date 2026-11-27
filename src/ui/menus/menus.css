@@ -106,6 +106,47 @@
   font-size: var(--fs-sm);
 }
 
+/* The update note on the title screen (src/ui/UpdatePrompt.tsx). */
+.update-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2) var(--sp-3);
+  width: min(340px, 92vw);
+  padding: var(--sp-3);
+  text-align: left;
+}
+
+.update-text {
+  flex: 1 1 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+}
+
+.update-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--c-gold);
+  letter-spacing: 0.04em;
+}
+
+.update-line {
+  color: var(--c-bone-dim);
+  font-size: var(--fs-sm);
+}
+
+.update-actions {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.update-actions .btn {
+  padding: 0 var(--sp-3);
+}
+
 :is(.title, .menu-screen) .btn.wide {
   width: 100%;
 }

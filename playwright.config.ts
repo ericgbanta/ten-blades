@@ -9,6 +9,8 @@ export default defineConfig({
     isMobile: true,
     hasTouch: true,
     trace: 'off',
+    // The service worker stays out of the way of every test but the offline one (e2e/offline.spec.ts), which allows it.
+    serviceWorkers: 'block',
   },
   webServer: {
     command: 'npx vite build && npx vite preview --port 4173 --strictPort',
