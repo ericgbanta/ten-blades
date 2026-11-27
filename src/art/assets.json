@@ -8887,6 +8887,32 @@
       "path": "props/barrels.webp",
       "width": 96
     },
+    "prop.bench": {
+      "anchorX": 48,
+      "bbox": [
+        6,
+        46,
+        84,
+        46
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/bench.webp",
+      "width": 96
+    },
+    "prop.brazier": {
+      "anchorX": 48,
+      "bbox": [
+        21,
+        23,
+        53,
+        69
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/brazier.webp",
+      "width": 96
+    },
     "prop.campfire": {
       "anchorX": 48,
       "bbox": [
@@ -8913,6 +8939,19 @@
       "path": "props/cart.webp",
       "width": 96
     },
+    "prop.column_stump": {
+      "anchorX": 48,
+      "bbox": [
+        12,
+        15,
+        72,
+        77
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/column_stump.webp",
+      "width": 96
+    },
     "prop.dead_tree": {
       "anchorX": 64,
       "bbox": [
@@ -8924,6 +8963,19 @@
       "groundY": 124,
       "height": 128,
       "path": "props/dead_tree.webp",
+      "width": 128
+    },
+    "prop.fallen_statue": {
+      "anchorX": 64,
+      "bbox": [
+        12,
+        65,
+        103,
+        59
+      ],
+      "groundY": 124,
+      "height": 128,
+      "path": "props/fallen_statue.webp",
       "width": 128
     },
     "prop.fence": {
@@ -8939,6 +8991,32 @@
       "path": "props/fence.webp",
       "width": 96
     },
+    "prop.fish_baskets": {
+      "anchorX": 48,
+      "bbox": [
+        10,
+        22,
+        75,
+        70
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/fish_baskets.webp",
+      "width": 96
+    },
+    "prop.fountain": {
+      "anchorX": 48,
+      "bbox": [
+        18,
+        12,
+        60,
+        80
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/fountain.webp",
+      "width": 96
+    },
     "prop.graves": {
       "anchorX": 48,
       "bbox": [
@@ -8950,6 +9028,19 @@
       "groundY": 92,
       "height": 96,
       "path": "props/graves.webp",
+      "width": 96
+    },
+    "prop.hand_cart": {
+      "anchorX": 48,
+      "bbox": [
+        4,
+        22,
+        87,
+        70
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/hand_cart.webp",
       "width": 96
     },
     "prop.haystack": {
@@ -8965,6 +9056,19 @@
       "path": "props/haystack.webp",
       "width": 96
     },
+    "prop.notice_board": {
+      "anchorX": 48,
+      "bbox": [
+        7,
+        11,
+        82,
+        81
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/notice_board.webp",
+      "width": 96
+    },
     "prop.rubble": {
       "anchorX": 48,
       "bbox": [
@@ -8976,6 +9080,19 @@
       "groundY": 92,
       "height": 96,
       "path": "props/rubble.webp",
+      "width": 96
+    },
+    "prop.shop_sign": {
+      "anchorX": 48,
+      "bbox": [
+        18,
+        11,
+        60,
+        81
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/shop_sign.webp",
       "width": 96
     },
     "prop.signpost": {
@@ -8990,6 +9107,45 @@
       "height": 96,
       "path": "props/signpost.webp",
       "width": 96
+    },
+    "prop.spear_rack": {
+      "anchorX": 48,
+      "bbox": [
+        5,
+        3,
+        85,
+        89
+      ],
+      "groundY": 92,
+      "height": 96,
+      "path": "props/spear_rack.webp",
+      "width": 96
+    },
+    "prop.standard": {
+      "anchorX": 64,
+      "bbox": [
+        44,
+        33,
+        39,
+        91
+      ],
+      "groundY": 124,
+      "height": 128,
+      "path": "props/standard.webp",
+      "width": 128
+    },
+    "prop.street_lamp": {
+      "anchorX": 64,
+      "bbox": [
+        44,
+        30,
+        39,
+        94
+      ],
+      "groundY": 124,
+      "height": 128,
+      "path": "props/street_lamp.webp",
+      "width": 128
     },
     "prop.well": {
       "anchorX": 48,

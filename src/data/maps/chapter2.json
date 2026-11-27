@@ -59,13 +59,21 @@
     }
   ],
   "props": [
-    {"id": "banner", "x": 4, "y": 2},
     {"id": "campfire", "x": 9, "y": 9},
     {"id": "barrels", "x": 3, "y": 9},
     {"id": "graves", "x": 12, "y": 12},
     {"id": "dead_tree", "x": 2, "y": 0},
     {"id": "signpost", "x": 5, "y": 12},
     {"id": "barrels", "x": 10, "y": 2},
-    {"id": "rubble", "x": 1, "y": 10}
+    {"id": "rubble", "x": 1, "y": 10},
+    {"id": "standard", "x": 4, "y": 2},
+    {"id": "brazier", "x": 5, "y": 3},
+    {"id": "brazier", "x": 8, "y": 3},
+    {"id": "column_stump", "x": 3, "y": 6},
+    {"id": "column_stump", "x": 10, "y": 5},
+    {"id": "column_stump", "x": 4, "y": 9},
+    {"id": "fallen_statue", "x": 7, "y": 8},
+    {"id": "spear_rack", "x": 8, "y": 11},
+    {"id": "brazier", "x": 4, "y": 11}
   ]
 }

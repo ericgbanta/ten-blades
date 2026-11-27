@@ -10,5 +10,17 @@
   "campfire": {"name": "Campfire", "size": "small", "terrains": ["plain", "road", "fort", "cobble", "flagstone"]},
   "signpost": {"name": "Signpost", "size": "tall", "terrains": ["plain"]},
   "graves": {"name": "Gravestones", "size": "small", "terrains": ["plain", "hill", "flagstone"]},
-  "wheel": {"name": "Wagon wheel", "size": "small", "terrains": ["plain", "road", "village", "cobble", "flagstone"]}
+  "wheel": {"name": "Wagon wheel", "size": "small", "terrains": ["plain", "road", "village", "cobble", "flagstone"]},
+  "street_lamp": {"name": "Street lamp", "size": "tall", "terrains": ["plain", "road", "cobble", "flagstone"]},
+  "fountain": {"name": "Fountain", "size": "tall", "terrains": ["cobble", "flagstone"]},
+  "hand_cart": {"name": "Hand cart", "size": "tall", "terrains": ["plain", "road", "village", "cobble", "flagstone"]},
+  "shop_sign": {"name": "Shop sign", "size": "tall", "terrains": ["cobble", "flagstone"]},
+  "fish_baskets": {"name": "Fish baskets", "size": "small", "terrains": ["village", "cobble", "flagstone"]},
+  "standard": {"name": "Standard", "size": "tall", "terrains": ["plain", "hill", "fort", "road", "cobble", "flagstone"]},
+  "bench": {"name": "Bench", "size": "small", "terrains": ["plain", "village", "cobble", "flagstone"]},
+  "notice_board": {"name": "Notice board", "size": "tall", "terrains": ["plain", "village", "cobble", "flagstone"]},
+  "column_stump": {"name": "Broken column", "size": "small", "terrains": ["plain", "hill", "fort", "cobble", "flagstone"]},
+  "fallen_statue": {"name": "Fallen statue", "size": "small", "terrains": ["plain", "hill", "cobble", "flagstone"]},
+  "brazier": {"name": "Brazier", "size": "small", "terrains": ["plain", "fort", "road", "cobble", "flagstone"]},
+  "spear_rack": {"name": "Spear rack", "size": "tall", "terrains": ["plain", "fort", "road", "cobble", "flagstone"]}
 }

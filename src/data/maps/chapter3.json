@@ -71,14 +71,29 @@
     }
   ],
   "props": [
-    {"id": "banner", "x": 5, "y": 1},
-    {"id": "banner", "x": 10, "y": 1},
-    {"id": "well", "x": 7, "y": 4},
     {"id": "barrels", "x": 2, "y": 9},
-    {"id": "cart", "x": 12, "y": 9},
     {"id": "barrels", "x": 8, "y": 12},
     {"id": "wheel", "x": 1, "y": 15},
     {"id": "barrels", "x": 12, "y": 4},
-    {"id": "rubble", "x": 3, "y": 15}
+    {"id": "rubble", "x": 3, "y": 15},
+    {"id": "standard", "x": 5, "y": 1},
+    {"id": "standard", "x": 10, "y": 1},
+    {"id": "fountain", "x": 7, "y": 4},
+    {"id": "hand_cart", "x": 12, "y": 9},
+    {"id": "well", "x": 2, "y": 12},
+    {"id": "brazier", "x": 3, "y": 1},
+    {"id": "brazier", "x": 11, "y": 1},
+    {"id": "street_lamp", "x": 4, "y": 9},
+    {"id": "street_lamp", "x": 9, "y": 9},
+    {"id": "street_lamp", "x": 5, "y": 15},
+    {"id": "street_lamp", "x": 8, "y": 15},
+    {"id": "fish_baskets", "x": 6, "y": 9},
+    {"id": "shop_sign", "x": 5, "y": 6},
+    {"id": "shop_sign", "x": 11, "y": 10},
+    {"id": "bench", "x": 5, "y": 4},
+    {"id": "bench", "x": 9, "y": 4},
+    {"id": "notice_board", "x": 2, "y": 11},
+    {"id": "spear_rack", "x": 4, "y": 3},
+    {"id": "spear_rack", "x": 9, "y": 3}
   ]
 }
