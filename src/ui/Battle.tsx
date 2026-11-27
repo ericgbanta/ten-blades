@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'preact/hooks';
 import { createBattle, type BattleSetup, type BattleState, type BattleSummary } from '../core';
-import { composeMcToken } from '../art/mc/compose';
+import { composeMcToken, copyMc } from '../art/mc/compose';
 import { DEFAULT_LOOK, type McLook } from '../art/mc/look';
 import { campContent, chapters, gameData } from '../data';
 import { scenes as sceneData, speakers, worldNames } from '../data/story';
@@ -222,7 +222,7 @@ function BattleRun({ initial, launch, look, text, scenes, pendingScenes, showDan
     let cancelled = false;
     const removeHook = launch.test ? installTestHook(controller, gameData, () => game.current, () => writes.idle()) : null;
     const lord = controller.view.state.units.find((u) => u.isLord && u.team === 'player');
-    const token = lord ? composeMcToken(look, lord.classId).then(copyCanvas, () => null) : Promise.resolve(null);
+    const token = lord ? composeMcToken(look, lord.classId).then(copyMc, () => null) : Promise.resolve(null);
     void Promise.all([import('../game/start'), token]).then(([{ startGame }, mcToken]) => {
       if (cancelled || !host.current) return;
       game.current = startGame(host.current, controller.view.state, gameData, controller, { mcToken, look });
@@ -339,14 +339,6 @@ function BattleScene(props: { sceneId: string; controller: BattleController; sta
   );
 }
 
-/** Phaser keeps the canvas it is given; it gets its own copy of the shared composed one. */
-function copyCanvas(src: HTMLCanvasElement): HTMLCanvasElement {
-  const c = document.createElement('canvas');
-  c.width = src.width;
-  c.height = src.height;
-  c.getContext('2d')!.drawImage(src, 0, 0);
-  return c;
-}
 
 function DockPanel({ view, controller, look }: { view: BattleView; controller: BattleController; look: McLook }) {
   if (view.busy) return null;

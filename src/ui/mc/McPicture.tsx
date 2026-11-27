@@ -4,7 +4,7 @@
 import type { JSX } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import { imageMeta } from '../../art/manifest';
-import { composeMcPortrait, composeMcPose, composeMcToken, MC_CANVAS } from '../../art/mc/compose';
+import { composeMcPortrait, composeMcPose, composeMcToken, MC_CANVAS, paintMc } from '../../art/mc/compose';
 import { lookKey, type McExpression, type McLook, type McPose } from '../../art/mc/look';
 
 /** Part of the source canvas to show: [x, y, w, h]. */
@@ -36,9 +36,7 @@ export function McPicture(props: PictureProps): JSX.Element {
         const [x, y, w, h] = crop;
         if (c.width !== w) c.width = w;
         if (c.height !== h) c.height = h;
-        const ctx = c.getContext('2d')!;
-        ctx.clearRect(0, 0, w, h);
-        ctx.drawImage(src, x, y, w, h, 0, 0, w, h);
+        paintMc(c.getContext('2d')!, src, x, y, w, h);
         onDrawn?.(performance.now() - t0);
       })
       .catch((e: unknown) => console.warn('MC picture failed', e));

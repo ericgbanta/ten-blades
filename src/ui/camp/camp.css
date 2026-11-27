@@ -15,6 +15,7 @@
   display: flex;
   flex-direction: column;
   min-height: clamp(270px, 44vh, 340px);
+  min-height: clamp(270px, 44svh, 340px);
   padding: calc(8px + var(--safe-t)) calc(12px + var(--safe-r)) 10px calc(12px + var(--safe-l));
   background:
     linear-gradient(rgba(17, 13, 18, 0.55), rgba(17, 13, 18, 0.15) 30%, rgba(17, 13, 18, 0.25) 62%, var(--c-bg) 100%),
@@ -1142,6 +1143,7 @@
   .camp-scene {
     flex: 0 0 44%;
     min-height: 100vh;
+    min-height: 100dvh;
     padding-right: 12px;
   }
 
@@ -1149,6 +1151,7 @@
     max-width: none;
     overflow-y: auto;
     max-height: 100vh;
+    max-height: 100dvh;
     padding-top: calc(10px + var(--safe-t));
   }
 

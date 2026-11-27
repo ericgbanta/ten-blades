@@ -12,6 +12,26 @@ body,
   margin: 0;
 }
 
+/* No pull to refresh or scroll chaining (Chrome reads it from the root), and no double-tap zoom anywhere: a quick
+   second tap is a game input. Pinch zoom of the page stays available outside the map, which handles its own. */
+html {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+/* Long presses on controls do not open the iOS callout or select text. Text fields and the dialogue log still can. */
+button,
+a,
+[role='button'],
+[role='tab'],
+[role='radio'],
+canvas,
+img {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 body {
   background: var(--c-bg);
   color: var(--c-bone);

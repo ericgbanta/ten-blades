@@ -47,6 +47,7 @@
   right: 0;
   bottom: calc(var(--dlg-box-h) + var(--safe-b) + 6px);
   height: min(62vw, 46vh, 330px);
+  height: min(62vw, 46svh, 330px);
   pointer-events: none;
 }
 
@@ -54,6 +55,7 @@
   position: absolute;
   bottom: 0;
   width: min(62vw, 46vh, 330px);
+  width: min(62vw, 46svh, 330px);
   aspect-ratio: 1;
   transition:
     filter 220ms ease,
@@ -463,6 +465,7 @@
   }
   .dlg-portrait {
     width: min(62vh, 38vw);
+    width: min(62svh, 38vw);
   }
   .dlg-box {
     left: max(calc(var(--safe-l) + var(--sp-2)), 18vw);

@@ -6,7 +6,7 @@
 import Phaser from 'phaser';
 import type { BattleState, GameData, School, Unit } from '../core';
 import { imageMeta, imageUrl } from '../art/manifest';
-import { composeMcPortrait, composeMcPose } from '../art/mc/compose';
+import { composeMcPortrait, composeMcPose, copyMc } from '../art/mc/compose';
 import { lookKey, type McLook } from '../art/mc/look';
 import { battleArt, BATTLE_POSES, portraitId, type BattlePose } from '../ui/artMap';
 import type { Fighter, FightScript, FxKind, SceneStep } from '../battle/fightTimeline';
@@ -145,11 +145,7 @@ export class FightScene extends Phaser.Scene implements FightStage {
             composeMcPose(this.look, art.style, pose).then(
               (canvas) => {
                 if (this.textures.exists(key)) return;
-                const copy = document.createElement('canvas');
-                copy.width = canvas.width;
-                copy.height = canvas.height;
-                copy.getContext('2d')!.drawImage(canvas, 0, 0);
-                this.textures.addCanvas(key, copy);
+                this.textures.addCanvas(key, copyMc(canvas));
               },
               () => undefined,
             ),

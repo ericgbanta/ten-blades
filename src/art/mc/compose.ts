@@ -52,8 +52,14 @@ async function decode(url: string): Promise<CanvasImageSource & { width: number;
   if (typeof createImageBitmap === 'function') {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`${res.status} for ${url}`);
-    // No color management and no premultiplying: the data image holds numbers, not colors.
-    return createImageBitmap(await res.blob(), { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
+    // No color management and no premultiplying: the data image holds numbers, not colors. A browser that
+    // rejects these options (older Safari) falls through to a plain image, which is sRGB in and out here too.
+    const blob = await res.blob();
+    try {
+      return await createImageBitmap(blob, { premultiplyAlpha: 'none', colorSpaceConversion: 'none' });
+    } catch {
+      /* fall through */
+    }
   }
   const img = new Image();
   img.src = url;
@@ -182,7 +188,40 @@ async function composeLayers(kind: Kind, ids: string[], look: McLook): Promise<H
     blendLayer(picture.data, w, h, recolored, l);
   }
   ctx.putImageData(picture, 0, 0);
+  flush(ctx);
+  pixelsOf.set(out, picture);
   return out;
+}
+
+/** The pixels each composed canvas was filled with, so copies never need drawImage from it (see paintMc). */
+const pixelsOf = new WeakMap<HTMLCanvasElement, ImageData>();
+
+/** Reading one pixel back makes the browser apply a pending putImageData before anything else reads the canvas. */
+function flush(ctx: CanvasRenderingContext2D): void {
+  ctx.getImageData(0, 0, 1, 1);
+}
+
+/**
+ * Paint the region (sx, sy, w, h) of a composed picture at the top left of `ctx`, replacing what is there. It uses
+ * putImageData from the composed pixels rather than drawImage from the composed canvas, which mobile Safari can
+ * serve stale right after a putImageData (see blendLayer). A canvas not made here is drawn with drawImage.
+ */
+export function paintMc(ctx: CanvasRenderingContext2D, src: HTMLCanvasElement, sx: number, sy: number, w: number, h: number): void {
+  const data = pixelsOf.get(src);
+  if (data) {
+    ctx.putImageData(data, -sx, -sy, sx, sy, w, h);
+    flush(ctx);
+  } else {
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(src, sx, sy, w, h, 0, 0, w, h);
+  }
+}
+
+/** A canvas of its own with a composed picture's pixels, for Phaser, which keeps the canvas it is given. */
+export function copyMc(src: HTMLCanvasElement): HTMLCanvasElement {
+  const c = canvas(src.width, src.height);
+  paintMc(c.getContext('2d')!, src, 0, 0, src.width, src.height);
+  return c;
 }
 
 function cached(key: string, make: () => Promise<HTMLCanvasElement>): Promise<HTMLCanvasElement> {
